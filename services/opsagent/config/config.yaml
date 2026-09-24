@@ -1,0 +1,62 @@
+# opsagent 默认配置（本地开发）。
+# 敏感项优先级：环境变量 > 本文件。
+#   OPSAGENT_ALERT_WEBHOOK_KEY    → notify.alert_webhook_key
+#   OPSAGENT_LLM_API_KEY          → llm.api_key
+#   OPSAGENT_REDIS_PASSWORD       → redis.password
+#   OPSAGENT_SESSION_ENCRYPTED_KEY → session.encrypted_key
+#
+# session（redis.db / encrypted_key / cookie）必须与 eiam 写入会话的配置一致，
+# 否则所有请求将因「会话无效」返回 401 ERR_TENANT_DENIED。
+
+server:
+  port: 8081
+  read_timeout_seconds: 30   # 与编排侧 25s 同步预算对齐（tech-design）
+  write_timeout_seconds: 30
+
+redis:
+  addr: "127.0.0.1:6379"
+  password: ""
+  db: 1                      # 必须与 eiam 会话 DB 一致
+
+session:
+  encrypted_key: "change-me-opsagent-session-key"   # 生产环境用 env 注入
+  cookie_name: "opsagent-token"
+  cookie_domain: "localhost"
+  whitelist:                 # 跳过用户会话鉴权的路径（精确或 /path/* 前缀）
+    - /api/v1/opsagent/health
+    - /api/v1/opsagent/alerts   # 告警入站 webhook（服务间密钥鉴权，后续任务接入）
+
+llm:
+  provider: qwen             # qwen | deepseek | openai
+  model: qwen-plus
+  api_key: ""                # 生产环境用 OPSAGENT_LLM_API_KEY 注入；为空走降级路径
+  base_url: ""
+  timeout_seconds: 12        # >12s 触发降级谓词
+  budget_per_hour: 100       # 滚动 1h LLM 调用预算
+
+notify:
+  alert_webhook_key: "dev-opsagent-alert-webhook-key"   # 服务间密钥，生产环境用 env 注入
+  max_attempts: 3
+  channels:
+    - channel: dingtalk
+      enabled: false
+      webhook: ""
+    - channel: feishu
+      enabled: false
+      webhook: ""
+    - channel: wecom
+      enabled: false
+      webhook: ""
+    - channel: email
+      enabled: false
+      webhook: ""
+
+thresholds:
+  worker_concurrency: 5      # 告警排查并发上限（P1 单实例约束）
+  queue_capacity: 100        # 告警队列容量，溢出丢弃低级别保留高危
+  dedup_window_minutes: 10   # 指纹去重窗口
+  max_timeframe_hours: 24    # 查询时间窗上限
+  clarify_confidence: 0.6    # 意图置信度低于该值触发澄清
+
+whitelist:                   # 低危白名单（运行时须命中 internal/risk 注册表）
+  entries: []
