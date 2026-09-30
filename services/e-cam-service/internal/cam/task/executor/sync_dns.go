@@ -99,6 +99,7 @@ func (e *SyncAssetsExecutor) syncDNS(
 					"priority":   r.Priority,
 					"line":       r.Line,
 					"status":     r.Status,
+					"weight":     r.Weight,
 					"provider":   string(account.Provider),
 					"account_id": account.ID,
 					"tenant_id":  account.TenantID,
