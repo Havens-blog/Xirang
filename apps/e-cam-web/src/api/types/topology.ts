@@ -145,6 +145,15 @@ export const NODE_TYPES = {
     S3: 's3',
     EXTERNAL: 'external',
     UNKNOWN: 'unknown',
+    NLB: 'nlb',
+    CLB: 'clb',
+    ENI: 'eni',
+    MONGODB: 'mongodb',
+    VPC: 'vpc',
+    EIP: 'eip',
+    NAS: 'nas',
+    KAFKA: 'kafka',
+    ELASTICSEARCH: 'elasticsearch',
 } as const
 
 /** 资源分类 */
