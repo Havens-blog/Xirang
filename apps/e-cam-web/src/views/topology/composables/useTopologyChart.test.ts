@@ -7,10 +7,10 @@
  * increasing with QPS. Color thresholds: error_rate ≤ 1% blue,
  * 1% < error_rate ≤ 5% orange, error_rate > 5% red.
  */
-import type { TopoEdge } from '@/api/types/topology'
+import type { TopoEdge, TopoNode } from '@/api/types/topology'
 import * as fc from 'fast-check'
 import { describe, expect, it } from 'vitest'
-import { apmEdgeStyle } from './useTopologyChart'
+import { apmEdgeStyle, getNodeColor, isInactiveDNS } from './useTopologyChart'
 
 /** Helper to build a minimal APM TopoEdge with given attributes */
 function makeApmEdge(attrs: Record<string, any>): TopoEdge {
@@ -117,5 +117,30 @@ describe('Property 10: APM 边视觉样式映射', () => {
     it('boundary: very high QPS gives maximum width', () => {
         const style = apmEdgeStyle(makeApmEdge({ qps: 1_000_000, error_rate: 0 }))
         expect(style.width).toBe(5)
+    })
+})
+
+describe('DNS 暂停记录灰显', () => {
+    function dnsNode(type: string, status?: string): TopoNode {
+        return {
+            id: 'dns-x', name: 'x.example.com', type, category: 'dns', provider: 'tencent',
+            region: '', status: 'active', source_collector: 'dns_api',
+            attributes: status === undefined ? {} : { status },
+        }
+    }
+
+    it('isInactiveDNS: dns_record + status=disable 为暂停', () => {
+        expect(isInactiveDNS(dnsNode('dns_record', 'disable'))).toBe(true)
+    })
+
+    it('isInactiveDNS: 非 dns_record 或 enable/缺 status 非暂停', () => {
+        expect(isInactiveDNS(dnsNode('dns_record', 'enable'))).toBe(false)
+        expect(isInactiveDNS(dnsNode('dns_record'))).toBe(false)
+        expect(isInactiveDNS(dnsNode('cdn', 'disable'))).toBe(false)
+    })
+
+    it('getNodeColor: 暂停 DNS 返回灰色', () => {
+        expect(getNodeColor(dnsNode('dns_record', 'disable'))).toBe('#64748b')
+        expect(getNodeColor(dnsNode('dns_record', 'enable'))).not.toBe('#64748b')
     })
 })

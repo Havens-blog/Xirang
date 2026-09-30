@@ -8,7 +8,13 @@ const PC: Record<string, string> = { aliyun: '#ff6a00', aws: '#ff9900', tencent:
 const TS: Record<string, string> = { dns_record: 'circle', cdn: 'diamond', waf: 'triangle', slb: 'roundRect', alb: 'roundRect', elb: 'roundRect', nlb: 'roundRect', eni: 'circle', gateway: 'roundRect', k8s_ingress: 'roundRect', k8s_service: 'circle', k8s_deployment: 'rect', k8s_statefulset: 'rect', ecs: 'rect', rds: 'circle', redis: 'circle', oss: 'diamond', s3: 'diamond', external: 'circle', unknown: 'circle' }
 const TN: Record<string, string> = { dns_record: 'DNS', cdn: 'CDN', waf: 'WAF', slb: 'SLB', alb: 'ALB', nlb: 'NLB', elb: 'ELB', eni: 'ENI', gateway: '网关', k8s_ingress: 'Ingress', k8s_service: 'Service', k8s_deployment: 'Deployment', k8s_statefulset: 'StatefulSet', ecs: 'ECS', rds: 'RDS', redis: 'Redis', mongodb: 'MongoDB', oss: 'OSS', s3: 'S3', nas: 'NAS', eip: 'EIP', vpc: 'VPC', external: '外部', unknown: '未知' }
 const PN: Record<string, string> = { aliyun: '阿里云', aws: 'AWS', tencent: '腾讯云', huawei: '华为云', volcano: '火山引擎', volcengine: '火山引擎' }
-export function getNodeColor(n: TopoNode): string { return TC[n.type] || CC[n.category] || '#64748b' }
+export function isInactiveDNS(n: TopoNode): boolean {
+    return n.type === 'dns_record' && n.attributes?.status === 'disable'
+}
+export function getNodeColor(n: TopoNode): string {
+    if (isInactiveDNS(n)) return '#64748b' // 暂停解析的 DNS 记录灰显
+    return TC[n.type] || CC[n.category] || '#64748b'
+}
 export function getProviderColor(p: string): string { return PC[p] || '#6366f1' }
 
 /** 生成节点显示标签：DNS 显示域名，APM 服务显示服务名，CMDB 实例显示"类型 · 云厂商" */
@@ -155,6 +161,8 @@ export function buildChartOption(graph: TopoGraph, layout: 'dag' | 'force'): Rec
     const pos = effectiveLayout === 'dag' ? computeDagPositions(nodes, edges) : undefined
     const curveness = computeEdgeCurveness(edges)
     const activeDomain = store.selectedDomain || undefined
+    // 暂停解析的 DNS 记录：节点与其出边灰显
+    const inactiveDNS = new Set(nodes.filter(isInactiveDNS).map((n) => n.id))
 
     // 力导向参数：APM 拓扑节点多，需要更大排斥力和边长
     const forceParams = isApmOnly
@@ -196,7 +204,12 @@ export function buildChartOption(graph: TopoGraph, layout: 'dag' | 'force'): Rec
             })),
             edges: edges.map((e: TopoEdge) => ({
                 source: e.source_id, target: e.target_id,
-                lineStyle: { ...es(e), curveness: curveness.get(e.id) ?? 0 },
+                lineStyle: {
+                    ...(inactiveDNS.has(e.source_id)
+                        ? { color: '#64748b', width: 1.5, type: 'solid', opacity: 0.4 }
+                        : es(e)),
+                    curveness: curveness.get(e.id) ?? 0,
+                },
                 symbol: ['none', 'arrow'], symbolSize: [0, 8], relation: e.relation,
                 edgeData: e,
             })),
