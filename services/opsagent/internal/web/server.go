@@ -81,3 +81,10 @@ func OK(c *gin.Context, data any) {
 func Fail(c *gin.Context, status int, code string, message string) {
 	c.JSON(status, Response{Code: code, Message: message})
 }
+
+// FailErr 统一错误响应：经 middleware.MapError 映射内部错误 → HTTP 状态 + ERR_* 业务码，
+// 跨租户/不存在一律 404 不泄露存在性。
+func FailErr(c *gin.Context, err error) {
+	status, code, message := middleware.MapError(err)
+	Fail(c, status, code, message)
+}
