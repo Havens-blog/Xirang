@@ -7,10 +7,10 @@
  * increasing with QPS. Color thresholds: error_rate ≤ 1% blue,
  * 1% < error_rate ≤ 5% orange, error_rate > 5% red.
  */
-import type { TopoEdge } from '@/api/types/topology'
+import type { TopoEdge, TopoNode } from '@/api/types/topology'
 import * as fc from 'fast-check'
 import { describe, expect, it } from 'vitest'
-import { apmEdgeStyle } from './useTopologyChart'
+import { apmEdgeStyle, getNodeColor, isInactiveDNS } from './useTopologyChart'
 
 /** Helper to build a minimal APM TopoEdge with given attributes */
 function makeApmEdge(attrs: Record<string, any>): TopoEdge {
@@ -117,5 +117,35 @@ describe('Property 10: APM 边视觉样式映射', () => {
     it('boundary: very high QPS gives maximum width', () => {
         const style = apmEdgeStyle(makeApmEdge({ qps: 1_000_000, error_rate: 0 }))
         expect(style.width).toBe(5)
+    })
+})
+
+describe('DNS 暂停/权重0 记录灰显', () => {
+    function dnsNode(type: string, attrs?: Record<string, any>): TopoNode {
+        return {
+            id: 'dns-x', name: 'x.example.com', type, category: 'dns', provider: 'tencent',
+            region: '', status: 'active', source_collector: 'dns_api',
+            attributes: attrs,
+        }
+    }
+
+    it('isInactiveDNS: status=disable 为暂停', () => {
+        expect(isInactiveDNS(dnsNode('dns_record', { status: 'disable' }))).toBe(true)
+    })
+
+    it('isInactiveDNS: weight=0 为未加权/暂停', () => {
+        expect(isInactiveDNS(dnsNode('dns_record', { weight: 0 }))).toBe(true)
+    })
+
+    it('isInactiveDNS: 正常流量（status=enable 且 weight>0 或缺省）不灰显', () => {
+        expect(isInactiveDNS(dnsNode('dns_record', { status: 'enable', weight: 1 }))).toBe(false)
+        expect(isInactiveDNS(dnsNode('dns_record'))).toBe(false)
+        expect(isInactiveDNS(dnsNode('cdn', { status: 'disable', weight: 0 }))).toBe(false)
+    })
+
+    it('getNodeColor: 暂停/权重0 DNS 返回灰色', () => {
+        expect(getNodeColor(dnsNode('dns_record', { status: 'disable' }))).toBe('#64748b')
+        expect(getNodeColor(dnsNode('dns_record', { weight: 0 }))).toBe('#64748b')
+        expect(getNodeColor(dnsNode('dns_record', { weight: 1 }))).not.toBe('#64748b')
     })
 })
