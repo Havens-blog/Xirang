@@ -106,3 +106,70 @@ func (s RiskEntryStatus) IsValid() bool {
 		return false
 	}
 }
+
+// DedupConclusion 告警记账结论（alerts.dedup_conclusion）。
+// new=窗口首条建文档（count=1）；merged=同指纹归并（$inc count）；overflow_dropped=队列溢出丢弃留档。
+type DedupConclusion string
+
+const (
+	DedupNew             DedupConclusion = "new"
+	DedupMerged          DedupConclusion = "merged"
+	DedupOverflowDropped DedupConclusion = "overflow_dropped"
+)
+
+// IsValid 报告 c 是否为合法 DedupConclusion（new|merged|overflow_dropped）。
+func (c DedupConclusion) IsValid() bool {
+	switch c {
+	case DedupNew, DedupMerged, DedupOverflowDropped:
+		return true
+	default:
+		return false
+	}
+}
+
+// SettingScope 系统配置作用域（settings.scope）。
+type SettingScope string
+
+const (
+	ScopeDatasource      SettingScope = "datasource"
+	ScopeLLM             SettingScope = "llm"
+	ScopeNotify          SettingScope = "notify"
+	ScopeRiskWhitelist   SettingScope = "risk_whitelist"
+	ScopePresetQueries   SettingScope = "preset_queries"
+	ScopeGuidedTemplates SettingScope = "guided_templates"
+)
+
+// IsValid 报告 s 是否为合法 SettingScope（六类作用域）。
+func (s SettingScope) IsValid() bool {
+	switch s {
+	case ScopeDatasource, ScopeLLM, ScopeNotify, ScopeRiskWhitelist, ScopePresetQueries, ScopeGuidedTemplates:
+		return true
+	default:
+		return false
+	}
+}
+
+// CompensationKind 补偿类型（compensations.kind；P1 仅落库失败重放）。
+type CompensationKind string
+
+const (
+	CompKindPersistFailed CompensationKind = "persist_failed"
+)
+
+// CompensationStatus 补偿项状态（compensations.status：retry|dead）。
+type CompensationStatus string
+
+const (
+	CompStatusRetry CompensationStatus = "retry"
+	CompStatusDead  CompensationStatus = "dead"
+)
+
+// IsValid 报告 s 是否为合法 CompensationStatus（retry|dead）。
+func (s CompensationStatus) IsValid() bool {
+	switch s {
+	case CompStatusRetry, CompStatusDead:
+		return true
+	default:
+		return false
+	}
+}
