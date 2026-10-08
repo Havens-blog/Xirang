@@ -54,6 +54,7 @@ type SyncAssetsExecutor struct {
 	dnsRecordColl  *mongo.Collection // DNS 记录集合 (c_dns_record)
 	changeTracker  ChangeTracker     // 资产同步变更追踪（nil 不追踪，由 ioc 注入）
 	ruleExecutor   RuleAutoExecutor  // 服务树规则引擎（同步完成后自动执行规则，nil 关闭，由 ioc 注入）
+	topoInvalidator TopologyCacheInvalidator // 拓扑缓存失效器（同步完成后清除 LiveBuilder 缓存，nil 关闭，由 ioc 注入）
 	// resourceGroupNames 阿里云资源组 ID -> 名称 映射（账号级补采，同步时写入 attributes.resource_group_name）
 	resourceGroupNames map[string]string
 	logger             *elog.Component
@@ -317,6 +318,10 @@ func (e *SyncAssetsExecutor) Execute(ctx context.Context, t *taskx.Task) error {
 	// 仅加完成后回调，不改同步既有逻辑语义；异步 + 失败容忍，不阻塞同步返回。
 	e.triggerRulesAfterSync(syncedTenantIDs)
 
+	// 拓扑快照缓存失效：资产同步后清除受影响租户的 LiveBuilder 缓存，
+	// 使下一次拓扑查询从最新 ecam_dns_record / ecam_instance 重建（无需手动「刷新」）。
+	e.invalidateTopologyAfterSync(syncedTenantIDs)
+
 	// 更新进度
 	e.taskRepo.UpdateProgress(ctx, t.ID, 95, "正在更新同步状态")
 
@@ -442,6 +447,32 @@ func (e *SyncAssetsExecutor) triggerRulesAfterSync(tenantIDs map[int64]struct{})
 	for tenantID := range tenantIDs {
 		e.logger.Info("同步完成，触发规则引擎自动执行", elog.Int64("tenant_id", tenantID))
 		e.ruleExecutor.ExecuteRulesAsync(tenantID)
+	}
+}
+
+// TopologyCacheInvalidator 拓扑缓存失效接口（资产同步完成后清除租户 LiveBuilder 快照缓存）。
+// 经 SetTopologyCacheInvalidator 注入（与 ChangeTracker / RuleAutoExecutor 同款模式），
+// executor 不直接 import topology，避免依赖环。
+type TopologyCacheInvalidator interface {
+	InvalidateTenantCache(ctx context.Context, tenantID int64)
+}
+
+// SetTopologyCacheInvalidator 注入拓扑缓存失效器（nil 关闭同步后缓存失效）
+func (e *SyncAssetsExecutor) SetTopologyCacheInvalidator(t TopologyCacheInvalidator) {
+	e.topoInvalidator = t
+}
+
+// invalidateTopologyAfterSync 资产同步完成后清除受影响租户的拓扑快照缓存，使下一次拓扑查询
+// 由 LiveBuilder 从最新 ecam_dns_record / ecam_instance 重建（改资产后无需手动「刷新」）。
+func (e *SyncAssetsExecutor) invalidateTopologyAfterSync(tenantIDs map[int64]struct{}) {
+	if e.topoInvalidator == nil || len(tenantIDs) == 0 {
+		return
+	}
+	for tenantID := range tenantIDs {
+		e.logger.Info("同步完成，清除租户拓扑缓存", elog.Int64("tenant_id", tenantID))
+		invCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		e.topoInvalidator.InvalidateTenantCache(invCtx, tenantID)
+		cancel()
 	}
 }
 

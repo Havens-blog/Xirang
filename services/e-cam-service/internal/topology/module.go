@@ -15,6 +15,7 @@ import (
 // Module 拓扑模块
 type Module struct {
 	Handler *web.TopologyHandler
+	topoSvc service.TopologyService
 	logger  *elog.Component
 }
 
@@ -39,6 +40,7 @@ func NewModule(db *mongox.Mongo) *Module {
 
 	return &Module{
 		Handler: handler,
+		topoSvc: topoSvc,
 		logger:  elog.DefaultLogger,
 	}
 }
@@ -69,4 +71,12 @@ func (m *Module) InitIndexes(ctx context.Context, db *mongox.Mongo) error {
 // RegisterRoutes 注册路由到 Gin 引擎
 func (m *Module) RegisterRoutes(server *gin.Engine) {
 	m.Handler.RegisterRoutes(server)
+}
+
+// InvalidateTenantCache 清除租户拓扑快照缓存（资产同步完成后经 ioc 注入调用，
+// satisfies executor.TopologyCacheInvalidator）
+func (m *Module) InvalidateTenantCache(ctx context.Context, tenantID int64) {
+	if m.topoSvc != nil {
+		m.topoSvc.InvalidateTenantCache(ctx, tenantID)
+	}
 }

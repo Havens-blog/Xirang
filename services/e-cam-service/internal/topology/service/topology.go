@@ -23,6 +23,9 @@ type TopologyService interface {
 	GetDomains(ctx context.Context, tenantID int64) ([]domain.DomainItem, error)
 	// GetStats 获取拓扑统计信息
 	GetStats(ctx context.Context, tenantID int64) (*domain.TopoStats, error)
+	// InvalidateTenantCache 清除租户内所有 LiveBuilder 快照缓存（dns_api / cloud_api 来源），
+	// 资产同步后调用，使下一次拓扑查询从最新资产重建。
+	InvalidateTenantCache(ctx context.Context, tenantID int64)
 }
 
 type topologyService struct {
@@ -675,6 +678,29 @@ func (s *topologyService) clearLiveBuilderCache(ctx context.Context, tenantID in
 	}
 	for _, e := range allEdges {
 		if visited[e.SourceID] && (e.SourceCollector == domain.SourceDNSAPI || e.SourceCollector == domain.SourceCloudAPI) {
+			_ = s.edgeRepo.Delete(ctx, e.ID)
+		}
+	}
+}
+
+// InvalidateTenantCache 清除租户内所有 LiveBuilder 快照缓存（dns_api / cloud_api 来源的节点和边），
+// 资产同步后调用，使下一次拓扑查询由 LiveBuilder 从最新资产重建。
+func (s *topologyService) InvalidateTenantCache(ctx context.Context, tenantID int64) {
+	nodes, err := s.nodeRepo.Find(ctx, domain.NodeFilter{TenantID: tenantID})
+	if err != nil {
+		return
+	}
+	for _, n := range nodes {
+		if n.SourceCollector == domain.SourceDNSAPI || n.SourceCollector == domain.SourceCloudAPI {
+			_ = s.nodeRepo.Delete(ctx, n.ID)
+		}
+	}
+	edges, err := s.edgeRepo.Find(ctx, domain.EdgeFilter{TenantID: tenantID})
+	if err != nil {
+		return
+	}
+	for _, e := range edges {
+		if e.SourceCollector == domain.SourceDNSAPI || e.SourceCollector == domain.SourceCloudAPI {
 			_ = s.edgeRepo.Delete(ctx, e.ID)
 		}
 	}

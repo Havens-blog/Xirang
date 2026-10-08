@@ -243,6 +243,11 @@ func InitWebServer(sp session.Provider, mdls []gin.HandlerFunc, psdk *sdk.SDK, s
 	topoModule.RegisterRoutes(server)
 	logger.Info("拓扑模块路由注册完成")
 
+	// 拓扑缓存失效接线：资产同步完成后清除租户拓扑快照缓存，使下一次拓扑查询从最新资产重建
+	if camModule != nil && camModule.TaskModule != nil {
+		camModule.TaskModule.SetTopologyCacheInvalidator(topoModule)
+	}
+
 	// 注册审计模块路由
 	if auditModule != nil {
 		logger.Info("注册审计模块路由")

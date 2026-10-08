@@ -147,6 +147,13 @@ func (m *Module) SetRuleExecutor(r executor.RuleAutoExecutor) {
 	}
 }
 
+// SetTopologyCacheInvalidator 注入拓扑缓存失效器（资产同步完成后清除租户拓扑快照缓存，nil 关闭）
+func (m *Module) SetTopologyCacheInvalidator(t executor.TopologyCacheInvalidator) {
+	if m.syncAssetsExecutor != nil {
+		m.syncAssetsExecutor.SetTopologyCacheInvalidator(t)
+	}
+}
+
 // RegisterBillingExecutor 注册账单采集执行器（在成本模块初始化后调用）
 func (m *Module) RegisterBillingExecutor(
 	normalizerSvc *normalizer.NormalizerService,
