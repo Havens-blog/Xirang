@@ -103,11 +103,13 @@ func (doc riskEntryDoc) toDomain() domain.RiskEntry {
 // ---------------------------------------------------------------------------
 
 // RiskEntryFilter 风险中心列表筛选（api-handbook §3 列表语义）。零值字段不参与
-// 过滤；ServiceName 为子串模糊匹配。
+// 过滤；ServiceName 为子串模糊匹配；StartTime/EndTime 为 created_at 闭开区间。
 type RiskEntryFilter struct {
 	Status      domain.RiskEntryStatus
 	Severity    domain.Severity
 	ServiceName string
+	StartTime   time.Time
+	EndTime     time.Time
 }
 
 // BatchStatusItem 批量标记请求条目（api-handbook §5：逐条 CAS）。
@@ -133,6 +135,13 @@ type BatchStatusFailure struct {
 type BatchStatusResult struct {
 	Succeeded []BatchStatusSuccess
 	Failed    []BatchStatusFailure
+}
+
+// RiskStats 风险中心聚合统计（api-handbook §3 stats 语义，供统计卡展示）。
+type RiskStats struct {
+	PendingView int64 `json:"pendingView" bson:"pendingView"` // 待处理数（status=pending_view）
+	TodayNew    int64 `json:"todayNew" bson:"todayNew"`       // 今日新增数（created_at >= 今日 00:00）
+	HighRisk    int64 `json:"highRisk" bson:"highRisk"`       // 高危数（severity=P0|P1）
 }
 
 // ---------------------------------------------------------------------------
@@ -188,9 +197,12 @@ type RiskEntryDAO interface {
 	// 成功/失败分别聚合；冲突与不存在分别记账 ReasonCode=conflict/not_found，
 	// 冲突条目不覆盖并发单标。
 	BatchUpdateStatus(ctx context.Context, tenantID string, status domain.RiskEntryStatus, items []BatchStatusItem) (*BatchStatusResult, error)
-	// List 风险中心列表：created_at 倒序，status/severity/serviceName(模糊) 筛选
-	// + 分页；返回命中的 total（当前筛选条件总条数）。
+	// List 风险中心列表：created_at 倒序，status/severity/serviceName(模糊)/时间
+	// 筛选 + 分页；返回命中的 total（当前筛选条件总条数）。
 	List(ctx context.Context, tenantID string, filter RiskEntryFilter, limit, offset int) ([]domain.RiskEntry, int64, error)
+	// Stats 风险中心聚合统计（固定按租户全量，与列表筛选独立）：
+	// pendingView/todayNew/highRisk 三计数。高风险 = severity P0|P1。
+	Stats(ctx context.Context, tenantID string) (*RiskStats, error)
 	// InitIndexes 初始化 schema.mongo.js 定义的 risk_entries 索引（幂等）。
 	InitIndexes(ctx context.Context) error
 }
@@ -402,6 +414,16 @@ func (d *riskEntryDAO) List(ctx context.Context, tenantID string, filter RiskEnt
 	if filter.ServiceName != "" {
 		f["service_name"] = bson.M{"$regex": filter.ServiceName}
 	}
+	if !filter.StartTime.IsZero() || !filter.EndTime.IsZero() {
+		ts := bson.M{}
+		if !filter.StartTime.IsZero() {
+			ts["$gte"] = filter.StartTime
+		}
+		if !filter.EndTime.IsZero() {
+			ts["$lt"] = filter.EndTime
+		}
+		f["created_at"] = ts
+	}
 
 	total, err := d.db.Collection(RiskEntriesCollection).CountDocuments(ctx, f)
 	if err != nil {
@@ -427,4 +449,38 @@ func (d *riskEntryDAO) List(ctx context.Context, tenantID string, filter RiskEnt
 		out = append(out, doc.toDomain())
 	}
 	return out, total, nil
+}
+
+// Stats 风险中心聚合统计（单次 aggregation pipeline 计算三计数，与列表筛选独立）。
+func (d *riskEntryDAO) Stats(ctx context.Context, tenantID string) (*RiskStats, error) {
+	now := time.Now()
+	todayStart := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
+
+	cond := func(pred any) bson.M {
+		return bson.M{"$sum": bson.M{"$cond": []any{pred, 1, 0}}}
+	}
+	pipeline := mongo.Pipeline{
+		{{Key: "$match", Value: bson.M{"tenant_id": tenantID}}},
+		{{Key: "$group", Value: bson.M{
+			"_id":         nil,
+			"pendingView": cond(bson.M{"$eq": []any{"$status", string(domain.RiskStatusPendingView)}}),
+			"todayNew":    cond(bson.M{"$gte": []any{"$created_at", todayStart}}),
+			"highRisk":    cond(bson.M{"$in": []any{"$severity", []string{string(domain.SeverityP0), string(domain.SeverityP1)}}}),
+		}}},
+	}
+
+	cur, err := d.db.Collection(RiskEntriesCollection).Aggregate(ctx, pipeline)
+	if err != nil {
+		return nil, err
+	}
+	defer cur.Close(ctx)
+
+	var rows []RiskStats
+	if err := cur.All(ctx, &rows); err != nil {
+		return nil, err
+	}
+	if len(rows) == 0 {
+		return &RiskStats{}, nil
+	}
+	return &rows[0], nil
 }
