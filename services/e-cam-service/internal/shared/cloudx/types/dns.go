@@ -19,6 +19,7 @@ type DNSRecord struct {
 	Priority int    `json:"priority"`  // MX 优先级（仅 MX 类型有效）
 	Line     string `json:"line"`      // 线路类型：default / telecom / unicom / mobile 等
 	Status   string `json:"status"`    // 记录状态：enable / disable
+	Weight   int    `json:"weight"`    // 记录权重：0 视为未加权/暂停（腾讯 DNSPod 加权轮询）
 }
 
 // CreateDNSRecordRequest 创建解析记录请求

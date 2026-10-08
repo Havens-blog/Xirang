@@ -164,6 +164,10 @@ func (a *DNSAdapter) ListRecords(ctx context.Context, domain string) ([]types.DN
 			if r.MX != nil {
 				mx = int(*r.MX)
 			}
+			weight := 0
+			if r.Weight != nil {
+				weight = int(*r.Weight)
+			}
 
 			allRecords = append(allRecords, types.DNSRecord{
 				RecordID: recordID,
@@ -175,6 +179,7 @@ func (a *DNSAdapter) ListRecords(ctx context.Context, domain string) ([]types.DN
 				Priority: mx,
 				Line:     ptrStr(r.Line),
 				Status:   a.mapRecordStatus(ptrStr(r.Status)),
+				Weight:   weight,
 			})
 		}
 

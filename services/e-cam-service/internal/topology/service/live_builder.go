@@ -23,6 +23,8 @@ type dnsRecordDoc struct {
 	Value    string `bson:"value"`
 	TTL      int    `bson:"ttl"`
 	Provider string `bson:"provider"`
+	Weight   int    `bson:"weight"`
+	Status   string `bson:"status"`
 	TenantID int64  `bson:"tenant_id"`
 }
 
@@ -195,7 +197,7 @@ func (b *LiveTopologyBuilder) BuildFromDNS(ctx context.Context, tenantID int64, 
 				Category: domain.CategoryDNS, Provider: rec.Provider,
 				Status: domain.StatusActive, SourceCollector: domain.SourceDNSAPI,
 				TenantID: tenantID, UpdatedAt: now,
-				Attributes: map[string]interface{}{"record_type": rec.Type, "record_value": rec.Value, "rr": rec.RR},
+				Attributes: map[string]interface{}{"record_type": rec.Type, "record_value": rec.Value, "rr": rec.RR, "weight": rec.Weight, "status": rec.Status},
 			})
 		}
 
