@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { PresetQuery, SettingsData } from '@/api/opsagent'
 import {
+    addWhitelistEntry,
     API_CONTRACTS,
     connectionStatusText,
     DATASOURCE_CARDS,
@@ -8,12 +9,17 @@ import {
     DATA_SOURCE_LABEL,
     dispositionForRisk,
     formatTime,
+    mergeLLMProviders,
+    mergeNotifyChannels,
     normalizeSettings,
     NOTIFY_CHANNEL_LABEL,
     NOTIFY_CHANNEL_META,
     PROVIDER_LABEL,
     PROVIDER_META,
     RISK_LEVEL_META,
+    RISK_TOOL_CATALOG,
+    riskToolLabel,
+    savableLLMProviders,
     SECURITY_SWITCHES,
     notifyChannelLabel,
     providerLabel,
@@ -96,6 +102,93 @@ describe('响应规整（Go nil slice → JSON null 契约兜底）', () => {
         expect(out.datasources).toHaveLength(1)
         expect(out.notifyChannels[0]!.channel).toBe('dingtalk')
         expect(out.guidedTemplates.x!.template).toBe('tpl')
+    })
+})
+
+describe('白名单工具目录与新增校验（真实 CRUD 支撑）', () => {
+    it('九工具与后端风险注册表对齐：5 read-ish 4 read + notify low + 4 high', () => {
+        expect(RISK_TOOL_CATALOG.map((t) => t.tool)).toEqual([
+            'query_log',
+            'diagnose',
+            'query_alert',
+            'query_asset',
+            'notify',
+            'restart_service',
+            'rollback_deploy',
+            'ban_ip',
+            'delete_asset',
+        ])
+        expect(RISK_TOOL_CATALOG.filter((t) => t.level === 'read').map((t) => t.tool)).toEqual([
+            'query_log',
+            'diagnose',
+            'query_alert',
+            'query_asset',
+        ])
+        expect(RISK_TOOL_CATALOG.filter((t) => t.level === 'low').map((t) => t.tool)).toEqual(['notify'])
+        expect(RISK_TOOL_CATALOG.filter((t) => t.level === 'high')).toHaveLength(4)
+        expect(riskToolLabel('query_log')).toBe('查询日志（logquery 联邦）')
+        expect(riskToolLabel('unknown_tool')).toBe('unknown_tool')
+    })
+
+    it('新增：合法追加 / 高危拒绝 / 非法档拒绝 / 重复拒绝', () => {
+        const base = [{ tool: 'notify', riskLevel: 'low' as const }]
+        const ok = addWhitelistEntry(base, { tool: 'query_log', riskLevel: 'read' })
+        expect(ok.error).toBeUndefined()
+        expect(ok.list).toEqual([
+            { tool: 'notify', riskLevel: 'low' },
+            { tool: 'query_log', riskLevel: 'read' },
+        ])
+        expect(base).toHaveLength(1) // 不可变
+
+        expect(addWhitelistEntry(base, { tool: 'restart_service', riskLevel: 'low' }).error).toBe(
+            '高危工具不允许入白名单',
+        )
+        expect(addWhitelistEntry([], { tool: 'x', riskLevel: 'high' }).error).toBe('高危工具不允许入白名单')
+        expect(addWhitelistEntry([], { tool: 'x', riskLevel: 'nope' as never }).error).toBe('风险档仅支持 只读 / 低危')
+        expect(addWhitelistEntry(base, { tool: 'notify', riskLevel: 'read' }).error).toBe('工具 notify 已在白名单中')
+    })
+})
+
+describe('草稿骨架合并（空库初始化：注册表为基 / 后端覆盖 / 占位过滤）', () => {
+    it('通知渠道：后端缺失渠道默认关闭补齐四卡，后端值覆盖状态', () => {
+        const merged = mergeNotifyChannels([{ channel: 'dingtalk', enabled: true }])
+        expect(merged).toEqual([
+            { channel: 'dingtalk', enabled: true },
+            { channel: 'feishu', enabled: false },
+            { channel: 'wecom', enabled: false },
+            { channel: 'email', enabled: false },
+        ])
+        expect(mergeNotifyChannels([])).toEqual([
+            { channel: 'dingtalk', enabled: false },
+            { channel: 'feishu', enabled: false },
+            { channel: 'wecom', enabled: false },
+            { channel: 'email', enabled: false },
+        ])
+    })
+
+    it('LLM：后端缺失提供商空模型占位，既有值覆盖；savable 过滤空模型', () => {
+        const merged = mergeLLMProviders([
+            { name: 'qwen', default: true, model: 'qwen-plus', keyMasked: 'sk-****abcd' },
+        ])
+        expect(merged).toEqual([
+            { name: 'qwen', default: true, model: 'qwen-plus', apiKey: '' },
+            { name: 'deepseek', default: false, model: '', apiKey: '' },
+            { name: 'openai', default: false, model: '', apiKey: '' },
+        ])
+        const savable = savableLLMProviders([
+            { name: 'qwen', default: true, model: 'qwen-plus', apiKey: 'sk-x' },
+            { name: 'deepseek', default: false, model: '  ', apiKey: '' },
+        ])
+        expect(savable.map((p) => p.name)).toEqual(['qwen'])
+        expect(savable[0]!.apiKey).toBe('sk-x')
+    })
+
+    it('LLM：注册表外自定义提供商不丢失（保留后端条目 + 补注册表占位）', () => {
+        const merged = mergeLLMProviders([
+            { name: 'ollama-local', default: false, model: 'llama3:8b', keyMasked: '' },
+        ])
+        expect(merged.map((p) => p.name)).toEqual(['ollama-local', 'qwen', 'deepseek', 'openai'])
+        expect(merged[0]).toEqual({ name: 'ollama-local', default: false, model: 'llama3:8b', apiKey: '' })
     })
 })
 

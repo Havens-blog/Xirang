@@ -8,7 +8,7 @@
         v-for="p in providers"
         :key="p.name"
         class="provider-card"
-        :class="{ selected: p.default }"
+        :class="{ selected: p.default, unconfigured: !p.model }"
         role="radio"
         :aria-checked="p.default"
         tabindex="0"
@@ -22,7 +22,10 @@
         </div>
         <div class="provider-card-meta">
           <p class="provider-card-name">{{ providerLabel(p.name) }}</p>
-          <p class="provider-card-site">{{ PROVIDER_META[p.name]?.site ?? '—' }}</p>
+          <p class="provider-card-site">
+            {{ PROVIDER_META[p.name]?.site ?? '—' }}
+            <span v-if="!p.model" class="provider-card-unconfigured">未配置</span>
+          </p>
         </div>
         <span class="status-dot" :class="p.default ? 'connected' : 'disconnected'" />
       </div>
@@ -81,52 +84,66 @@
 
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
-import type { LLMProviderConfig, LLMProviderInput } from '@/api/opsagent'
+import { ElMessage } from 'element-plus'
+import type { LLMProviderInput } from '@/api/opsagent'
 import { PROVIDER_META, providerLabel } from '../logic'
 
 const props = defineProps<{
-    providers: LLMProviderConfig[]
+    /** 受控草稿（骨架合并后的 LLMProviderInput 列表，父级持有） */
+    providers: LLMProviderInput[]
+    /** name → 后端掩码（仅展示已配置 Key；apiKey 只写不读） */
+    keyMasked?: Record<string, string>
     editable?: boolean
     busy?: boolean
 }>()
 
 const emit = defineEmits<{ (e: 'draft', providers: LLMProviderInput[]): void }>()
 
-/** 当前默认提供商（未配置回退第一个） */
-const selected = computed<LLMProviderConfig | undefined>(
+/** 当前编辑对象（默认提供商；无默认回退第一个） */
+const selected = computed<LLMProviderInput | undefined>(
     () => props.providers.find((p) => p.default) ?? props.providers[0],
 )
 
 const keyInput = ref('')
 const modelInput = ref(selected.value?.model ?? '')
 
-// 默认提供商切换时同步模型输入框
+// 编辑对象切换：回填模型输入；keyInput 置空重输（明文仅驻留内存，不入组件状态）
 watch(
     () => selected.value?.name,
     () => {
         modelInput.value = selected.value?.model ?? ''
+        keyInput.value = ''
     },
 )
 
-const maskedOrEmpty = computed(() => selected.value?.keyMasked || '未配置 Key')
+const maskedOrEmpty = computed(() => props.keyMasked?.[selected.value?.name ?? ''] || '未配置 Key')
 
 /** 变更 → 上抛完整草稿（apiKey 只写；默认由单选决定） */
 function emitDraft(): void {
-    const out: LLMProviderInput[] = props.providers.map((p) => ({
-        name: p.name,
-        default: p.default,
-        model: p.name === selected.value?.name ? modelInput.value : p.model,
-        apiKey: p.name === selected.value?.name ? keyInput.value : '',
-    }))
+    const out: LLMProviderInput[] = props.providers.map((p) =>
+        p.name === selected.value?.name
+            ? { ...p, model: modelInput.value, apiKey: keyInput.value }
+            : { ...p, apiKey: p.apiKey },
+    )
     emit('draft', out)
 }
 
 function selectDefault(name: string): void {
+    const target = props.providers.find((p) => p.name === name)
+    // 未配置（空模型）的提供商不可作默认：LLM 调用需有模型名
+    if (target && target.model.trim() === '') {
+        ElMessage.warning('请先为该提供商填写默认模型')
+        return
+    }
+    if (name === selected.value?.name && modelInput.value.trim() === '') {
+        ElMessage.warning('请先填写默认模型')
+        return
+    }
     const out: LLMProviderInput[] = props.providers.map((p) => ({
-        name: p.name,
+        ...p,
         default: p.name === name,
-        model: p.name === name ? (p.name === selected.value?.name ? modelInput.value : p.model) : p.model,
-        apiKey: '',
+        model: p.name === selected.value?.name ? modelInput.value : p.model,
+        apiKey: p.name === selected.value?.name ? keyInput.value : p.apiKey,
     }))
     emit('draft', out)
 }
@@ -201,6 +218,14 @@ function selectDefault(name: string): void {
     margin: 0;
     font-size: 12px;
     color: hsl(var(--muted-foreground));
+}
+.provider-card-unconfigured {
+    margin-left: 8px;
+    font-size: 11px;
+    color: hsl(var(--severity-low));
+}
+.provider-card.unconfigured {
+    opacity: 0.7;
 }
 .status-dot {
     width: 8px;

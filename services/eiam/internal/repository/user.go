@@ -6,13 +6,13 @@ import (
 	"time"
 
 	"github.com/Havens-blog/e-iam/internal/domain"
+	"github.com/Havens-blog/e-iam/internal/errs"
 	"github.com/Havens-blog/e-iam/internal/repository/cache"
 	"github.com/Havens-blog/e-iam/internal/repository/dao"
 	"github.com/Havens-blog/e-iam/pkg/sqlx"
 	"github.com/go-webauthn/webauthn/webauthn"
 	"github.com/samber/lo"
 	"golang.org/x/sync/errgroup"
-	"gorm.io/gorm"
 )
 
 // IUserRepository 用户仓储接口
@@ -173,7 +173,7 @@ func (repo *userRepository) fullHydration(ctx context.Context, u dao.User) (doma
 	eg.Go(func() error {
 		var err error
 		up, err = repo.dao.FindProfileByUserId(ctx, u.ID)
-		if errors.Is(err, gorm.ErrRecordNotFound) {
+		if errors.Is(err, errs.ErrRecordNotFound) {
 			return nil
 		}
 		return err
@@ -182,7 +182,7 @@ func (repo *userRepository) fullHydration(ctx context.Context, u dao.User) (doma
 	eg.Go(func() error {
 		var err error
 		identities, err = repo.dao.FindIdentitiesByUserId(ctx, u.ID)
-		if errors.Is(err, gorm.ErrRecordNotFound) {
+		if errors.Is(err, errs.ErrRecordNotFound) {
 			return nil
 		}
 		return err
@@ -344,14 +344,14 @@ func (repo *userRepository) toDomain(u dao.User, up dao.UserProfile, ids []dao.U
 	}
 
 	return domain.User{
-		ID:          u.ID,
-		Username:    u.Username,
-		Password:    u.Password,
-		Email:       u.Email,
-		Status:      domain.Status(u.Status),
-		Source:      domain.Source(u.Source),
-		MfaType:     u.MfaType,
-		MfaSecret:   u.MfaSecret,
+		ID:                 u.ID,
+		Username:           u.Username,
+		Password:           u.Password,
+		Email:              u.Email,
+		Status:             domain.Status(u.Status),
+		Source:             domain.Source(u.Source),
+		MfaType:            u.MfaType,
+		MfaSecret:          u.MfaSecret,
 		Ctime:              u.Ctime,
 		Utime:              u.Utime,
 		LastLoginAt:        u.LastLoginAt,
@@ -369,14 +369,14 @@ func (repo *userRepository) toDomain(u dao.User, up dao.UserProfile, ids []dao.U
 
 func (repo *userRepository) toEntity(u domain.User) dao.User {
 	return dao.User{
-		ID:          u.ID,
-		Username:    u.Username,
-		Password:    u.Password,
-		Email:       u.Email,
-		Status:      int(u.Status),
-		Source:      string(u.Source),
-		MfaType:     u.MfaType,
-		MfaSecret:   u.MfaSecret,
+		ID:                 u.ID,
+		Username:           u.Username,
+		Password:           u.Password,
+		Email:              u.Email,
+		Status:             int(u.Status),
+		Source:             string(u.Source),
+		MfaType:            u.MfaType,
+		MfaSecret:          u.MfaSecret,
 		Ctime:              u.Ctime,
 		Utime:              u.Utime,
 		LastLoginAt:        u.LastLoginAt,

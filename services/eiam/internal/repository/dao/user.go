@@ -2,9 +2,11 @@ package dao
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	"github.com/Havens-blog/e-iam/internal/domain"
+	"github.com/Havens-blog/e-iam/internal/errs"
 	"github.com/Havens-blog/e-iam/pkg/ctxutil"
 	"github.com/Havens-blog/e-iam/pkg/sqlx"
 	"github.com/samber/lo"
@@ -101,14 +103,14 @@ func (dao *userDAO) membershipScope(tid int64) func(db *gorm.DB) *gorm.DB {
 }
 
 type User struct {
-	ID          int64  `gorm:"primaryKey;autoIncrement"`
-	Username    string `gorm:"column:username;uniqueIndex;type:varchar(64)"`
-	Password    string `gorm:"type:varchar(255)"`
-	Email       string `gorm:"type:varchar(128)"`
-	Status      int    `gorm:"type:tinyint"`
-	Source      string `gorm:"type:varchar(32);index;comment:'身份来源: local, ldap等'"`
-	MfaType     string `gorm:"type:varchar(16);comment:'MFA类型: totp等'"`
-	MfaSecret   string `gorm:"type:varchar(255);comment:'MFA密钥'"`
+	ID                 int64  `gorm:"primaryKey;autoIncrement"`
+	Username           string `gorm:"column:username;uniqueIndex;type:varchar(64)"`
+	Password           string `gorm:"type:varchar(255)"`
+	Email              string `gorm:"type:varchar(128)"`
+	Status             int    `gorm:"type:tinyint"`
+	Source             string `gorm:"type:varchar(32);index;comment:'身份来源: local, ldap等'"`
+	MfaType            string `gorm:"type:varchar(16);comment:'MFA类型: totp等'"`
+	MfaSecret          string `gorm:"type:varchar(255);comment:'MFA密钥'"`
 	Ctime              int64  `gorm:"comment:'创建时间'"`
 	Utime              int64  `gorm:"comment:'更新时间'"`
 	LastLoginAt        int64  `gorm:"comment:'最近登录时间'"`
@@ -198,6 +200,9 @@ func (dao *userDAO) Update(ctx context.Context, u User, ui UserProfile) (int64, 
 func (dao *userDAO) FindById(ctx context.Context, id int64) (User, error) {
 	var u User
 	err := dao.db.WithContext(ctx).Where("id = ?", id).First(&u).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return u, errs.ErrUserNotFound
+	}
 	return u, err
 }
 
@@ -219,18 +224,29 @@ func (dao *userDAO) FindByUsernames(ctx context.Context, usernames []string) ([]
 func (dao *userDAO) FindByUsername(ctx context.Context, username string) (User, error) {
 	var u User
 	err := dao.db.WithContext(ctx).Where("username = ?", username).First(&u).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return u, errs.ErrUserNotFound
+	}
 	return u, err
 }
 
 func (dao *userDAO) FindByEmail(ctx context.Context, email string) (User, error) {
 	var u User
 	err := dao.db.WithContext(ctx).Where("email = ?", email).First(&u).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return u, errs.ErrUserNotFound
+	}
 	return u, err
 }
 
 func (dao *userDAO) FindProfileByUserId(ctx context.Context, userID int64) (UserProfile, error) {
 	var ui UserProfile
 	err := dao.db.WithContext(ctx).Where("user_id = ?", userID).First(&ui).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		// 用户档案为可选附属记录，不存在时翻译为通用 ErrRecordNotFound，
+		// 供 Repository 层按“无档案”语义处理，且不泄漏 gorm 哨兵到上层。
+		return ui, errs.ErrRecordNotFound
+	}
 	return ui, err
 }
 
@@ -457,6 +473,7 @@ func (dao *userDAO) BatchUpsertProfilesAndIdentities(ctx context.Context, profil
 		return nil
 	})
 }
+
 // UpdateMfa 更新用户 MFA 绑定信息
 func (dao *userDAO) UpdateMfa(ctx context.Context, id int64, mfaType, mfaSecret string) error {
 	now := time.Now().UnixMilli()

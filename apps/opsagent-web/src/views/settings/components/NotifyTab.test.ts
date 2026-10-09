@@ -33,4 +33,11 @@ describe('NotifyTab 通知渠道（原型 settings.html 四卡 + switch）', () 
         const empty = mount(NotifyTab, { props: { channels: [], editable: true } })
         expect(empty.find('.notify-tab__empty').text()).toBe('未配置通知渠道')
     })
+
+    it('说明条：管理员→开关即时保存；非管理员→仅管理员可调整', () => {
+        const admin = mount(NotifyTab, { props: { channels: CHANNELS, editable: true } })
+        expect(admin.find('.notify-tab__note').text()).toContain('即时保存到后端')
+        const viewer = mount(NotifyTab, { props: { channels: CHANNELS, editable: false } })
+        expect(viewer.find('.notify-tab__note').text()).toContain('仅平台管理员')
+    })
 })

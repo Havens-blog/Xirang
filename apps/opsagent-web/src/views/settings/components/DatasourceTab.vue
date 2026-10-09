@@ -1,5 +1,8 @@
 <template>
   <div class="datasource-tab">
+    <p class="datasource-tab-note">
+      连接状态由底座实时探针上报（只读）；展开查看契约字段与最近一次探测结果。
+    </p>
     <!-- 原型 settings.html：五张 ds-card（前端注册表），连接态由后端 probes 推导 -->
     <div v-for="card in cards" :key="card.meta.key" class="ds-card">
       <div
@@ -26,9 +29,23 @@
         </div>
       </div>
       <div v-show="open === card.meta.key" class="ds-panel">
+        <p class="ds-panel-title">契约字段</p>
         <ul>
           <li v-for="f in card.meta.fields" :key="f">· {{ f }}</li>
         </ul>
+
+        <!-- 探针实测（后端 GET /settings 的 datasources 只读上报） -->
+        <template v-if="card.probes.length > 0">
+          <p class="ds-panel-title">探针实测</p>
+          <ul class="ds-probes">
+            <li v-for="p in card.probes" :key="p.name" class="ds-probe">
+              <span class="status-dot" :class="p.ok ? 'connected' : 'disconnected'" />
+              <span class="ds-probe-name">{{ dataSourceLabel(p.name) }}</span>
+              <span class="ds-probe-meta">{{ p.cloud || '—' }} · {{ connectionStatusText(p.ok) }} · {{ formatClock(p.checkedAt) }}</span>
+            </li>
+          </ul>
+        </template>
+        <p v-else class="ds-panel-title ds-panel-empty">底座未上报该数据源探针</p>
       </div>
     </div>
   </div>
@@ -37,18 +54,21 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import type { Datasource } from '@/api/opsagent'
-import { DATASOURCE_CARDS } from '../logic'
+import { connectionStatusText, DATASOURCE_CARDS, dataSourceLabel } from '../logic'
+import { formatClock } from '../../format'
 
 const props = defineProps<{ datasources: Datasource[] }>()
 
 const open = ref<string | null>(null)
 
-/** 注册表卡 + 后端 probe 推导的连接态（无 probe 的卡恒未连接，不虚构在线） */
+/** 注册表卡 + 后端 probe 推导的连接态与实测明细 */
 const cards = computed(() =>
     DATASOURCE_CARDS.map((meta) => {
-        const probes = meta.probeKeys.map((k) => props.datasources.find((d) => d.name === k))
-        const connected = probes.length > 0 && probes.every((p) => p?.ok === true)
-        return { meta, connected }
+        const probes = meta.probeKeys
+            .map((k) => props.datasources.find((d) => d.name === k))
+            .filter((p): p is Datasource => p !== undefined)
+        const connected = probes.length > 0 && probes.every((p) => p.ok)
+        return { meta, probes, connected }
     }),
 )
 </script>
@@ -149,5 +169,46 @@ const cards = computed(() =>
     font-size: 13px;
     line-height: 2;
     color: hsl(var(--muted-foreground));
+}
+.datasource-tab-note {
+    margin: 0 0 14px;
+    font-size: 13px;
+    color: hsl(var(--muted-foreground));
+    line-height: 1.6;
+}
+.ds-panel-title {
+    margin: 14px 0 4px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    color: hsl(var(--muted-foreground));
+}
+.ds-panel-title:first-child {
+    margin-top: 0;
+}
+.ds-probes {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    line-height: 1.6;
+}
+.ds-probe {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+.ds-probe-name {
+    font-weight: 500;
+    color: hsl(var(--foreground));
+}
+.ds-probe-meta {
+    color: hsl(var(--muted-foreground));
+}
+.ds-panel-empty {
+    font-weight: 400;
+    text-transform: none;
+    letter-spacing: 0;
 }
 </style>

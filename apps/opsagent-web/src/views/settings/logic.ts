@@ -5,7 +5,15 @@
  * docs/features/haven-opsagent/design/api-handbook.md §8 + page-map.md「系统配置」。
  */
 
-import type { PresetQuery, RiskLevel, SettingsData } from '@/api/opsagent'
+import type {
+    LLMProviderConfig,
+    LLMProviderInput,
+    NotifyChannel,
+    PresetQuery,
+    RiskLevel,
+    RiskWhitelistEntry,
+    SettingsData,
+} from '@/api/opsagent'
 
 /** 预置查询时间窗上限（与后端 24h 对齐） */
 export const MAX_WINDOW_MS = 24 * 3600 * 1000
@@ -193,6 +201,59 @@ export const RISK_LEVEL_META: Record<RiskLevel, RiskLevelMeta> = {
 // ==================== 安全与租户 ====================
 
 /**
+ * 风险工具目录（前端白名单增配枚举；与后端 risk.go staticLevels 静态注册表
+ * 逐字对齐，保存时后端仍兜底校验「工具已注册 / 高危不可入白名单」）。
+ */
+export interface RiskToolMeta {
+    tool: string
+    /** 展示名（工具 + 中文说明） */
+    label: string
+    /** 注册表静态档位（read 只读 / low 低危 / high 高危不可入白名单） */
+    level: RiskLevel
+}
+
+export const RISK_TOOL_CATALOG: RiskToolMeta[] = [
+    { tool: 'query_log', label: '查询日志（logquery 联邦）', level: 'read' },
+    { tool: 'diagnose', label: '规则引擎诊断', level: 'read' },
+    { tool: 'query_alert', label: '查询告警', level: 'read' },
+    { tool: 'query_asset', label: '查询资产（CMDB / MCP）', level: 'read' },
+    { tool: 'notify', label: '发送通知', level: 'low' },
+    { tool: 'restart_service', label: '重启服务（高危）', level: 'high' },
+    { tool: 'rollback_deploy', label: '回滚部署（高危）', level: 'high' },
+    { tool: 'ban_ip', label: '封禁 IP（高危）', level: 'high' },
+    { tool: 'delete_asset', label: '删除资产（高危）', level: 'high' },
+]
+
+/** 工具展示名（目录命中 → 中文标签；未注册原样） */
+export function riskToolLabel(tool: string): string {
+    return RISK_TOOL_CATALOG.find((t) => t.tool === tool)?.label ?? tool
+}
+
+/**
+ * 白名单新增校验（前端先行 + 后端兜底）：
+ * 高危档 / 高危工具（注册表静态档）/ 重复工具 / 非法档位 → error；合法 → 新数组。
+ */
+export function addWhitelistEntry(
+    list: RiskWhitelistEntry[],
+    entry: RiskWhitelistEntry,
+): { list: RiskWhitelistEntry[]; error?: string } {
+    if (entry.riskLevel === 'high') {
+        return { list, error: '高危工具不允许入白名单' }
+    }
+    if (entry.riskLevel !== 'read' && entry.riskLevel !== 'low') {
+        return { list, error: '风险档仅支持 只读 / 低危' }
+    }
+    const meta = RISK_TOOL_CATALOG.find((t) => t.tool === entry.tool)
+    if (meta?.level === 'high') {
+        return { list, error: '高危工具不允许入白名单' }
+    }
+    if (list.some((w) => w.tool === entry.tool)) {
+        return { list, error: `工具 ${entry.tool} 已在白名单中` }
+    }
+    return { list: [...list, { tool: entry.tool, riskLevel: entry.riskLevel }] }
+}
+
+/**
  * 风险档 → 处置语义（原型 settings.html 白名单表「处置」列，确定性推导：
  * read 自动执行 / low 白名单自动执行 / high 人工确认后执行（P3））。
  */
@@ -233,6 +294,49 @@ export const SECURITY_SWITCHES: { key: string; title: string; hint: string }[] =
         hint: '越界引用一律丢弃，不得回显未授权数据',
     },
 ]
+
+// ==================== 草稿骨架合并（空库初始化） ====================
+
+/** 通知渠道注册表键序（NOTIFY_CHANNEL_LABEL 插入序 = 原型四卡顺序） */
+export const NOTIFY_CHANNEL_KEYS = Object.keys(NOTIFY_CHANNEL_LABEL) as NotifyChannel['channel'][]
+
+/** LLM 提供商注册表键序（PROVIDER_LABEL 插入序） */
+export const LLM_PROVIDER_KEYS = Object.keys(PROVIDER_LABEL)
+
+/**
+ * 通知渠道草稿骨架合并：以注册表四渠道为基，后端条目覆盖状态；
+ * 后端缺失的渠道以「关闭」呈现 —— 空库时亦能拨动开关完成初始化。
+ */
+export function mergeNotifyChannels(backend: NotifyChannel[]): NotifyChannel[] {
+    return NOTIFY_CHANNEL_KEYS.map((k) => {
+        const existing = backend.find((c) => c.channel === k)
+        return existing ? { ...existing } : { channel: k, enabled: false }
+    })
+}
+
+/**
+ * LLM 提供商草稿骨架合并：后端全部条目原样保留（含注册表外自定义提供商），
+ * 注册表三键缺失时补空模型「未配置」占位（保存时经 savableLLMProviders 过滤）。
+ */
+export function mergeLLMProviders(backend: LLMProviderConfig[]): LLMProviderInput[] {
+    const out: LLMProviderInput[] = backend.map((p) => ({
+        name: p.name,
+        default: p.default,
+        model: p.model,
+        apiKey: '',
+    }))
+    for (const k of LLM_PROVIDER_KEYS) {
+        if (!out.some((p) => p.name === k)) {
+            out.push({ name: k, default: false, model: '', apiKey: '' })
+        }
+    }
+    return out
+}
+
+/** 可保存 LLM 草稿：模型名非空（未配置占位不落库，避免伪造空配置） */
+export function savableLLMProviders(draft: LLMProviderInput[]): LLMProviderInput[] {
+    return draft.filter((p) => p.model.trim() !== '')
+}
 
 // ==================== 响应规整（契约兜底） ====================
 

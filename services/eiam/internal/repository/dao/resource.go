@@ -2,8 +2,10 @@ package dao
 
 import (
 	"context"
+	"errors"
 	"time"
 
+	"github.com/Havens-blog/e-iam/internal/errs"
 	"github.com/Havens-blog/e-iam/pkg/sqlx"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
@@ -63,6 +65,7 @@ const (
 
 // IResourceDAO 定义了物理资源 (Menu/API) 的底层持久化接口。
 // 所有查询方法默认仅返回 status = Active 的有效资产，已标记为 orphan 的数据对业务层不可见。
+//
 //go:generate mockgen -package=daomocks -destination=./mocks/resource.mock.go github.com/Havens-blog/e-iam/internal/repository/dao IResourceDAO
 type IResourceDAO interface {
 	// InsertMenu 插入一条菜单记录，返回自增 ID
@@ -257,6 +260,10 @@ func (d *ResourceDAO) FindAPIByPath(ctx context.Context, service, method, path s
 	var a API
 	err := d.getDB(ctx).Where("service = ? AND method = ? AND path = ? AND status = ?",
 		service, method, path, APIStatusActive).First(&a).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		// 翻译为通用哨兵 errs.ErrRecordNotFound，避免 gorm 错误类型穿透到 Repository/Service 层。
+		return a, errs.ErrRecordNotFound
+	}
 	return a, err
 }
 

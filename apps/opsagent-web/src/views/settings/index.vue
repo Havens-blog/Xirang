@@ -32,7 +32,8 @@
       </div>
       <div v-else-if="activeTab === 'llm'" class="tab-panel active" role="tabpanel">
         <LLMTab
-          :providers="settings.llmProviders"
+          :providers="llmDraft"
+          :key-masked="llmKeyMasked"
           :editable="isAdmin"
           :busy="busy"
           @draft="onDraftLLM"
@@ -42,7 +43,12 @@
         <NotifyTab :channels="notifyDraft" :editable="isAdmin" :busy="busy" @toggle="onToggleChannel" />
       </div>
       <div v-else-if="activeTab === 'security'" class="tab-panel active" role="tabpanel">
-        <SecurityTab :whitelist="settings.riskWhitelist" />
+        <SecurityTab
+          :whitelist="whitelistDraft"
+          :editable="isAdmin"
+          :busy="busy"
+          @draft="onDraftWhitelist"
+        />
       </div>
       <div v-else-if="activeTab === 'preset'" class="tab-panel active" role="tabpanel">
         <PresetTab :presets="presetDraft" :editable="isAdmin" :busy="busy" @draft="onDraftPreset" />
@@ -58,6 +64,7 @@ import {
     type LLMProviderInput,
     type NotifyChannel,
     type PresetQuery,
+    type RiskWhitelistEntry,
     type SettingsData,
 } from '@/api/opsagent'
 import { useTopbar } from '@/composables/useTopbar'
@@ -69,7 +76,14 @@ import LLMTab from './components/LLMTab.vue'
 import NotifyTab from './components/NotifyTab.vue'
 import PresetTab from './components/PresetTab.vue'
 import SecurityTab from './components/SecurityTab.vue'
-import { normalizeSettings, notifyChannelLabel, validatePreset } from './logic'
+import {
+    mergeLLMProviders,
+    mergeNotifyChannels,
+    normalizeSettings,
+    notifyChannelLabel,
+    savableLLMProviders,
+    validatePreset,
+} from './logic'
 
 /** 原型四 tab + 预置查询（增量功能，后端可存） */
 const TABS = [
@@ -89,10 +103,11 @@ const error = ref('')
 const busy = ref(false)
 const activeTab = ref<(typeof TABS)[number]['key']>('datasource')
 
-// ===== 父级持有的三份可编辑草稿（不可变原则：仅保存时合并提交） =====
+// ===== 父级持有的可编辑草稿（不可变原则：通知开关即时保存，其余经顶栏「保存配置」提交） =====
 const notifyDraft = ref<NotifyChannel[]>([])
 const llmDraft = ref<LLMProviderInput[]>([])
 const presetDraft = ref<PresetQuery[]>([])
+const whitelistDraft = ref<RiskWhitelistEntry[]>([])
 
 function clonePresets(list: PresetQuery[]): PresetQuery[] {
     return list.map((p) => ({ ...p, params: { ...p.params, timeframe: { ...p.params.timeframe } } }))
@@ -104,13 +119,10 @@ async function load(): Promise<void> {
     try {
         const data = normalizeSettings(await getSettingsApi())
         settings.value = data
-        notifyDraft.value = data.notifyChannels.map((c) => ({ ...c }))
-        llmDraft.value = data.llmProviders.map((p) => ({
-            name: p.name,
-            default: p.default,
-            model: p.model,
-            apiKey: '',
-        }))
+        // 骨架合并：空库时通知四卡 / LLM 三卡仍可配置完成初始化
+        notifyDraft.value = mergeNotifyChannels(data.notifyChannels)
+        whitelistDraft.value = data.riskWhitelist.map((w) => ({ ...w }))
+        llmDraft.value = mergeLLMProviders(data.llmProviders)
         presetDraft.value = clonePresets(data.presetQueries)
     } catch (err) {
         error.value = err instanceof Error ? err.message : '加载失败'
@@ -121,10 +133,27 @@ async function load(): Promise<void> {
 
 // ===== 各 tab 草稿上抛 =====
 
-/** 通知渠道开关：更新草稿 + 原型 toast（「钉钉 已关闭/已启用」） */
-function onToggleChannel(channel: string, enabled: boolean): void {
-    notifyDraft.value = notifyDraft.value.map((c) => (c.channel === channel ? { ...c, enabled } : c))
-    ElMessage.success(`${notifyChannelLabel(channel)} ${enabled ? '已启用' : '已关闭'}`)
+/**
+ * 通知渠道开关：即时持久化（PUT 全量 notifyChannels），与原型 switch 直接生效一致；
+ * 成功 toast「钉钉 已关闭/已启用」，失败回滚开关并报错。
+ */
+async function onToggleChannel(channel: string, enabled: boolean): Promise<void> {
+    if (!isAdmin.value || busy.value) {
+        return
+    }
+    const prev = notifyDraft.value
+    const next = prev.map((c) => (c.channel === channel ? { ...c, enabled } : c))
+    notifyDraft.value = next
+    busy.value = true
+    try {
+        await putSettingsApi({ notifyChannels: next })
+        ElMessage.success(`${notifyChannelLabel(channel)} ${enabled ? '已启用' : '已关闭'}`)
+    } catch (err) {
+        notifyDraft.value = prev
+        ElMessage.error(err instanceof Error ? err.message : '保存失败')
+    } finally {
+        busy.value = false
+    }
 }
 
 function onDraftLLM(providers: LLMProviderInput[]): void {
@@ -134,6 +163,17 @@ function onDraftLLM(providers: LLMProviderInput[]): void {
 function onDraftPreset(presets: PresetQuery[]): void {
     presetDraft.value = presets
 }
+
+function onDraftWhitelist(whitelist: RiskWhitelistEntry[]): void {
+    whitelistDraft.value = whitelist
+}
+
+/** 后端 GET 掩码映射（LLMTab 展示「已配置 Key」占位；apiKey 只写不读） */
+const llmKeyMasked = computed<Record<string, string>>(() =>
+    Object.fromEntries(
+        (settings.value?.llmProviders ?? []).filter((p) => p.keyMasked).map((p) => [p.name, p.keyMasked!]),
+    ),
+)
 
 // ===== topbar「保存配置」全局按钮（原型 settings.html topbar-actions） =====
 
@@ -150,8 +190,9 @@ async function saveAll(): Promise<void> {
     busy.value = true
     try {
         await putSettingsApi({
-            llmProviders: llmDraft.value,
+            llmProviders: savableLLMProviders(llmDraft.value),
             notifyChannels: notifyDraft.value,
+            riskWhitelist: whitelistDraft.value,
             presetQueries: presetDraft.value,
         })
         ElMessage.success('配置已保存')

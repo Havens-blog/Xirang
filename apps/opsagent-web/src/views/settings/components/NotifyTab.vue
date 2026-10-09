@@ -18,10 +18,12 @@
         role="switch"
         :aria-checked="c.enabled"
         :aria-label="`${notifyChannelLabel(c.channel)} 开关`"
-        :disabled="!editable"
+        :disabled="!editable || busy"
         @click="emit('toggle', c.channel, !c.enabled)"
       />
     </div>
+    <p v-if="editable" class="notify-tab__note">开关即时保存到后端（PUT /settings notifyChannels）</p>
+    <p v-else class="notify-tab__note">仅平台管理员可调整渠道开关</p>
   </div>
 </template>
 
@@ -57,6 +59,11 @@ function meta(channel: string): { icon: string; grad: string; desc: string } {
     padding: 16px;
     text-align: center;
     font-size: 13px;
+    color: hsl(var(--muted-foreground));
+}
+.notify-tab__note {
+    margin: 12px 0 0;
+    font-size: 12px;
     color: hsl(var(--muted-foreground));
 }
 .card {
