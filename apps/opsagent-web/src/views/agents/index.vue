@@ -26,7 +26,9 @@
 
 <script setup lang="ts">
 import { getObservabilityApi, type ObservabilityData } from '@/api/opsagent'
-import { computed, onMounted, ref } from 'vue'
+import { useTopbar } from '@/composables/useTopbar'
+import { ElMessage } from 'element-plus'
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import AgentCard from './components/AgentCard.vue'
 import LoadChart from './components/LoadChart.vue'
 import PerfMetrics from './components/PerfMetrics.vue'
@@ -52,7 +54,33 @@ async function load(): Promise<void> {
     }
 }
 
-onMounted(load)
+/**
+ * topbar「⬇ 导出日志」（原型 agent-management.html）：后端无导出接口，
+ * 以客户端 JSON 下载当前观测数据实现（重启所有无控制 API → 省略）。
+ */
+function exportLog(): void {
+    if (!data.value) {
+        ElMessage.warning('观测数据尚未加载')
+        return
+    }
+    const blob = new Blob([JSON.stringify(data.value, null, 2)], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `opsagent-observability-${new Date().toISOString().slice(0, 19).replace(/[T:]/g, '-')}.json`
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+    ElMessage.success('日志已导出')
+}
+
+const topbar = useTopbar()
+onMounted(() => {
+    void load()
+    topbar.setActions([{ key: 'export-log', label: '⬇ 导出日志', onClick: exportLog }])
+})
+onBeforeUnmount(() => topbar.setActions([]))
 </script>
 
 <style scoped>
