@@ -4,12 +4,13 @@
  *
  * 覆盖归一契约（Hard Rule：eiam 原生形状不经归一不越视图层）+ D-1 改判（组织=department）：
  * - mapDepartmentNode：snake_case → camelCase；children 递归归一；缺 id 返回 null；
- * - listOrganizationTree：GET /api/department/list → OrganizationNode[]（树形，过滤 null）；
+ * - listOrganizationTree：GET /api/iam/department/list → OrganizationNode[]（树形，过滤 null）；
  * - createOrganization：CreateDeptRequest snake_case 载荷（parent_id + name）→ 新 id；
  * - updateOrganization：UpdateDeptRequest 载荷（id + name + parent_id）；
- * - deleteOrganization：DELETE /api/department/delete/:id；
+ * - deleteOrganization：DELETE /api/iam/department/delete/:id；
  * - getOrganizationDetail：扁平 Department → Organization（无计数）；
- * - listOrganizationMembers：{total, members} → Page<DeptMember>（snake_case 归一）。
+ * - listOrganizationMembers：{total, members} → Page<DeptMember>（snake_case 归一）；
+ * - 路径前缀回归守卫：六端点全部走控制台外部统一前缀 /api/iam/department/*。
  */
 import {
   AxiosError,
@@ -178,6 +179,32 @@ describe("listOrganizationTree（GET /api/department/list，D-1）", () => {
     });
     const tree = await listOrganizationTree();
     expect(tree).toEqual([]);
+  });
+});
+
+describe("路径前缀回归守卫：/api/iam/department/*（2026-10-09 事故：直连 /api/department 未经 nginx 反代 → eiam.unavailable）", () => {
+  it("六个端点全部走控制台外部统一前缀 /api/iam/department/*", async () => {
+    const { calls } = adapterFor({
+      "/api/iam/department/": () => ({
+        status: 200,
+        body: { code: 0, msg: "", data: 1 },
+      }),
+    });
+    await listOrganizationTree();
+    await createOrganization({ parentId: 0, name: "e2e" });
+    await updateOrganization({ id: 1, name: "e2e", parentId: 0 });
+    await getOrganizationDetail(1);
+    await listOrganizationMembers(1, { offset: 0, limit: 20, keyword: "" });
+    await deleteOrganization(1);
+
+    expect(calls.map((c) => `${c.method} ${c.url}`)).toEqual([
+      "get /api/iam/department/list",
+      "post /api/iam/department/create",
+      "post /api/iam/department/update",
+      "get /api/iam/department/detail/1",
+      "post /api/iam/department/members",
+      "delete /api/iam/department/delete/1",
+    ]);
   });
 });
 

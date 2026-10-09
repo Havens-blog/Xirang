@@ -3,13 +3,16 @@
  *
  * 端点证据等级（tech-design §Interfaces C 档 + parity-checklist §2.5/§3.2 分歧 D-1）：
  * - **D-1 改判（Phase 0 已核验回填）**：eiam **无 organization 端点族** —— 组织能力由
- *   **department（部门）** 承载。本模块直调 department 端点（eiam/internal/web/department/handler.go:26-51）：
- *   - `GET  /api/department/list`        部门树（数组，DepartmentNode 嵌套 children）
- *   - `POST /api/department/create`      创建部门 → 新 id
- *   - `POST /api/department/update`      修改部门 → null
- *   - `DELETE /api/department/delete/:id` 删除部门 → null（被拒 code=4010703）
- *   - `GET  /api/department/detail/:id`   部门详情 → Department（扁平，无计数）
- *   - `POST /api/department/members`      部门成员列表 → {total, members}
+ *   **department（部门）** 承载。本模块直调 department 端点（eiam/internal/web/department/handler.go:26-53）：
+ *   - `GET  /api/iam/department/list`        部门树（数组，DepartmentNode 嵌套 children）
+ *   - `POST /api/iam/department/create`      创建部门 → 新 id
+ *   - `POST /api/iam/department/update`      修改部门 → null
+ *   - `DELETE /api/iam/department/delete/:id` 删除部门 → null（被拒 code=4010703）
+ *   - `GET  /api/iam/department/detail/:id`   部门详情 → Department（扁平，无计数）
+ *   - `POST /api/iam/department/members`      部门成员列表 → {total, members}
+ *   路径口径 = 控制台外部统一前缀 `/api/iam/*`（nginx/vite 代理重写为 eiam 内部 `/api/*`，
+ *   2026-10-09 修复：此前直连 `/api/department/*` 未经反代 → nginx location / 301 →
+ *   eiam.unavailable「身份服务暂不可用」，records/6.3-org-prefix.md 落档）。
  * - **Phase-0-contingent**：删除被拒阻断计数（下属组织数/关联用户数，E11）的响应形态待响应样本核验
  *   （parity §2.5：eiam 删除被拒返回 code=4010703 + err.Error() msg，msg 为 Go 错误串、非结构化计数）。
  *   前端不依赖该形态：删除前置由 store 客户端预检（child_count 来自树、user_count 来自 members total），
@@ -151,12 +154,12 @@ function toMemberPage(raw: unknown): Page<DeptMember> {
 // ---- 组织 CRUD ----
 
 /**
- * 组织树（GET /api/department/list，D-1 实核）。
+ * 组织树（GET /api/iam/department/list，D-1 实核）。
  * 无载荷（GET 全量树，≤1000 节点/深度 ≤8 由前端 cap 拦截）；响应归一为 OrganizationNode[]。
  */
 export async function listOrganizationTree(): Promise<OrganizationNode[]> {
   const data = await unwrapEnvelope<unknown>(
-    eiamAxios.get<Envelope<unknown>>("/api/department/list"),
+    eiamAxios.get<Envelope<unknown>>("/api/iam/department/list"),
   );
   return toOrganizationTree(data);
 }
@@ -170,7 +173,7 @@ export interface CreateOrganizationPayload {
 }
 
 /**
- * 创建组织（POST /api/department/create，D-1 实核）。
+ * 创建组织（POST /api/iam/department/create，D-1 实核）。
  * 载荷 eiam CreateDeptRequest {parent_id, name, sort, leaders, main_leader}；
  * v1 仅传 parent_id + name（规范形两字段），附加字段缺省。返回新 id。
  */
@@ -178,7 +181,7 @@ export async function createOrganization(
   payload: CreateOrganizationPayload,
 ): Promise<number> {
   const id = await unwrapEnvelope<number>(
-    eiamAxios.post<Envelope<number>>("/api/department/create", {
+    eiamAxios.post<Envelope<number>>("/api/iam/department/create", {
       parent_id: payload.parentId ?? 0,
       name: payload.name,
     }),
@@ -194,12 +197,12 @@ export interface UpdateOrganizationPayload {
   parentId?: number;
 }
 
-/** 更新组织（POST /api/department/update，D-1 实核）；v1 仅传 id + name + parent_id */
+/** 更新组织（POST /api/iam/department/update，D-1 实核）；v1 仅传 id + name + parent_id */
 export async function updateOrganization(
   payload: UpdateOrganizationPayload,
 ): Promise<void> {
   await unwrapEnvelope<null>(
-    eiamAxios.post<Envelope<null>>("/api/department/update", {
+    eiamAxios.post<Envelope<null>>("/api/iam/department/update", {
       id: payload.id,
       parent_id: payload.parentId ?? 0,
       name: payload.name,
@@ -208,26 +211,26 @@ export async function updateOrganization(
 }
 
 /**
- * 删除组织（DELETE /api/department/delete/:id，D-1 实核）。
+ * 删除组织（DELETE /api/iam/department/delete/:id，D-1 实核）。
  * 依赖删除由 eiam 服务端拒绝（E11）：返回 code=4010703 + msg=err.Error()
  * （ErrDeleteDeptWithChildren / ErrDeleteDeptWithMembers）—— 计数未结构化，Phase-0-contingent。
  * 前端预检（child_count/user_count）由 store 承接，eiam 拒绝作后置兜底。
  */
 export async function deleteOrganization(id: number): Promise<void> {
   await unwrapEnvelope<null>(
-    eiamAxios.delete<Envelope<null>>(`/api/department/delete/${id}`),
+    eiamAxios.delete<Envelope<null>>(`/api/iam/department/delete/${id}`),
   );
 }
 
 /**
- * 组织详情（GET /api/department/detail/:id，D-1 实核）。
+ * 组织详情（GET /api/iam/department/detail/:id，D-1 实核）。
  * 响应扁平 Department（无 child_count/user_count）—— 计数由 store 客户端计算（树 + members）。
  */
 export async function getOrganizationDetail(
   id: number,
 ): Promise<Organization | null> {
   const data = await unwrapEnvelope<unknown>(
-    eiamAxios.get<Envelope<unknown>>(`/api/department/detail/${id}`),
+    eiamAxios.get<Envelope<unknown>>(`/api/iam/department/detail/${id}`),
   );
   if (!isRecord(data)) return null;
   const dept = data as EiamDepartmentRaw;
@@ -241,7 +244,7 @@ export async function getOrganizationDetail(
 }
 
 /**
- * 组织成员列表（POST /api/department/members，D-1 实核）。
+ * 组织成员列表（POST /api/iam/department/members，D-1 实核）。
  * 载荷 {dept_id, offset, limit, keyword}；响应归一为 Page<DeptMember>。
  * total 即关联用户数（UF-5 详情面板 user_count + 删除预检数据源）。
  */
@@ -250,7 +253,7 @@ export async function listOrganizationMembers(
   q: ListQuery,
 ): Promise<Page<DeptMember>> {
   const data = await unwrapEnvelope<EiamListMembersResult>(
-    eiamAxios.post<Envelope<EiamListMembersResult>>("/api/department/members", {
+    eiamAxios.post<Envelope<EiamListMembersResult>>("/api/iam/department/members", {
       dept_id: deptId,
       offset: q.offset,
       limit: q.limit,
