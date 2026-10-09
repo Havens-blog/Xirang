@@ -7,6 +7,10 @@ updated: "2026-10-10"
 
 > 目标：在本机把整套平台跑起来（nginx :8888 统一入口）。本机没有 Docker，
 > 数据面长期直连远程共享库；线上形态（容器 + CI 构建推送）另见 `.github/workflows/deploy-*.yml`。
+>
+> **一键部署：`.\scripts\dev-up.ps1`**（构建三后端 + 两前端 + 按端口空闲启停 + reload nginx，
+> 已在跑的端口自动跳过；`-SkipFrontendBuild` 跳过前端，`-SkipStart` 仅构建）。
+> 下面第 2 节是等价的手工命令，供查错用。
 
 ## 0. 当前正在跑的实例（基线核对）
 
