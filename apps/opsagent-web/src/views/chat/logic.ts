@@ -1,21 +1,20 @@
 /**
- * 对话排障页纯展示逻辑（任务 5.2）。
+ * 对话排障页纯展示逻辑（任务 5.2 / 6.2 原型对位版）。
  *
- * 无 Vue / DOM 运行时依赖，可被 node 环境单测直接导入（同 cert 领域
- * format.ts 约定）。依据：docs/features/haven-opsagent/design/api-handbook.md
- * §1/§2 + page-map.md「对话排障」Page Sections（组件 + 数据源）。
+ * 无 Vue / DOM 运行时依赖，可被 node 环境单测直接导入。依据：
+ * docs/features/haven-opsagent/design/api-handbook.md §1/§2 +
+ * ui/prototype/chat.html（思考步骤文案、降级口径）。
  *
- * 职责：chat 响应 type 判别、降级徽标、证据卡 source_type→agent 角色着色、
- * 4 步编排进度（意图识别→查询→诊断→报告）由 trace 派生。
+ * 职责：chat 响应 type 判别、降级徽标、证据 source_type→语义色、
+ * 思考块 4 步文案（原型 ①-④ 逐字）。
  */
 
 import type {
     ChatData,
     ChatType,
-    TraceStep,
 } from '@/api/opsagent'
 
-// 证据 source_type → agent 角色着色（跨页共享，见 ../evidence）。
+// 证据 source_type → 语义色（跨页共享，见 ../evidence）。
 export { SOURCE_TYPE_META, sourceTypeMeta } from '../evidence'
 export type { EvidenceSourceMeta } from '../evidence'
 
@@ -68,29 +67,15 @@ export function degradeBadge(level: number): BadgeMeta | null {
     }
 }
 
-// ==================== 4 步编排进度 ====================
+// ==================== 思考块 4 步文案（原型 chat.html stageSteps）====================
 
-export interface ThinkingStage {
-    key: string
-    label: string
-    /** 该阶段在 trace 中对应的 action */
-    action: string
-    /** 命中的首个 trace 步骤（未命中 = 尚未执行） */
-    step?: TraceStep
-}
-
-/** 4 步编排阶段（Description：意图识别→查询→诊断→报告） */
-const STAGE_ORDER: { key: string; label: string; action: string }[] = [
-    { key: 'intent', label: '意图识别', action: 'intent' },
-    { key: 'query', label: '查询', action: 'query' },
-    { key: 'diagnose', label: '诊断', action: 'diagnose' },
-    { key: 'report', label: '报告', action: 'report' },
+/** 对话流内思考块步骤文案（原型逐字：①-④） */
+export const THINKING_STEP_TEXTS: readonly string[] = [
+    '① 意图识别中…',
+    '② 查询日志 / 资产 / 告警中…',
+    '③ 诊断计算中…',
+    '④ 生成报告中…',
 ]
-
-/** 由 trace 派生 4 步编排进度（每阶段取首个命中的步骤） */
-export function buildThinkingStages(trace: TraceStep[]): ThinkingStage[] {
-    return STAGE_ORDER.map((s) => ({ ...s, step: trace.find((t) => t.action === s.action) }))
-}
 
 // ==================== 引用回指 ====================
 

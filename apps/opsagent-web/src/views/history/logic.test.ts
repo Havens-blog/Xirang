@@ -1,5 +1,14 @@
 import { describe, expect, it } from 'vitest'
-import { defaultTimeWindow, formatTime, isTimeWindowValid, MAX_WINDOW_MS, SESSION_STATUS_LABEL, SESSION_TYPE_LABEL } from './logic'
+import {
+    defaultTimeWindow,
+    formatClock,
+    formatTime,
+    intentChip,
+    isTimeWindowValid,
+    MAX_WINDOW_MS,
+    SESSION_STATUS_LABEL,
+    SESSION_TYPE_LABEL,
+} from './logic'
 
 describe('时间窗（任务 5.5 AC 检索 ≤24h）', () => {
     it('默认时间窗 now-24h → now，跨度为 24h', () => {
@@ -23,9 +32,23 @@ describe('会话标签', () => {
     })
 })
 
+describe('意图列呈现（原型 history.html「意图」列）', () => {
+    it('diagnose→排障(诊断 chip)；resource→资源查询；out_of_scope→超出范围；空→—', () => {
+        expect(intentChip('diagnose')).toEqual({ text: '排障', style: 'diagnose' })
+        expect(intentChip('resource')).toEqual({ text: '资源查询', style: 'log' })
+        expect(intentChip('out_of_scope')).toEqual({ text: '超出范围', style: 'ghost' })
+        expect(intentChip()).toEqual({ text: '—', style: 'ghost' })
+    })
+})
+
 describe('时间展示', () => {
     it('RFC3339 截断为 YYYY-MM-DD HH:mm；空值占位', () => {
         expect(formatTime('2026-10-08T15:04:05+08:00')).toBe('2026-10-08 15:04')
         expect(formatTime('')).toBe('—')
+    })
+
+    it('formatClock：HH:mm（列表 mono 口径）；空值占位', () => {
+        expect(formatClock('2026-10-08T09:45:00')).toBe('09:45')
+        expect(formatClock('bad')).toBe('—')
     })
 })

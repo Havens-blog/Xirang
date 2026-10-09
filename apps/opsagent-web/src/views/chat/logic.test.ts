@@ -1,13 +1,13 @@
 import { describe, expect, it } from 'vitest'
-import type { ChatData, TraceStep } from '@/api/opsagent'
+import type { ChatData } from '@/api/opsagent'
 import {
-    buildThinkingStages,
     chatTypeLabel,
     degradeBadge,
     hasDiagnosisReport,
     resolveCitation,
     SOURCE_TYPE_META,
     sourceTypeMeta,
+    THINKING_STEP_TEXTS,
 } from './logic'
 
 function chat(over: Partial<ChatData>): ChatData {
@@ -50,43 +50,33 @@ describe('降级徽标（api-handbook degradeLevel）', () => {
     })
 })
 
-describe('证据 source_type → agent 角色着色（任务 5.2 AC#3）', () => {
-    it('四类 source_type 均有 label+agent+颜色变量', () => {
+describe('证据 source_type → 语义色（原型：色点 + 来源名）', () => {
+    it('四类 source_type 均有中文来源名 + HSL 语义色分量', () => {
         expect(Object.keys(SOURCE_TYPE_META).sort()).toEqual(['alert', 'asset', 'log', 'metric'])
+        expect(SOURCE_TYPE_META.log.label).toBe('日志')
+        expect(SOURCE_TYPE_META.metric.label).toBe('指标')
+        expect(SOURCE_TYPE_META.asset.label).toBe('资产')
+        expect(SOURCE_TYPE_META.alert.label).toBe('告警')
         for (const m of Object.values(SOURCE_TYPE_META)) {
-            expect(m.label).toBeTruthy()
-            expect(m.agent).toBeTruthy()
-            expect(m.colorVar).toMatch(/^var\(--agent-/)
+            expect(m.hsl).toMatch(/^\d+ \d+% \d+%$/)
         }
     })
 
     it('未知 source_type 走兜底元数据（不吞数据）', () => {
         const m = sourceTypeMeta('unknown')
         expect(m.label).toBe('unknown')
-        expect(m.colorVar).toBe('var(--agent-coord)')
+        expect(m.hsl).toBe('199 89% 48%')
     })
 })
 
-describe('4 步编排进度派生（意图识别→查询→诊断→报告）', () => {
-    it('空 trace 派生 4 阶段且均未执行', () => {
-        const stages = buildThinkingStages([])
-        expect(stages.map((s) => s.key)).toEqual(['intent', 'query', 'diagnose', 'report'])
-        expect(stages.every((s) => !s.step)).toBe(true)
-    })
-
-    it('trace 步骤按 action 映射到阶段（首个命中优先）', () => {
-        const trace: TraceStep[] = [
-            { step: 1, agent: 'coordinator', action: 'intent', durationMs: 10, summary: '识别为排障' },
-            { step: 2, agent: 'log_analyst', action: 'query', durationMs: 20, summary: '查询日志' },
-            { step: 4, agent: 'inspector', action: 'report', durationMs: 15, summary: '生成报告' },
-            { step: 3, agent: 'inspector', action: 'report', durationMs: 5, summary: '重复报告步骤' },
-        ]
-        const stages = buildThinkingStages(trace)
-        expect(stages.find((s) => s.key === 'intent')?.step?.summary).toBe('识别为排障')
-        expect(stages.find((s) => s.key === 'query')?.step?.summary).toBe('查询日志')
-        expect(stages.find((s) => s.key === 'diagnose')?.step).toBeUndefined()
-        // report 阶段取首个命中（step=4 在 step=3 前）
-        expect(stages.find((s) => s.key === 'report')?.step?.step).toBe(4)
+describe('思考块 4 步文案（原型 chat.html stageSteps）', () => {
+    it('①-④ 文案逐字对齐原型', () => {
+        expect(THINKING_STEP_TEXTS).toEqual([
+            '① 意图识别中…',
+            '② 查询日志 / 资产 / 告警中…',
+            '③ 诊断计算中…',
+            '④ 生成报告中…',
+        ])
     })
 })
 

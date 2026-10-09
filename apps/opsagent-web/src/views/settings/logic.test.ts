@@ -1,13 +1,19 @@
 import { describe, expect, it } from 'vitest'
 import type { PresetQuery } from '@/api/opsagent'
 import {
+    API_CONTRACTS,
     connectionStatusText,
+    DATASOURCE_CARDS,
     dataSourceLabel,
     DATA_SOURCE_LABEL,
+    dispositionForRisk,
     formatTime,
     NOTIFY_CHANNEL_LABEL,
+    NOTIFY_CHANNEL_META,
     PROVIDER_LABEL,
+    PROVIDER_META,
     RISK_LEVEL_META,
+    SECURITY_SWITCHES,
     notifyChannelLabel,
     providerLabel,
     validatePreset,
@@ -65,5 +71,36 @@ describe('预置查询校验（任务 5.6 AC 预置查询可配置）', () => {
         expect(validatePreset(preset('order-service', '2026-10-08T00:00:00Z', '2026-10-08T12:00:00Z'))).toBeNull()
         expect(validatePreset(preset('', '', ''))).toBe('缺少 serviceName')
         expect(validatePreset(preset('svc', '2026-10-08T00:00:00Z', '2026-10-10T00:00:00Z'))).toBe('时间窗超过 24 小时')
+    })
+})
+
+describe('数据源注册表 / 通知渠道 / 提供商元数据（原型 settings.html）', () => {
+    it('五卡注册表键序与探针组（logquery 三探针；topology/audit 无探针）', () => {
+        expect(DATASOURCE_CARDS.map((c) => c.key)).toEqual(['logquery', 'alert', 'asset', 'topology', 'audit'])
+        expect(DATASOURCE_CARDS[0]!.probeKeys).toEqual(['cdn', 'waf', 'lb'])
+        expect(DATASOURCE_CARDS[3]!.probeKeys).toEqual([])
+        expect(DATASOURCE_CARDS[4]!.probeKeys).toEqual([])
+    })
+
+    it('风险档 → 处置语义（read 自动执行 / low 白名单自动执行 / high 人工确认 P3）', () => {
+        expect(dispositionForRisk('read')).toBe('自动执行')
+        expect(dispositionForRisk('low')).toBe('白名单自动执行')
+        expect(dispositionForRisk('high')).toBe('人工确认后执行（P3）')
+    })
+
+    it('底座接口契约四条目冻结版本', () => {
+        expect(API_CONTRACTS.map((c) => c.name)).toEqual([
+            'logquery（日志+诊断）',
+            'alert（告警）',
+            '资产 / MCP',
+            'eiam（鉴权 + 租户）',
+        ])
+        expect(API_CONTRACTS[0]!.version).toBe('v1.2')
+    })
+
+    it('安全开关两强制项 + 渠道/提供商元数据存在', () => {
+        expect(SECURITY_SWITCHES.map((s) => s.title)).toEqual(['强制租户上下文注入', 'LLM 回复引用校验'])
+        expect(NOTIFY_CHANNEL_META.dingtalk!.desc).toBe('值班群机器人 webhook')
+        expect(PROVIDER_META.qwen!.site).toBe('dashscope.aliyun.com')
     })
 })

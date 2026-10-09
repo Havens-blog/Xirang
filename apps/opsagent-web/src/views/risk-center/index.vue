@@ -1,37 +1,27 @@
 <template>
   <div class="opsagent-page">
-    <PageContainer title="风险中心">
-      <template #filters>
-        <FilterBar @search="onSearch" @reset="onReset" />
-      </template>
+    <!-- 统计卡（高危待确认红 / 今日诊断 / 待查看橙） -->
+    <StatCards :stats="stats" />
 
-      <StatCards :stats="stats" />
+    <!-- 筛选条（卡片内联表单） -->
+    <FilterBar @search="onSearch" />
 
-      <div class="risk-center__table">
-        <RiskTable
-          :items="items"
-          :busy="marking || loading"
-          @mark="onMark"
-          @batch="onBatch"
-          @open-detail="onOpenDetail"
-        />
-      </div>
-
-      <template #footer>
-        <el-pagination
-          v-model:current-page="page"
-          :page-size="limit"
-          :total="total"
-          layout="total, prev, pager, next"
-          @current-change="onPageChange"
-        />
-      </template>
-    </PageContainer>
+    <!-- 批量操作条 + 列表 + 内嵌分页 -->
+    <RiskTable
+      :items="items"
+      :busy="marking || loading"
+      :total="total"
+      :page="page"
+      :limit="limit"
+      @mark="onMark"
+      @batch="onBatch"
+      @open-detail="onOpenDetail"
+      @page-change="onPageChange"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
-import PageContainer from '@/components/PageContainer/index.vue'
 import {
     batchRiskStatusApi,
     OpsagentRequestError,
@@ -55,13 +45,13 @@ const loading = ref(false)
 const marking = ref(false)
 const filters = ref<RiskFilter>({ serviceName: '', status: '', severity: '', timeRange: null })
 const page = ref(1)
-const limit = ref(20)
+const limit = 20
 const items = ref<RiskEntry[]>([])
 const total = ref(0)
 const stats = ref<RiskStats>({ pendingView: 0, todayNew: 0, highRisk: 0 })
 
 function buildParams(): RiskListParams {
-    const p: RiskListParams = { page: page.value, limit: limit.value }
+    const p: RiskListParams = { page: page.value, limit }
     if (filters.value.serviceName) p.serviceName = filters.value.serviceName
     if (filters.value.status) p.status = filters.value.status
     if (filters.value.severity) p.severity = filters.value.severity
@@ -92,18 +82,15 @@ function onSearch(f: RiskFilter): void {
     load()
 }
 
-function onReset(): void {
-    filters.value = { serviceName: '', status: '', severity: '', timeRange: null }
-    page.value = 1
-    load()
-}
-
 function onPageChange(p: number): void {
     page.value = p
     load()
 }
 
-/** 单个标记：CAS 冲突 409 → 提示已被更新 + 刷新最新状态 */
+/**
+ * 单个标记：CAS 冲突 409 → 并发冲突对话框（原型 risk-center.html）：
+ * 「该条目已被其他值班更新」→ 放弃 / 覆盖提交（不带 expectedVersion 盲覆盖）。
+ */
 async function onMark(entry: RiskEntry, status: 'viewed' | 'done'): Promise<void> {
     marking.value = true
     try {
@@ -111,7 +98,22 @@ async function onMark(entry: RiskEntry, status: 'viewed' | 'done'): Promise<void
         await load()
     } catch (err) {
         if (err instanceof OpsagentRequestError && err.code === 'ERR_CONFLICT') {
-            ElMessage.warning('已被其他值班更新，已刷新最新状态')
+            try {
+                await ElMessageBox.confirm(
+                    '该条目已被其他值班更新。放弃本次修改，或覆盖提交你当前的标记状态？',
+                    '并发冲突',
+                    {
+                        confirmButtonText: '覆盖提交',
+                        cancelButtonText: '放弃',
+                        type: 'warning',
+                    },
+                )
+                // 覆盖提交：省略 expectedVersion（后端无条件覆盖写）
+                await updateRiskStatusApi(entry.id, { status })
+                ElMessage.success('已覆盖提交')
+            } catch {
+                // 放弃（或对话框关闭）→ 只刷新最新状态
+            }
             await load()
         } else {
             ElMessage.error(err instanceof Error ? err.message : '标记失败')
@@ -155,9 +157,3 @@ function onOpenDetail(entry: RiskEntry): void {
 
 onMounted(load)
 </script>
-
-<style scoped>
-.risk-center__table {
-    margin-top: 16px;
-}
-</style>

@@ -1,55 +1,63 @@
 <template>
-  <div class="opsagent-page">
-    <PageContainer title="对话排障">
-      <div class="chat-layout">
-        <div class="chat-layout__main">
-          <ChatPanel
-            :messages="messages"
-            :diagnosis="diagnosis"
-            :degrade-level="degradeLevel"
-            :busy="busy"
-            @submit="onSubmit"
-          />
+  <div class="opsagent-page chat-page">
+    <!-- 对话流 + 报告卡 + 粘底输入条（原型 chat.html 同构） -->
+    <ChatPanel
+      :messages="messages"
+      :diagnosis="diagnosis"
+      :degrade-level="degradeLevel"
+      :busy="busy"
+      :username="userStore.username"
+      @submit="onSubmit"
+    />
 
-          <!-- 澄清追问（type=clarify）：候选意图一键纠正 / 自然语言纠正 -->
-          <div v-if="chatData?.type === 'clarify'" class="chat-layout__clarify">
-            <IntentCorrection
-              :candidates="chatData.candidates"
-              :busy="busy"
-              @correct="onCorrectIntent"
-              @correct-message="onCorrectMessage"
-            />
-          </div>
+    <!-- 澄清追问（type=clarify）：候选意图一键纠正 / 自然语言纠正 -->
+    <div v-if="chatData?.type === 'clarify'" class="chat-page__clarify">
+      <IntentCorrection
+        :candidates="chatData.candidates"
+        :busy="busy"
+        @correct="onCorrectIntent"
+        @correct-message="onCorrectMessage"
+      />
+    </div>
 
-          <!-- L2 预置查询目录（type=preset_entries）：点击确定性重入 -->
-          <div v-if="chatData?.type === 'preset_entries'" class="chat-layout__presets">
-            <p class="presets__label">预置查询</p>
-            <button
-              v-for="p in chatData.presets"
-              :key="p.id"
-              type="button"
-              class="presets__item"
-              :disabled="busy"
-              @click="onPreset(p)"
-            >
-              {{ p.label }}
-            </button>
-          </div>
+    <!-- L2 预置查询目录（type=preset_entries）：点击确定性重入 -->
+    <div v-if="chatData?.type === 'preset_entries'" class="chat-page__presets">
+      <p class="presets__label">预置查询</p>
+      <button
+        v-for="p in chatData.presets"
+        :key="p.id"
+        type="button"
+        class="presets__item"
+        :disabled="busy"
+        @click="onPreset(p)"
+      >
+        {{ p.label }}
+      </button>
+    </div>
+
+    <!-- 明示降级对话框（原型 degradeDialog：说明 + 知道了） -->
+    <div
+      v-if="degradeDialogOpen"
+      class="dialog-overlay open"
+      role="dialog"
+      aria-modal="true"
+      aria-label="降级模式"
+      @click.self="degradeDialogOpen = false"
+    >
+      <div class="dialog">
+        <h3>⚠️ 进入降级模式</h3>
+        <p class="dialog__desc">
+          LLM 意图识别不可用，已退化为模板/正则匹配 + 预置查询入口。以下能力当前不可用：自由转述提问、复杂多工具编排。
+        </p>
+        <div class="dialog-actions">
+          <button class="btn" @click="degradeDialogOpen = false">知道了</button>
         </div>
-
-        <!-- 报告侧栏：编排进度 + 证据卡 -->
-        <aside v-if="diagnosis" class="chat-layout__aside">
-          <ThinkingBlock :trace="diagnosis.trace" />
-          <div class="chat-layout__divider" />
-          <EvidenceCard :citations="diagnosis.citations" />
-        </aside>
       </div>
-    </PageContainer>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import PageContainer from '@/components/PageContainer/index.vue'
 import {
     chatApi,
     correctApi,
@@ -59,15 +67,17 @@ import {
     type IntentType,
     type PresetQuery,
 } from '@/api/opsagent'
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
+import { useUserStore } from '@/stores/user'
 import ChatPanel, { type ChatMessage } from './components/ChatPanel.vue'
-import EvidenceCard from './components/EvidenceCard.vue'
 import IntentCorrection from './components/IntentCorrection.vue'
-import ThinkingBlock from './components/ThinkingBlock.vue'
+
+const userStore = useUserStore()
 
 const busy = ref(false)
 const messages = ref<ChatMessage[]>([])
 const chatData = ref<ChatData | null>(null)
+const degradeDialogOpen = ref(false)
 
 const diagnosis = computed(() => chatData.value?.diagnosis ?? null)
 const degradeLevel = computed(() => chatData.value?.degradeLevel ?? 0)
@@ -77,13 +87,24 @@ const CODE_PERSIST_FAILED = 'ERR_PERSIST_FAILED'
 
 function applyChatData(data: ChatData): void {
     chatData.value = data
-    if (data.report) {
+    // type=report 时诊断以报告卡呈现（ChatPanel 渲 diagnosis），正文不重复入气泡
+    if (data.report && data.type !== 'report') {
         messages.value.push({ role: 'assistant', text: data.report })
     }
     if (data.status === 'running') {
         messages.value.push({ role: 'assistant', text: '诊断转入后台继续，请稍后从「历史回溯」查看结果。' })
     }
 }
+
+/** 明示降级 → 降级模式对话框（原型 degradeDialog） */
+watch(
+    () => chatData.value?.type,
+    (type) => {
+        if (type === 'degraded_notice') {
+            degradeDialogOpen.value = true
+        }
+    },
+)
 
 /** 统一错误收敛：persist-failed 保留正文，其余以文本入对话流 */
 function onError(err: unknown): void {
@@ -137,61 +158,100 @@ async function onPreset(preset: PresetQuery): Promise<void> {
 </script>
 
 <style scoped>
-.chat-layout {
-    display: flex;
-    gap: 16px;
-    align-items: flex-start;
-    min-height: 520px;
+.chat-page {
+  display: flex;
+  flex-direction: column;
 }
-.chat-layout__main {
-    flex: 1;
-    min-width: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 14px;
+.chat-page__clarify {
+  padding: 12px;
+  background: hsl(var(--card));
+  border: 1px solid hsl(var(--border));
+  border-radius: var(--radius);
+  margin-top: 16px;
 }
-.chat-layout__aside {
-    width: 320px;
-    flex-shrink: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-}
-.chat-layout__divider {
-    height: 1px;
-    background: hsl(var(--border));
-}
-.chat-layout__clarify {
-    padding: 12px;
-    background: hsl(var(--card));
-    border: 1px solid hsl(var(--border));
-    border-radius: var(--radius);
-}
-.chat-layout__presets {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
+.chat-page__presets {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 16px;
 }
 .presets__label {
-    margin: 0;
-    font-size: 12px;
-    font-weight: 600;
-    color: hsl(var(--muted-foreground));
+  margin: 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: hsl(var(--muted-foreground));
 }
 .presets__item {
-    padding: 10px 14px;
-    text-align: left;
-    background: hsl(var(--card));
-    color: hsl(var(--foreground));
-    border: 1px solid hsl(var(--border));
-    border-radius: 6px;
-    cursor: pointer;
+  padding: 10px 14px;
+  text-align: left;
+  background: hsl(var(--card));
+  color: hsl(var(--foreground));
+  border: 1px solid hsl(var(--border));
+  border-radius: 6px;
+  cursor: pointer;
+  font-family: inherit;
 }
 .presets__item:hover:not(:disabled) {
-    border-color: hsl(var(--primary));
+  border-color: hsl(var(--primary));
 }
 .presets__item:disabled {
-    cursor: not-allowed;
-    opacity: 0.6;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+/* 原型 Dialog 同构 */
+.dialog-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.65);
+  backdrop-filter: blur(2px);
+  z-index: 90;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.dialog {
+  background: hsl(var(--card));
+  border: 1px solid hsl(var(--border));
+  border-radius: 12px;
+  max-width: 480px;
+  width: 90%;
+  padding: 24px;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.6);
+}
+.dialog h3 {
+  margin: 0 0 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 16px;
+}
+.dialog__desc {
+  margin: 0 0 8px;
+  font-size: 13px;
+  color: hsl(var(--muted-foreground));
+  line-height: 1.6;
+}
+.dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 20px;
+}
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 36px;
+  padding: 0 16px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  background: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
 }
 </style>

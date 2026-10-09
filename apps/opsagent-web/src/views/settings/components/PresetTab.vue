@@ -2,60 +2,56 @@
   <div class="preset-tab">
     <p v-if="presets.length === 0" class="preset-tab__empty">暂无预置查询条目</p>
     <ul v-else class="preset-tab__list">
-      <li v-for="(p, i) in rows" :key="i" class="preset-row">
-        <input v-model="p.label" type="text" class="preset-row__label" placeholder="展示名" :disabled="!editable || busy" />
-        <input v-model="p.params.serviceName" type="text" class="preset-row__service" placeholder="serviceName" :disabled="!editable || busy" />
+      <li v-for="(p, i) in presets" :key="i" class="preset-row">
+        <input v-model="p.label" type="text" class="preset-row__label" placeholder="展示名" :disabled="!editable || busy" @input="emitDraft" />
+        <input v-model="p.params.serviceName" type="text" class="preset-row__service" placeholder="serviceName" :disabled="!editable || busy" @input="emitDraft" />
         <button type="button" class="preset-row__remove" :disabled="!editable || busy" @click="remove(i)">移除</button>
       </li>
     </ul>
     <div class="preset-tab__actions">
       <button type="button" class="btn btn--ghost" :disabled="!editable || busy" @click="add">新增</button>
-      <button type="button" class="btn" :disabled="!editable || busy" @click="onSave">保存</button>
+      <!-- 保存由 topbar「保存配置」统一提交（原型 settings.html 单按钮口径） -->
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
 import type { PresetQuery } from '@/api/opsagent'
-import { validatePreset } from '../logic'
 
 const props = defineProps<{
+    /** 父级持有的草稿（v-model 直改 + 上抛 draft 快照） */
     presets: PresetQuery[]
     editable?: boolean
     busy?: boolean
-    /** 校验错误回调（上抛给页面提示，如「缺少 serviceName」） */
-    onInvalid?: (msg: string) => void
 }>()
 
-const emit = defineEmits<{ (e: 'save', presets: PresetQuery[]): void }>()
+const emit = defineEmits<{ (e: 'draft', presets: PresetQuery[]): void }>()
 
-/** 本地可编辑副本（不可变原则） */
-const rows = ref<PresetQuery[]>(props.presets.map((p) => ({
-    ...p,
-    params: { ...p.params, timeframe: { ...p.params.timeframe } },
-})))
+function snapshot(): PresetQuery[] {
+    return props.presets.map((p) => ({
+        ...p,
+        params: { ...p.params, timeframe: { ...p.params.timeframe } },
+    }))
+}
+
+function emitDraft(): void {
+    emit('draft', snapshot())
+}
 
 function add(): void {
-    rows.value.push({
+    const next = snapshot()
+    next.push({
         id: '',
         label: '',
         params: { serviceName: '', timeframe: { startTime: '', endTime: '' } },
     })
+    emit('draft', next)
 }
 
 function remove(i: number): void {
-    rows.value.splice(i, 1)
-}
-
-function onSave(): void {
-    const out = rows.value.map((p) => ({ ...p, params: { ...p.params } }))
-    const bad = out.find((p) => validatePreset(p) !== null)
-    if (bad) {
-        props.onInvalid?.(validatePreset(bad) ?? '预置查询校验失败')
-        return
-    }
-    emit('save', out)
+    const next = snapshot()
+    next.splice(i, 1)
+    emit('draft', next)
 }
 </script>
 

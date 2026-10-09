@@ -1,32 +1,37 @@
 <template>
   <div class="opsagent-page">
-    <PageContainer title="历史回溯">
-      <template #filters>
-        <SearchBar :default-range="defaultRange" @search="onSearch" @reset="onReset" />
-      </template>
+    <!-- 面包屑（原型 history.html：对话排障 / 历史诊断回溯） -->
+    <div class="breadcrumb">
+      <RouterLink to="/chat">对话排障</RouterLink>
+      <span class="sep">/</span>
+      <span>历史诊断回溯</span>
+    </div>
 
-      <div class="history-layout">
-        <div class="history-layout__list">
-          <SessionList
-            :sessions="items"
-            :selected-id="selectedSession?.id"
-            @select="onSelect"
-          />
-        </div>
-        <div v-if="selectedSession" class="history-layout__view">
-          <SessionView
-            :session="selectedSession"
-            :diagnosis="selectedDiagnosis"
-            :loading="loadingDiagnosis"
-          />
-        </div>
-      </div>
-    </PageContainer>
+    <!-- 列表视图（原型：检索卡 + 会话表格 + 分页） -->
+    <template v-if="!selectedSession">
+      <SearchBar :default-range="defaultRange" @search="onSearch" />
+      <SessionList
+        :sessions="items"
+        :total="total"
+        :page="page"
+        :limit="limit"
+        @select="onSelect"
+        @page-change="onPageChange"
+      />
+    </template>
+
+    <!-- 会话内容视图（原型：页内替换，↩ 返回会话列表） -->
+    <SessionView
+      v-else
+      :session="selectedSession"
+      :diagnosis="selectedDiagnosis"
+      :loading="loadingDiagnosis"
+      @back="onBackToList"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
-import PageContainer from '@/components/PageContainer/index.vue'
 import {
     getDiagnosisApi,
     historyApi,
@@ -34,16 +39,17 @@ import {
     type HistoryParams,
     type SessionSummary,
 } from '@/api/opsagent'
-import { ElMessage } from 'element-plus'
-import { onMounted, ref } from 'vue'
+import { ref } from 'vue'
 import SearchBar, { type HistoryFilter } from './components/SearchBar.vue'
 import SessionList from './components/SessionList.vue'
 import SessionView from './components/SessionView.vue'
-import { defaultTimeWindow, isTimeWindowValid } from './logic'
+import { defaultTimeWindow } from './logic'
 
 const items = ref<SessionSummary[]>([])
-const filters = ref<HistoryFilter>({ serviceName: '', timeRange: null })
+const filters = ref<HistoryFilter | null>(null)
 const page = ref(1)
+const limit = 20
+const total = ref(0)
 const loadingList = ref(false)
 
 const selectedSession = ref<SessionSummary | null>(null)
@@ -54,12 +60,12 @@ const loadingDiagnosis = ref(false)
 const defaultRange = ref<[string, string]>(defaultTimeWindow())
 
 function buildParams(): HistoryParams {
-    const p: HistoryParams = { page: page.value, limit: 20 }
-    if (filters.value.serviceName) p.serviceName = filters.value.serviceName
-    if (filters.value.timeRange) {
-        p.startTime = filters.value.timeRange[0]
-        p.endTime = filters.value.timeRange[1]
-    }
+    const p: HistoryParams = { page: page.value, limit }
+    const f = filters.value
+    if (f?.serviceName) p.serviceName = f.serviceName
+    const range = f?.timeRange ?? defaultRange.value
+    p.startTime = range[0]
+    p.endTime = range[1]
     return p
 }
 
@@ -68,27 +74,25 @@ async function load(): Promise<void> {
     try {
         const data = await historyApi(buildParams())
         items.value = data.items
-    } catch (err) {
-        ElMessage.error(err instanceof Error ? err.message : '检索失败')
+        total.value = data.total
+    } catch {
+        // 跨租户/服务异常由请求层 401/404 收敛；此处静默避免打断浏览
+        items.value = []
+        total.value = 0
     } finally {
         loadingList.value = false
     }
 }
 
-/** 检索：时间窗 ≤24h，超出提示缩小范围（Hard Rule 跨租户由服务端 404 兜底） */
+/** 检索：≤24h 校验已由 SearchBar 内联完成（超窗时不会到达此分支） */
 function onSearch(f: HistoryFilter): void {
-    if (f.timeRange && !isTimeWindowValid(f.timeRange[0], f.timeRange[1])) {
-        ElMessage.warning('时间窗不得超过 24 小时，请缩小范围')
-        return
-    }
     filters.value = f
     page.value = 1
     load()
 }
 
-function onReset(): void {
-    filters.value = { serviceName: '', timeRange: defaultRange.value }
-    page.value = 1
+function onPageChange(next: number): void {
+    page.value = next
     load()
 }
 
@@ -99,28 +103,29 @@ async function onSelect(session: SessionSummary): Promise<void> {
     loadingDiagnosis.value = true
     try {
         selectedDiagnosis.value = await getDiagnosisApi(session.diagnosisId)
-    } catch (err) {
-        ElMessage.error(err instanceof Error ? err.message : '加载会话详情失败')
+    } catch {
+        selectedDiagnosis.value = null
     } finally {
         loadingDiagnosis.value = false
     }
 }
 
-onMounted(load)
+function onBackToList(): void {
+    selectedSession.value = null
+    load()
+}
 </script>
 
 <style scoped>
-.history-layout {
-    display: flex;
-    gap: 16px;
-    align-items: flex-start;
+.breadcrumb {
+  display: flex;
+  gap: 6px;
+  font-size: 13px;
+  color: hsl(var(--muted-foreground));
+  margin-bottom: 16px;
 }
-.history-layout__list {
-    width: 380px;
-    flex-shrink: 0;
-}
-.history-layout__view {
-    flex: 1;
-    min-width: 0;
+.breadcrumb a {
+  color: hsl(var(--primary));
+  text-decoration: none;
 }
 </style>

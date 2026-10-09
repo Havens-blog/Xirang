@@ -14,12 +14,12 @@ export type RiskBadgeTone = 'danger' | 'warning' | 'info' | 'success'
 
 // ==================== severity 徽标 ====================
 
-/** severity 徽标（P0/P1/P2/P3 + 色阶） */
+/** severity 徽标（P0/P1 高危红 · P2 中危 · P3 低危橙） */
 export const SEVERITY_META: Record<Severity, { label: string; tone: RiskBadgeTone }> = {
     P0: { label: 'P0 紧急', tone: 'danger' },
-    P1: { label: 'P1 高危', tone: 'warning' },
+    P1: { label: 'P1 高危', tone: 'danger' },
     P2: { label: 'P2 中危', tone: 'info' },
-    P3: { label: 'P3 低危', tone: 'success' },
+    P3: { label: 'P3 低危', tone: 'warning' },
 }
 
 // ==================== 状态徽标 ====================
@@ -65,6 +65,9 @@ export function markableActions(status: RiskEntryStatus): MarkAction[] {
 
 /** RFC3339 时间格式化（跨页共享，见 ../format） */
 export { formatTime } from '../format'
+
+/** RFC3339 → HH:mm（原型列表 mono 时间口径，共享实现） */
+export { formatClock } from '../format'
 
 // ==================== 批量结果归并 ====================
 

@@ -1,126 +1,89 @@
 <template>
-  <div class="trace-view">
-    <p class="trace-view__title">编排调用链</p>
-    <p v-if="trace.length === 0" class="trace-view__empty">无调用链记录</p>
-    <ol v-else class="trace-view__list">
-      <li v-for="t in trace" :key="t.step" class="trace-step">
-        <span class="trace-step__index">{{ t.step }}</span>
-        <div class="trace-step__body">
-          <span class="trace-step__head">
-            <span class="trace-step__agent">{{ agentLabel(t.agent) }}</span>
-            <span class="trace-step__action">{{ actionLabel(t.action) }}</span>
-            <span v-if="t.source" class="trace-step__source">{{ t.source }}</span>
-          </span>
-          <span class="trace-step__summary">{{ t.summary }}</span>
-        </div>
-        <span class="trace-step__meta">
-          <span v-if="t.degradeLevel && t.degradeLevel > 0" class="trace-step__degrade">L{{ t.degradeLevel }}</span>
-          {{ t.durationMs }}ms
-        </span>
-      </li>
-    </ol>
+  <!-- 编排调用链（原型 diagnosis-detail.html：可折叠卡 + code-block 文本链，默认折叠） -->
+  <div class="card">
+    <div
+      class="collapsible-header"
+      :aria-expanded="open"
+      @click="open = !open"
+    >
+      <span>{{ heading }}</span>
+      <span class="chevron">▾</span>
+    </div>
+    <div v-if="open" class="collapsible-content">
+      <pre class="code-block">{{ chainText }}</pre>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
+import { computed, ref } from 'vue'
 import type { TraceStep } from '@/api/opsagent'
-import { actionLabel, agentLabel } from '../logic'
+import { agentLabel } from '../logic'
 
-defineProps<{ trace: TraceStep[] }>()
+const props = withDefaults(
+    defineProps<{
+        trace: TraceStep[]
+        /** 折叠头标题（诊断页带「供 SRE 二次核实」副题；历史页为原型短标题） */
+        heading?: string
+    }>(),
+    { heading: '🧬 编排调用链（供 SRE 二次核实）' },
+)
+
+const open = ref(false)
+
+/** 文本调用链：→ 角色.action(source) → 摘要 (耗时ms)，降级步附 L 级 */
+const chainText = computed(() => {
+    if (props.trace.length === 0) return '无编排调用链记录'
+    return props.trace
+        .map((t) => {
+            const source = t.source ? `(${t.source})` : ''
+            const degrade = t.degradeLevel && t.degradeLevel > 0 ? ` [降级 L${t.degradeLevel}]` : ''
+            return `→ ${agentLabel(t.agent)}.${t.action}${source} → ${t.summary}${degrade} (${t.durationMs}ms)`
+        })
+        .join('\n')
+})
 </script>
 
 <style scoped>
-.trace-view__title {
-    margin: 0 0 10px;
-    font-size: 12px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    color: hsl(var(--muted-foreground) / 0.7);
+.card {
+  background: hsl(var(--card));
+  border: 1px solid hsl(var(--border));
+  border-radius: 12px;
+  padding: 20px;
+  color: hsl(var(--card-foreground));
 }
-.trace-view__empty {
-    margin: 0;
-    font-size: 13px;
-    color: hsl(var(--muted-foreground));
-    font-style: italic;
+.collapsible-header {
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 13px;
+  font-weight: 500;
+  padding: 6px 0;
 }
-.trace-view__list {
-    list-style: none;
-    margin: 0;
-    padding: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
+.chevron {
+  transition: transform 0.15s;
+  font-size: 11px;
+  color: hsl(var(--muted-foreground));
 }
-.trace-step {
-    display: flex;
-    align-items: flex-start;
-    gap: 10px;
-    padding: 8px 10px;
-    border-radius: 6px;
+.collapsible-header[aria-expanded='true'] .chevron {
+  transform: rotate(180deg);
 }
-.trace-step__index {
-    flex-shrink: 0;
-    width: 20px;
-    height: 20px;
-    border-radius: 50%;
-    background: hsl(var(--primary) / 0.15);
-    color: hsl(var(--primary));
-    font-size: 11px;
-    font-weight: 600;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
+.collapsible-content {
+  margin-top: 8px;
 }
-.trace-step__body {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-    min-width: 0;
-    flex: 1;
-}
-.trace-step__head {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    flex-wrap: wrap;
-}
-.trace-step__agent {
-    font-size: 12px;
-    font-weight: 600;
-    color: hsl(var(--primary));
-}
-.trace-step__action {
-    font-size: 13px;
-    font-weight: 500;
-    color: hsl(var(--foreground));
-}
-.trace-step__source {
-    font-size: 11px;
-    color: hsl(var(--muted-foreground));
-}
-.trace-step__summary {
-    font-size: 12px;
-    color: hsl(var(--muted-foreground));
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-.trace-step__meta {
-    flex-shrink: 0;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    font-size: 11px;
-    color: hsl(var(--muted-foreground) / 0.8);
-    font-variant-numeric: tabular-nums;
-}
-.trace-step__degrade {
-    font-size: 10px;
-    font-weight: 600;
-    padding: 1px 5px;
-    border-radius: 3px;
-    background: hsl(var(--severity-low) / 0.2);
-    color: hsl(var(--severity-low));
+.code-block {
+  background: hsl(var(--muted) / 0.4);
+  border: 1px solid hsl(var(--border));
+  border-radius: 8px;
+  padding: 14px;
+  overflow-x: auto;
+  font-family: 'JetBrains Mono', 'Cascadia Mono', Consolas, monospace;
+  font-size: 12.5px;
+  margin: 0;
+  color: hsl(var(--foreground));
+  line-height: 1.6;
+  white-space: pre-wrap;
+  word-break: break-all;
 }
 </style>

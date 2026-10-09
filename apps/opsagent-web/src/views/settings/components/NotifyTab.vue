@@ -1,36 +1,33 @@
 <template>
   <div class="notify-tab">
     <p v-if="channels.length === 0" class="notify-tab__empty">未配置通知渠道</p>
-    <ul class="notify-tab__list">
-      <li v-for="c in channels" :key="c.channel" class="channel-row">
-        <span class="channel-row__name">{{ notifyChannelLabel(c.channel) }}</span>
-        <button
-          type="button"
-          class="channel-row__toggle"
-          :class="{ 'channel-row__toggle--on': c.enabled }"
-          :disabled="!editable"
-          :aria-pressed="c.enabled"
-          @click="emit('toggle', c.channel, !c.enabled)"
-        >
-          {{ c.enabled ? '已启用' : '已停用' }}
-        </button>
-      </li>
-    </ul>
-    <button
-      v-if="editable"
-      type="button"
-      class="notify-tab__save"
-      :disabled="busy"
-      @click="emit('save')"
-    >
-      保存渠道配置
-    </button>
+    <!-- 原型 settings.html：图标卡 + 描述 + switch（点击即上抛 toggle，父级持有状态并 toast） -->
+    <div v-for="c in channels" :key="c.channel" class="card channel-card">
+      <div class="channel-card-main">
+        <div class="ds-icon" :style="{ background: meta(c.channel).grad }">
+          {{ meta(c.channel).icon }}
+        </div>
+        <div class="channel-card-meta">
+          <p class="channel-card-name">{{ notifyChannelLabel(c.channel) }}</p>
+          <p class="channel-card-desc">{{ meta(c.channel).desc }}</p>
+        </div>
+      </div>
+      <button
+        type="button"
+        class="switch"
+        role="switch"
+        :aria-checked="c.enabled"
+        :aria-label="`${notifyChannelLabel(c.channel)} 开关`"
+        :disabled="!editable"
+        @click="emit('toggle', c.channel, !c.enabled)"
+      />
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import type { NotifyChannel } from '@/api/opsagent'
-import { notifyChannelLabel } from '../logic'
+import { NOTIFY_CHANNEL_META, notifyChannelLabel } from '../logic'
 
 defineProps<{
     channels: NotifyChannel[]
@@ -40,72 +37,108 @@ defineProps<{
 
 const emit = defineEmits<{
     (e: 'toggle', channel: string, enabled: boolean): void
-    (e: 'save'): void
 }>()
+
+/** 渠道卡元数据（未知渠道兜底灰渐变） */
+function meta(channel: string): { icon: string; grad: string; desc: string } {
+    return (
+        NOTIFY_CHANNEL_META[channel] ?? {
+            icon: notifyChannelLabel(channel)[0] ?? '?',
+            grad: 'linear-gradient(135deg, #64748b, #475569)',
+            desc: '—',
+        }
+    )
+}
 </script>
 
 <style scoped>
 .notify-tab__empty {
     margin: 0;
-    padding: 20px;
+    padding: 16px;
     text-align: center;
     font-size: 13px;
     color: hsl(var(--muted-foreground));
 }
-.notify-tab__list {
-    list-style: none;
-    margin: 0 0 14px;
-    padding: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-}
-.channel-row {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 10px 12px;
+.card {
     background: hsl(var(--card));
     border: 1px solid hsl(var(--border));
-    border-radius: var(--radius);
+    border-radius: 12px;
+    padding: 16px;
 }
-.channel-row__name {
+.channel-card {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+.channel-card:last-child {
+    margin-bottom: 0;
+}
+.channel-card-main {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex: 1;
+    min-width: 0;
+}
+.ds-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     font-size: 14px;
-    font-weight: 600;
-    color: hsl(var(--foreground));
+    font-weight: 700;
+    color: #fff;
 }
-.channel-row__toggle {
-    margin-left: auto;
-    padding: 4px 12px;
-    font-size: 12px;
-    font-weight: 600;
-    background: hsl(var(--muted));
-    color: hsl(var(--muted-foreground));
-    border: 1px solid hsl(var(--border));
-    border-radius: 4px;
-    cursor: pointer;
+.channel-card-meta {
+    min-width: 0;
 }
-.channel-row__toggle--on {
-    background: hsl(var(--severity-ok) / 0.2);
-    color: hsl(var(--severity-ok));
-    border-color: hsl(var(--severity-ok));
-}
-.channel-row__toggle:disabled {
-    cursor: not-allowed;
-    opacity: 0.6;
-}
-.notify-tab__save {
-    padding: 8px 16px;
+.channel-card-name {
+    margin: 0 0 3px;
     font-size: 13px;
     font-weight: 600;
-    background: hsl(var(--primary));
-    color: hsl(var(--primary-foreground));
-    border: none;
-    border-radius: 6px;
-    cursor: pointer;
 }
-.notify-tab__save:disabled {
-    opacity: 0.6;
+.channel-card-desc {
+    margin: 0;
+    font-size: 12px;
+    color: hsl(var(--muted-foreground));
+}
+/* 原型 .switch：胶囊滑块 */
+.switch {
+    position: relative;
+    flex-shrink: 0;
+    width: 42px;
+    height: 24px;
+    border-radius: 9999px;
+    border: 1px solid hsl(var(--border));
+    background: hsl(var(--muted));
+    cursor: pointer;
+    transition: background 0.15s;
+}
+.switch::after {
+    content: '';
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: hsl(var(--card));
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+    transition: transform 0.15s;
+}
+.switch[aria-checked='true'] {
+    background: hsl(var(--primary));
+    border-color: hsl(var(--primary));
+}
+.switch[aria-checked='true']::after {
+    transform: translateX(18px);
+}
+.switch:disabled {
+    opacity: 0.55;
     cursor: not-allowed;
 }
 </style>

@@ -41,7 +41,32 @@ export const SESSION_STATUS_LABEL: Record<SessionStatus, string> = {
     failed: '失败',
 }
 
+// ==================== 意图呈现（原型 history.html 列表「意图」列） ====================
+
+export interface IntentChipMeta {
+    text: string
+    /** 呈现形态：agent-chip 诊断 / agent-chip 日志查询 / badge-ghost */
+    style: 'diagnose' | 'log' | 'ghost'
+}
+
+/** 意图列呈现：diagnose→排障（诊断 chip）；resource→资源查询；out_of_scope→超出范围；空→— */
+export function intentChip(intentType?: string): IntentChipMeta {
+    switch (intentType) {
+        case 'diagnose':
+            return { text: '排障', style: 'diagnose' }
+        case 'resource':
+            return { text: '资源查询', style: 'log' }
+        case 'out_of_scope':
+            return { text: '超出范围', style: 'ghost' }
+        default:
+            return { text: '—', style: 'ghost' }
+    }
+}
+
 // ==================== 时间展示 ====================
 
 /** RFC3339 时间格式化（跨页共享，见 ../format） */
 export { formatTime } from '../format'
+
+/** RFC3339 → HH:mm（原型 history.html 列表/标题行 mono 时间口径）；空值占位 — */
+export { formatClock } from '../format'

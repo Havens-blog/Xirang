@@ -1,12 +1,12 @@
 /* ============================================================
-   Haven 运维 Agent — cyan 深色设计系统（任务 5.1）
-   作用域：.opsagent-page 容器，不污染 e-cam-web 默认浅色页。
-   参照 docs/features/haven-opsagent/ui/prototype/styles.css 的
-   cyan tokens（HSL 分量形式，引用用 hsl(var(--...))），组件态
-   样式由任务 5.2-5.6 页面逐个落地，本文件只承载 tokens 与容器底色。
+   Haven 运维 Agent — cyan 深色设计系统（独立应用版，6.2）
+   参照 docs/features/haven-opsagent/ui/prototype/styles.css：
+   - 独立应用全局宿主，tokens 挂 :root（不再需要 .opsagent-page 隔离作用域）
+   - 既有页面根部仍带 .opsagent-page，保留同名为兼容别名
+   - 组件态样式由各页面 scoped 样式承接，本文件承载 tokens + 全局基线
    ============================================================ */
 
-.opsagent-page {
+:root {
   /* 主色系统（cyan）—— HSL 分量，引用语义同原型 */
   --background: 222 47% 11%;
   --foreground: 210 40% 98%;
@@ -33,15 +33,101 @@
   --severity-low: 32 95% 55%;        /* 低危 橙 */
   --severity-ok: 142 71% 45%;        /* 正常 绿 */
 
-  /* agent 编排层角色色（与 cyan 区分，供 Agent 管理页按角色着色） */
+  /* agent 编排层角色色（与 cyan 区分） */
   --agent-coord: 199 89% 48%;        /* 编排 cyan */
   --agent-log: 217 91% 60%;          /* 日志 blue */
   --agent-monitor: 142 71% 45%;      /* 告警 green */
   --agent-inspector: 271 91% 65%;    /* 诊断 violet */
 
-  /* 容器底色：深蓝灰底 + 近乎白的前景色，隔离浅色主题 */
+  /* ===== Element Plus 组件暗色对齐（独立应用恒深色） =====
+     将 el-* 默认浅色变量重定向到 cyan 深色 tokens：table/date-picker/
+     dropdown/message-box 等组件随主题一致，不再出现白底组件。 */
+  --el-color-primary: hsl(var(--primary));
+  --el-bg-color: hsl(var(--card));
+  --el-bg-color-overlay: hsl(var(--popover));
+  --el-bg-color-page: hsl(var(--background));
+  --el-text-color-primary: hsl(var(--foreground));
+  --el-text-color-regular: hsl(var(--foreground));
+  --el-text-color-secondary: hsl(var(--muted-foreground));
+  --el-text-color-placeholder: hsl(var(--muted-foreground) / 0.7);
+  --el-border-color: hsl(var(--border));
+  --el-border-color-light: hsl(var(--border));
+  --el-border-color-lighter: hsl(var(--border));
+  --el-border-color-extra-light: hsl(var(--border));
+  --el-fill-color-blank: hsl(var(--card));
+  --el-fill-color: hsl(var(--muted) / 0.6);
+  --el-fill-color-light: hsl(var(--muted) / 0.45);
+  --el-fill-color-lighter: hsl(var(--muted) / 0.35);
+  --el-disabled-bg-color: hsl(var(--muted) / 0.4);
+  --el-disabled-text-color: hsl(var(--muted-foreground) / 0.5);
+  --el-disabled-border-color: hsl(var(--border));
+  --el-mask-color: rgba(0, 0, 0, 0.65);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  font-family:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC",
+    "Microsoft YaHei", sans-serif;
+  background: hsl(var(--background));
+  color: hsl(var(--foreground));
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  font-feature-settings: "rlig" 1, "calt" 1;
+  min-height: 100vh;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+
+img,
+svg {
+  display: block;
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: hsl(var(--background));
+}
+
+::-webkit-scrollbar-thumb {
+  background: hsl(var(--border));
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--muted-foreground));
+}
+
+/* 兼容别名：各页面根部沿用 cam-web 时代容器类；独立应用形态下不再做
+   圆角隔离（border-radius 残留自浅色宿主嵌入时代，已移除）。 */
+.opsagent-page {
   color: hsl(var(--foreground));
   background: hsl(var(--background));
   min-height: 100%;
-  border-radius: var(--radius);
 }

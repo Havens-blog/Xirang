@@ -1,103 +1,137 @@
 <template>
-  <div class="root-cause-card">
-    <div class="root-cause-card__head">
-      <span class="root-cause-card__title">根因结论</span>
-      <span class="root-cause-card__badges">
-        <span class="chip">严重性 {{ diagnosis.severity }}</span>
-        <span class="chip" :class="`chip--${RISK_LEVEL_META[diagnosis.riskLevel].tone}`">
-          {{ RISK_LEVEL_META[diagnosis.riskLevel].label }}
-        </span>
-        <span v-if="diagnosis.degraded" class="chip chip--warning">降级</span>
-        <span v-if="diagnosis.truncated" class="chip chip--warning">截断</span>
-      </span>
-    </div>
-    <p class="root-cause-card__cause">{{ diagnosis.rootCause || '（无明确根因结论）' }}</p>
-    <p class="root-cause-card__confidence">置信度 {{ formatConfidence(diagnosis.confidence) }}</p>
+  <!-- 根因结论（原型 diagnosis-detail.html：card-rca 主视觉 + 卡内折叠数据源引用） -->
+  <div class="card card-rca">
+    <p class="rca-label">🔎 根因结论</p>
+    <h2 class="rca-cause">
+      {{ diagnosis.rootCause || '（无明确根因结论）' }}
+      <span class="rca-confidence">（置信度 {{ formatConfidence(diagnosis.confidence) }}）</span>
+    </h2>
 
-    <ul v-if="diagnosis.conclusions.length" class="root-cause-card__conclusions">
-      <li v-for="(c, i) in diagnosis.conclusions" :key="i" class="conclusion">
-        {{ c.text }}
-      </li>
-    </ul>
+    <div
+      class="collapsible-header"
+      :aria-expanded="citationsOpen"
+      @click="citationsOpen = !citationsOpen"
+    >
+      <span class="rca-citations-label">数据源引用（{{ diagnosis.citations.length }}）</span>
+      <span class="chevron">▾</span>
+    </div>
+    <div v-if="citationsOpen" class="collapsible-content">
+      <div
+        v-for="(c, i) in diagnosis.citations"
+        :key="`${c.sourceKey}-${i}`"
+        class="evidence-card"
+      >
+        <div class="evidence-card-header">
+          <span class="dot" :style="{ background: `hsl(${sourceColor(c.sourceType)})` }" aria-hidden="true" />
+          {{ sourceLabel(c.sourceType) }}
+        </div>
+        <p class="evidence-card-body">{{ c.snippet }}</p>
+      </div>
+      <p v-if="diagnosis.citations.length === 0" class="evidence-empty">无数据源引用</p>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import type { Diagnosis } from '@/api/opsagent'
-import { formatConfidence, RISK_LEVEL_META } from '../logic'
+import { ref } from 'vue'
+import type { CitationSourceType, Diagnosis } from '@/api/opsagent'
+import { sourceTypeMeta } from '@/views/evidence'
+import { formatConfidence } from '../logic'
 
 defineProps<{ diagnosis: Diagnosis }>()
+
+const citationsOpen = ref(false)
+
+function sourceLabel(sourceType: CitationSourceType): string {
+    return sourceTypeMeta(sourceType).label
+}
+function sourceColor(sourceType: CitationSourceType): string {
+    return sourceTypeMeta(sourceType).hsl
+}
 </script>
 
 <style scoped>
-.root-cause-card {
-    padding: 16px 18px;
-    background: linear-gradient(135deg, hsl(var(--card)), hsl(var(--card) / 0.6));
-    border: 1px solid hsl(var(--border));
-    border-radius: var(--radius);
+.card {
+  background: hsl(var(--card));
+  border: 1px solid hsl(var(--border));
+  border-radius: 12px;
+  padding: 24px;
+  color: hsl(var(--card-foreground));
 }
-.root-cause-card__head {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    flex-wrap: wrap;
-    gap: 8px;
-    margin-bottom: 10px;
+.card-rca {
+  border-left: 3px solid hsl(var(--primary));
 }
-.root-cause-card__title {
-    font-size: 13px;
-    font-weight: 600;
-    color: hsl(var(--muted-foreground));
+.rca-label {
+  font-size: 12px;
+  color: hsl(var(--muted-foreground));
+  margin: 0 0 6px;
 }
-.root-cause-card__badges {
-    display: flex;
-    gap: 6px;
-    flex-wrap: wrap;
+.rca-cause {
+  font-size: 20px;
+  font-weight: 700;
+  margin: 0 0 12px;
+  color: hsl(var(--foreground));
 }
-.chip {
-    font-size: 11px;
-    font-weight: 600;
-    padding: 2px 8px;
-    border-radius: 4px;
-    background: hsl(var(--muted));
-    color: hsl(var(--foreground));
+.rca-confidence {
+  font-size: 13px;
+  font-weight: 500;
+  color: hsl(var(--muted-foreground));
 }
-.chip--warning {
-    background: hsl(var(--severity-low) / 0.2);
-    color: hsl(var(--severity-low));
+.collapsible-header {
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 0;
 }
-.chip--danger {
-    background: hsl(var(--destructive) / 0.2);
-    color: hsl(var(--destructive));
+.rca-citations-label {
+  font-size: 13px;
+  color: hsl(var(--muted-foreground));
 }
-.chip--info {
-    background: hsl(var(--primary) / 0.15);
-    color: hsl(var(--primary));
+.chevron {
+  transition: transform 0.15s;
+  font-size: 11px;
+  color: hsl(var(--muted-foreground));
 }
-.root-cause-card__cause {
-    margin: 0 0 6px;
-    font-size: 17px;
-    font-weight: 700;
-    color: hsl(var(--foreground));
-    line-height: 1.5;
+.collapsible-header[aria-expanded='true'] .chevron {
+  transform: rotate(180deg);
 }
-.root-cause-card__confidence {
-    margin: 0 0 12px;
-    font-size: 12px;
-    color: hsl(var(--muted-foreground));
+.collapsible-content {
+  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
-.root-cause-card__conclusions {
-    list-style: none;
-    margin: 0;
-    padding: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
+.evidence-card {
+  background: hsl(var(--card));
+  border: 1px solid hsl(var(--border));
+  border-radius: 8px;
+  padding: 12px 14px;
 }
-.conclusion {
-    font-size: 13px;
-    color: hsl(var(--foreground) / 0.85);
-    padding-left: 12px;
-    border-left: 2px solid hsl(var(--primary));
+.evidence-card-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+  font-size: 12px;
+  color: hsl(var(--muted-foreground));
+  font-weight: 600;
+}
+.evidence-card-header .dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+}
+.evidence-card-body {
+  margin: 0;
+  font-size: 13px;
+  color: hsl(var(--foreground));
+  line-height: 1.6;
+}
+.evidence-empty {
+  margin: 0;
+  font-size: 13px;
+  color: hsl(var(--muted-foreground));
+  font-style: italic;
 }
 </style>

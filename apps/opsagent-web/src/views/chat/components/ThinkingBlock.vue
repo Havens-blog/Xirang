@@ -1,102 +1,120 @@
 <template>
-  <div class="thinking-block">
-    <p class="thinking-block__title">编排进度</p>
-    <ol class="thinking-block__list">
-      <li
-        v-for="stage in stages"
-        :key="stage.key"
-        class="thinking-step"
-        :class="{ 'thinking-step--done': !!stage.step }"
+  <!-- 思考过程块：原型 chat.html thinkingRow（对话流内折叠块，~700ms 点亮一步） -->
+  <details class="thinking-block" open>
+    <summary>思考过程 · 多工具编排</summary>
+    <div class="steps">
+      <div
+        v-for="(text, i) in THINKING_STEP_TEXTS"
+        :key="i"
+        class="progress-step"
       >
-        <span class="thinking-step__dot" aria-hidden="true" />
-        <div class="thinking-step__body">
-          <span class="thinking-step__label">{{ stage.label }}</span>
-          <span v-if="stage.step" class="thinking-step__summary">{{ stage.step.summary }}</span>
-          <span v-else class="thinking-step__summary thinking-step__summary--pending">未执行</span>
-        </div>
-        <span v-if="stage.step" class="thinking-step__meta">
-          {{ stage.step.agent }} · {{ stage.step.durationMs }}ms
-        </span>
-      </li>
-    </ol>
-  </div>
+        <span
+          class="progress-step-dot"
+          :class="{
+            'progress-step-dot--completed': currentStep > i,
+            'progress-step-dot--active': currentStep === i,
+          }"
+          aria-hidden="true"
+        />
+        <span class="progress-step-text">{{ text }}</span>
+      </div>
+    </div>
+  </details>
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
-import type { TraceStep } from '@/api/opsagent'
-import { buildThinkingStages } from '../logic'
+import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { THINKING_STEP_TEXTS } from '../logic'
 
-const props = defineProps<{ trace: TraceStep[] }>()
+/**
+ * props.active=true 时开始 4 步点亮循环（原型节奏 ~700ms/步），
+ * 步进完成后维持全亮；组件卸载清理定时器。
+ */
+const props = defineProps<{ active: boolean }>()
 
-/** 4 步编排进度（意图识别→查询→诊断→报告），由 trace 派生 */
-const stages = computed(() => buildThinkingStages(props.trace))
+const currentStep = ref(0)
+let timer: number | undefined
+
+function start(): void {
+  stop()
+  currentStep.value = 0
+  timer = window.setInterval(() => {
+    if (currentStep.value < THINKING_STEP_TEXTS.length - 1) {
+      currentStep.value += 1
+    }
+  }, 700)
+}
+
+function stop(): void {
+  if (timer !== undefined) {
+    window.clearInterval(timer)
+    timer = undefined
+  }
+}
+
+watch(
+  () => props.active,
+  (active) => {
+    if (active) start()
+    else stop()
+  },
+  { immediate: true },
+)
+
+onMounted(() => {
+  if (props.active) start()
+})
+onBeforeUnmount(stop)
 </script>
 
 <style scoped>
-.thinking-block__title {
-    margin: 0 0 10px;
-    font-size: 12px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    color: hsl(var(--muted-foreground) / 0.7);
+.thinking-block {
+  background: hsl(var(--muted) / 0.3);
+  border: 1px solid hsl(var(--border));
+  border-left: 3px solid hsl(var(--primary));
+  padding: 14px 16px;
+  margin: 12px 0;
+  border-radius: 0 8px 8px 0;
+  font-size: 13px;
+  color: hsl(var(--muted-foreground));
 }
-.thinking-block__list {
-    list-style: none;
-    margin: 0;
-    padding: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
+.thinking-block summary {
+  cursor: pointer;
+  user-select: none;
+  font-weight: 600;
+  color: hsl(var(--foreground));
+  font-size: 13px;
 }
-.thinking-step {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 8px 10px;
-    border-radius: 6px;
-    color: hsl(var(--muted-foreground));
+.progress-step {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 0;
 }
-.thinking-step__dot {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    flex-shrink: 0;
-    background: hsl(var(--border));
+.progress-step-dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  border: 2px solid hsl(var(--border));
 }
-.thinking-step--done {
-    color: hsl(var(--foreground));
+.progress-step-dot--completed {
+  background: hsl(var(--severity-ok));
+  border-color: hsl(var(--severity-ok));
 }
-.thinking-step--done .thinking-step__dot {
-    background: hsl(var(--primary));
+.progress-step-dot--active {
+  border-color: hsl(var(--primary));
+  background: hsl(var(--primary));
+  box-shadow: 0 0 0 3px hsl(var(--primary) / 0.2);
+  animation: pulse2 1.2s infinite;
+}
+@keyframes pulse2 {
+  0%,
+  100% {
     box-shadow: 0 0 0 3px hsl(var(--primary) / 0.2);
-}
-.thinking-step__body {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-    min-width: 0;
-}
-.thinking-step__label {
-    font-size: 14px;
-    font-weight: 500;
-}
-.thinking-step__summary {
-    font-size: 12px;
-    color: hsl(var(--muted-foreground));
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-.thinking-step__summary--pending {
-    font-style: italic;
-}
-.thinking-step__meta {
-    margin-left: auto;
-    flex-shrink: 0;
-    font-size: 11px;
-    color: hsl(var(--muted-foreground) / 0.8);
-    font-variant-numeric: tabular-nums;
+  }
+  50% {
+    box-shadow: 0 0 0 6px hsl(var(--primary) / 0.1);
+  }
 }
 </style>

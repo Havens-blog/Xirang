@@ -1,39 +1,52 @@
 // @vitest-environment happy-dom
 import { mount } from '@vue/test-utils'
-import { describe, expect, it } from 'vitest'
-import type { TraceStep } from '@/api/opsagent'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import ThinkingBlock from './ThinkingBlock.vue'
 
-function mountBlock(trace: TraceStep[]) {
-    return mount(ThinkingBlock, { props: { trace } })
-}
+/**
+ * ThinkingBlock 思考块（原型 chat.html thinkingRow 口径）：
+ * 折叠块「思考过程 · 多工具编排」+ 4 步文案（①-④）逐条点亮。
+ */
 
-describe('ThinkingBlock 编排进度（任务 5.2 AC#2）', () => {
-    it('恒定渲染 4 阶段（意图识别→查询→诊断→报告），无 trace 时均「未执行」', () => {
-        const w = mountBlock([])
-        const steps = w.findAll('.thinking-step')
-        expect(steps).toHaveLength(4)
-        expect(steps[0]!.text()).toContain('意图识别')
-        expect(steps[3]!.text()).toContain('报告')
-        expect(steps.every((s) => s.text().includes('未执行'))).toBe(true)
-        expect(w.findAll('.thinking-step--done')).toHaveLength(0)
+describe('ThinkingBlock 思考块（原型口径）', () => {
+    beforeEach(() => {
+        vi.useFakeTimers()
+    })
+    afterEach(() => {
+        vi.useRealTimers()
     })
 
-    it('trace 命中的阶段显示 summary 与耗时，并标 done', () => {
-        const w = mountBlock([
-            { step: 1, agent: 'coordinator', action: 'intent', durationMs: 12, summary: '识别为排障' },
-            { step: 3, agent: 'inspector', action: 'report', durationMs: 9, summary: '生成报告' },
+    it('渲染折叠块标题与 4 步原型文案（① 意图识别中… 等）', () => {
+        const w = mount(ThinkingBlock, { props: { active: false } })
+        expect(w.find('summary').text()).toBe('思考过程 · 多工具编排')
+        const steps = w.findAll('.progress-step')
+        expect(steps).toHaveLength(4)
+        expect(steps.map((s) => s.text())).toEqual([
+            '① 意图识别中…',
+            '② 查询日志 / 资产 / 告警中…',
+            '③ 诊断计算中…',
+            '④ 生成报告中…',
         ])
-        const steps = w.findAll('.thinking-step')
-        // 阶段 1（意图识别）命中 → done + summary + agent/耗时
-        expect(steps[0]!.text()).toContain('识别为排障')
-        expect(steps[0]!.text()).toContain('coordinator')
-        expect(steps[0]!.text()).toContain('12ms')
-        // 阶段 2/3 未命中 → 仍 pending
-        expect(steps[1]!.text()).toContain('未执行')
-        expect(steps[2]!.text()).toContain('未执行')
-        // 阶段 4 命中
-        expect(steps[3]!.text()).toContain('生成报告')
-        expect(w.findAll('.thinking-step--done')).toHaveLength(2)
+    })
+
+    it('active 时首步高亮，~700ms 逐条点亮（原型节奏）', async () => {
+        const w = mount(ThinkingBlock, { props: { active: true } })
+        const dots = () => w.findAll('.progress-step-dot')
+
+        expect(dots()[0]!.classes()).toContain('progress-step-dot--active')
+        await vi.advanceTimersByTimeAsync(700)
+        expect(dots()[0]!.classes()).toContain('progress-step-dot--completed')
+        expect(dots()[1]!.classes()).toContain('progress-step-dot--active')
+
+        await vi.advanceTimersByTimeAsync(700 * 2)
+        expect(dots()[2]!.classes()).toContain('progress-step-dot--completed')
+        expect(dots()[0]!.classes()).not.toContain('progress-step-dot--active')
+    })
+
+    it('active=false 不启动计时', async () => {
+        const w = mount(ThinkingBlock, { props: { active: false } })
+        await vi.advanceTimersByTimeAsync(1500)
+        const dots = w.findAll('.progress-step-dot')
+        expect(dots.every((d) => d.classes().includes('progress-step-dot--active'))).toBe(false)
     })
 })

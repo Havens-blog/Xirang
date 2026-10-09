@@ -2,11 +2,11 @@ import { describe, expect, it } from 'vitest'
 import { batchOutcome, formatTime, isHighRisk, markableActions, RISK_STATUS_LABEL, SEVERITY_META } from './logic'
 
 describe('severity 徽标（任务 5.3）', () => {
-    it('P0-P3 全量中文徽标 + 色阶', () => {
+    it('P0-P3 全量中文徽标 + 色阶（P0/P1 高危红；P3 低危橙）', () => {
         expect(SEVERITY_META.P0).toEqual({ label: 'P0 紧急', tone: 'danger' })
-        expect(SEVERITY_META.P1).toEqual({ label: 'P1 高危', tone: 'warning' })
+        expect(SEVERITY_META.P1).toEqual({ label: 'P1 高危', tone: 'danger' })
         expect(SEVERITY_META.P2).toEqual({ label: 'P2 中危', tone: 'info' })
-        expect(SEVERITY_META.P3).toEqual({ label: 'P3 低危', tone: 'success' })
+        expect(SEVERITY_META.P3).toEqual({ label: 'P3 低危', tone: 'warning' })
     })
 })
 
