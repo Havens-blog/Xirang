@@ -4,7 +4,8 @@
  *
  * 覆盖 AC：
  * - 欢迎横幅 + 我的信息四字段（用户名/昵称/所属租户/角色）只读展示
- * - 应用快捷导航卡片：v1 仅「云管」一项（本地穷举），点击新标签跳转（window.open noopener）
+ * - 应用快捷导航卡片：本地穷举「云管」+「运维 Agent」两项（opsagent=独立子项目入口），
+ *   点击新标签跳转（window.open noopener）
  * - 受限视图（零租户 E3）：仅欢迎+我的信息，卡片禁用，tenant.none 提示；平台管理员豁免
  * - eiam 不可用（E12）：静态内容仍渲染 + 顶部降级提示（eiam.unavailable），卡片跳转禁用
  *
@@ -20,6 +21,22 @@ import { mount } from "@vue/test-utils";
 import Workbench from "./Workbench.vue";
 import { useUserStore } from "@/stores/user";
 import { useTenantStore } from "@/stores/tenant";
+import {
+  IAM_DEPARTMENT,
+  IAM_IDENTITY_SOURCE,
+  IAM_PERMISSION,
+  IAM_ROLE,
+  IAM_USER,
+} from "@/config/permission-codes";
+
+/** 只读审计码集（P0：非管理员持 view 码 → 档位「只读/审计」） */
+const READONLY_CODES: readonly string[] = [
+  IAM_USER.VIEW,
+  IAM_DEPARTMENT.VIEW,
+  IAM_IDENTITY_SOURCE.VIEW,
+  IAM_ROLE.VIEW,
+  IAM_PERMISSION.VIEW_AUTHORIZATIONS,
+];
 
 const freshPinia = () => {
   const pinia = createPinia();
@@ -38,12 +55,18 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-/** 置 store 为「已加载 profile + 单租户」的默认态（非 admin） */
+/** 置 store 为「已加载 profile + 单租户 + 只读审计码集」的默认态（非 admin） */
 function seedDefaultState(): void {
   const userStore = useUserStore();
   const tenantStore = useTenantStore();
   userStore.isAdmin = false;
   userStore.tenants = [{ id: 10, name: "Acme 租户", code: "acme", domain: "" }];
+  // P0：权限码驱动档位（持 view 码 → 只读/审计）
+  (
+    userStore as unknown as {
+      permissions: string[];
+    }
+  ).permissions = [...READONLY_CODES];
   tenantStore.setCurrentTenantId(10);
   // 直接写 profile（store 暴露的 ref，绕过 fetchProfile）
   (userStore as unknown as { profile: unknown }).profile = {
@@ -81,12 +104,13 @@ describe("工作台 Default 视图（UF-3）", () => {
     expect(wrapper.find("input").exists()).toBe(false);
   });
 
-  it("应用卡片：v1 仅「云管」一项本地穷举", () => {
+  it("应用卡片：本地穷举「云管」+「运维 Agent」两项", () => {
     seedDefaultState();
     const wrapper = mountWorkbench();
     const cards = wrapper.findAll('[data-testid^="app-card-"]');
-    expect(cards).toHaveLength(1);
+    expect(cards).toHaveLength(2);
     expect(cards[0]?.text()).toContain("云管");
+    expect(cards[1]?.text()).toContain("运维 Agent");
   });
 
   it("应用卡片点击 → window.open(url, _blank, noopener) SSO 共享 cookie", async () => {
@@ -95,6 +119,8 @@ describe("工作台 Default 视图（UF-3）", () => {
     const wrapper = mountWorkbench();
     await wrapper.find('[data-testid="app-card-cam"]').trigger("click");
     expect(openSpy).toHaveBeenCalledWith("/cam/", "_blank", "noopener");
+    await wrapper.find('[data-testid="app-card-opsagent"]').trigger("click");
+    expect(openSpy).toHaveBeenCalledWith("/opsagent/", "_blank", "noopener");
   });
 
   it("平台管理员（零租户豁免）：非受限态，角色=平台管理员，卡片可跳转", async () => {
@@ -206,6 +232,6 @@ describe("工作台卡片网格断点（结构断言）", () => {
     expect(grid.exists()).toBe(true);
     // happy-dom 不解析 CSS 布局，仅断言结构 + 穷举项数；
     // 2 列/3 列 media query 断点行为由 Playwright E2E 承接（tech-design §Testing）。
-    expect(grid.findAll(".workbench-app-card-wrap")).toHaveLength(1);
+    expect(grid.findAll(".workbench-app-card-wrap")).toHaveLength(2);
   });
 });

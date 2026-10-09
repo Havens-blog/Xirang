@@ -29,10 +29,15 @@ import { useUserStore } from "@/stores/user";
 import { ApiError } from "@/api/types";
 import { contractText } from "@/utils/copyContract";
 import CopyContractText from "@/components/CopyContractText.vue";
+import { useCan } from "@/composables/useCan";
+import { IAM_ROLE } from "@/config/permission-codes";
 
 const router = useRouter();
 const store = useRoleListStore();
 const userStore = useUserStore();
+
+// P0 权限码按钮裁剪（词表 permission-codes.ts / parity §5；与菜单 & 路由守卫同口径）
+const { can } = useCan();
 
 // ---- 搜索（切过滤重置 page=1，E7）----
 const keywordInput = ref("");
@@ -229,7 +234,12 @@ function userCount(code: string): string {
   <section class="page-role-list" :aria-busy="store.loading">
     <header class="page-head">
       <h2 class="page-title">角色管理</h2>
-      <button type="button" class="btn btn--primary" @click="openCreate">
+      <button
+        v-if="can(IAM_ROLE.ADD)"
+        type="button"
+        class="btn btn--primary"
+        @click="openCreate"
+      >
         新增角色
       </button>
     </header>
@@ -278,6 +288,7 @@ function userCount(code: string): string {
             <td data-testid="role-user-count">{{ userCount(r.code) }}</td>
             <td>
               <button
+                v-if="can(IAM_ROLE.EDIT)"
                 type="button"
                 class="btn btn--text"
                 data-testid="edit-role"
@@ -286,12 +297,22 @@ function userCount(code: string): string {
                 编辑
               </button>
               <button
+                v-if="can(IAM_ROLE.DELETE)"
                 type="button"
                 class="btn btn--text btn--danger"
                 data-testid="delete-role"
                 @click="openDelete(r)"
               >
                 删除
+              </button>
+              <button
+                v-if="!can(IAM_ROLE.EDIT) && !can(IAM_ROLE.DELETE)"
+                type="button"
+                class="btn btn--text"
+                data-testid="view-role"
+                @click="gotoDetail(r)"
+              >
+                查看
               </button>
             </td>
           </tr>

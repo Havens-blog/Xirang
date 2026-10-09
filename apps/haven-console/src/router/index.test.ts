@@ -21,6 +21,14 @@ import { createPinia, setActivePinia } from 'pinia'
 import piniaPluginPersistedstate from 'pinia-plugin-persistedstate'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createApp } from 'vue'
+import {
+  IAM_ALL_CODES,
+  IAM_DEPARTMENT,
+  IAM_POLICY,
+  IAM_ROLE,
+  IAM_TENANT,
+  IAM_USER,
+} from '@/config/permission-codes'
 
 // ---- 视图空壳 mock（守卫测试不渲染真实视图）----
 const stubView = { template: '<div />' }
@@ -82,14 +90,14 @@ function settleLike(response: AxiosResponse): AxiosResponse {
   )
 }
 
-/** profile data 样本（与 user.test.ts sampleProfileData 同源） */
+/** profile data 样本（与 user.test.ts sampleProfileData 同源；P0：缺省全码 = 平台管理员种子） */
 function profileData(overrides: Record<string, unknown> = {}): Record<string, unknown> {
   return {
     user: { id: 1, username: 'admin', nickname: '管理员' },
     tenants: [{ id: 1, name: '系统租户', code: 'system', domain: 'sys.example.com' }],
     current_tenant_id: 1,
     is_admin: true,
-    permissions: [],
+    permissions: [...IAM_ALL_CODES],
     must_select_tenant: false,
     ...overrides,
   }
@@ -159,7 +167,7 @@ afterEach(() => {
 })
 
 describe('2.6 路由表注册', () => {
-  it('13 页 + 根路径重定向全部注册（懒加载）', () => {
+  it('14 页 + 根路径重定向全部注册（懒加载）', () => {
     const paths = router.getRoutes().map((r) => r.path)
     expect(paths).toEqual(
       expect.arrayContaining([
@@ -197,6 +205,17 @@ describe('2.6 路由表注册', () => {
   it('/tenants 与 /policies 标记 requiresAdmin（仅平台管理员，ui-design 菜单同口径）', () => {
     expect(router.resolve('/tenants').meta.requiresAdmin).toBe(true)
     expect(router.resolve('/policies').meta.requiresAdmin).toBe(true)
+  })
+
+  it('P0：9 条业务路由声明 meta.permissions（词表码，与菜单/按钮同源）', () => {
+    expect(router.resolve('/users').meta.permissions).toEqual([IAM_USER.VIEW])
+    expect(router.resolve('/users/7').meta.permissions).toEqual([IAM_USER.VIEW])
+    expect(router.resolve('/organizations').meta.permissions).toEqual([
+      IAM_DEPARTMENT.VIEW,
+    ])
+    expect(router.resolve('/tenants').meta.permissions).toEqual([IAM_TENANT.VIEW])
+    expect(router.resolve('/policies').meta.permissions).toEqual([IAM_POLICY.VIEW])
+    expect(router.resolve('/roles').meta.permissions).toEqual([IAM_ROLE.VIEW])
   })
 
   it('/login 与 /forbidden 标记 public（跳过守卫）；/tenant-select skipTenantGuard', () => {
@@ -324,7 +343,7 @@ describe('2.6 守卫链 ② mustSelectTenant → /tenant-select', () => {
 })
 
 describe('2.6 守卫链 ③ permissions 裁剪不通过 → 403 页', () => {
-  it('requiresAdmin 页 + 非管理员 → /forbidden', async () => {
+  it('requiresAdmin 页 + 非管理员 → /forbidden（码集齐全也挡 by isAdmin）', async () => {
     setSessionCookie()
     mockAdapter(() => ({
       status: 200,
@@ -339,7 +358,7 @@ describe('2.6 守卫链 ③ permissions 裁剪不通过 → 403 页', () => {
     expect(router.currentRoute.value.path).toBe('/forbidden')
   })
 
-  it('requiresAdmin 页 + 平台管理员 → 放行', async () => {
+  it('requiresAdmin 页 + 平台管理员（全码）→ 放行', async () => {
     setSessionCookie()
     mockAdapter(() => ({
       status: 200,
@@ -350,19 +369,120 @@ describe('2.6 守卫链 ③ permissions 裁剪不通过 → 403 页', () => {
     expect(router.currentRoute.value.path).toBe('/policies')
   })
 
-  it('普通页（非 requiresAdmin）+ 普通用户 → 放行', async () => {
+  it('权限码缺页：未持 iam:user:view 的用户直入 /users → /forbidden（403 原地）', async () => {
     setSessionCookie()
     mockAdapter(() => ({
       status: 200,
       body: {
         code: 0,
         msg: 'ok',
-        data: profileData({ is_admin: false, current_tenant_id: 1 }),
+        data: profileData({
+          is_admin: false,
+          current_tenant_id: 1,
+          permissions: [],
+        }),
+      },
+    }))
+
+    await router.push('/users')
+    expect(router.currentRoute.value.path).toBe('/forbidden')
+  })
+
+  it('403 页透传缺失码（原型口径：展示所需权限码）', async () => {
+    setSessionCookie()
+    mockAdapter(() => ({
+      status: 200,
+      body: {
+        code: 0,
+        msg: 'ok',
+        data: profileData({
+          is_admin: false,
+          current_tenant_id: 1,
+          permissions: [],
+        }),
+      },
+    }))
+
+    await router.push('/users')
+    expect(router.currentRoute.value.path).toBe('/forbidden')
+    expect(router.currentRoute.value.query.required).toBe(IAM_USER.VIEW)
+  })
+
+  it('requiresAdmin 双闸：缺 is_admin 记入缺失码清单', async () => {
+    setSessionCookie()
+    mockAdapter(() => ({
+      status: 200,
+      body: {
+        code: 0,
+        msg: 'ok',
+        data: profileData({
+          is_admin: false,
+          current_tenant_id: 1,
+          permissions: [],
+        }),
+      },
+    }))
+
+    await router.push('/tenants')
+    expect(router.currentRoute.value.path).toBe('/forbidden')
+    expect(router.currentRoute.value.query.required).toBe(
+      `is_admin,${IAM_TENANT.VIEW}`,
+    )
+  })
+
+  it('权限码驱动放行：持有 iam:user:view 的非管理员直入 /users → 放行', async () => {
+    setSessionCookie()
+    mockAdapter(() => ({
+      status: 200,
+      body: {
+        code: 0,
+        msg: 'ok',
+        data: profileData({
+          is_admin: false,
+          current_tenant_id: 1,
+          permissions: [IAM_USER.VIEW],
+        }),
       },
     }))
 
     await router.push('/users')
     expect(router.currentRoute.value.path).toBe('/users')
+  })
+
+  it('权限码独立于 isAdmin：管理员缺 iam:tenant:view 也 → /forbidden', async () => {
+    setSessionCookie()
+    mockAdapter(() => ({
+      status: 200,
+      body: {
+        code: 0,
+        msg: 'ok',
+        data: profileData({
+          is_admin: true,
+          permissions: IAM_ALL_CODES.filter((c) => c !== IAM_TENANT.VIEW),
+        }),
+      },
+    }))
+
+    await router.push('/tenants')
+    expect(router.currentRoute.value.path).toBe('/forbidden')
+  })
+
+  it('详情页同源：未持码直入 /users/:id → /forbidden', async () => {
+    setSessionCookie()
+    mockAdapter(() => ({
+      status: 200,
+      body: {
+        code: 0,
+        msg: 'ok',
+        data: profileData({
+          is_admin: false,
+          current_tenant_id: 1,
+          permissions: [],
+        }),
+      },
+    }))
+    await router.push('/users/7')
+    expect(router.currentRoute.value.path).toBe('/forbidden')
   })
 })
 

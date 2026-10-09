@@ -22,6 +22,7 @@ import { createApp } from "vue";
 import { useUserStore } from "./user";
 import { useTenantStore } from "./tenant";
 import { eiamAxios } from "@/api/request/eiam";
+import { IAM_USER } from "@/config/permission-codes";
 
 const STATUS_TEXT: Partial<Record<number, string>> = {
   200: "OK",
@@ -69,7 +70,7 @@ function sampleProfileData(
     ],
     current_tenant_id: 4,
     is_admin: true,
-    permissions: ["cmdb:read", "iam:user:create"],
+    permissions: [IAM_USER.VIEW, IAM_USER.ADD],
     must_select_tenant: false, // F-1：恒 false，store 不读此字段
     ...overrides,
   };
@@ -143,7 +144,7 @@ describe("user store（2.7 AC-1 + AC-3 + AC-4）", () => {
     expect(user.profile?.displayName).toBe("管理员"); // nickname → displayName
     expect(user.profile?.email).toBe("admin@example.com");
     expect(user.profile?.title).toBe("平台管理员"); // job_title → title
-    expect(user.permissions).toEqual(["cmdb:read", "iam:user:create"]);
+    expect(user.permissions).toEqual([IAM_USER.VIEW, IAM_USER.ADD]);
     expect(user.tenants).toHaveLength(2);
     expect(user.tenants[0]).toEqual({
       id: 1,
@@ -280,8 +281,8 @@ describe("user store（2.7 AC-1 + AC-3 + AC-4）", () => {
       body: { code: 0, msg: "ok", data: sampleProfileData() },
     }));
     await user.fetchProfile();
-    expect(user.hasPermission("cmdb:read")).toBe(true);
-    expect(user.hasPermission("iam:delete")).toBe(false);
+    expect(user.hasPermission(IAM_USER.VIEW)).toBe(true);
+    expect(user.hasPermission(IAM_USER.DELETE)).toBe(false);
   });
 
   it("currentTenantId 经 tenant store 委托：setCurrentTenantId 改 tenant → user 读到新值", async () => {

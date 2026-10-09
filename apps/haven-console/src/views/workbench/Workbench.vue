@@ -7,7 +7,7 @@
 // 三态（ui-design UF-3 States）：
 // - Default：欢迎 + 我的信息四字段只读 + 应用卡片可跳转；
 // - 受限视图（零租户 E3，!isAdmin && tenants.length===0）：仅欢迎 + 我的信息；
-//   应用卡片禁用（不隐藏）；管理菜单不渲染（menuConfig inferRole → normal，2.8 已落地）；
+//   应用卡片禁用（不隐藏）；管理菜单不渲染（P0：menuConfig visibleMenuItems restricted → 无码项）；
 // - eiam 不可用（E12）：静态内容（欢迎 + 我的信息）仍渲染 + 顶部降级提示
 //   （eiam.unavailable 契约文案），卡片跳转禁用。
 //
@@ -16,16 +16,17 @@
 //   - 用户名 → profile.username
 //   - 昵称 → profile.displayName（nickname 缺失回退 username，user store 同款）
 //   - 所属租户 → tenants[currentTenantId].name；零租户受限态显示 tenant.none 契约文案
-//   - 角色 → 由 isAdmin + tenants 派生角色档位标签（parity §6.1.4：eiam profile 无 roles
-//     字段；Hard Rule 不加端点；与 menuConfig.inferRole 同信号源，provisional 待 parity §5
-//     权限词表定稿后精细化）
+//   - 角色 → 由权限码词表派生（P0：inferRoleFromCodes；parity §6.1.4：eiam profile 无 roles
+//     字段；Hard Rule 不加端点；与 menuConfig/路由守卫/按钮裁剪同信号源）
 //
-// 应用卡片：本地穷举枚举（v1 仅「云管」一项，与 AppSwitcher 同源；Hard Rule 不做运行时注册）。
+// 应用卡片：本地穷举枚举（「云管」+「运维 Agent」两项，与 AppSwitcher 同源；Hard Rule
+// 不做运行时注册。运维 Agent = 独立子项目 opsagent-web，宿主 nginx /opsagent/ 同域
+// （records/6.2-opsagent-standalone 归属调整，控制台不承载其代码））。
 import { computed } from "vue";
 import { useUserStore } from "@/stores/user";
 import { contractText } from "@/utils/copyContract";
 import CopyContractText from "@/components/CopyContractText.vue";
-import { inferRole, type MenuRole } from "@/components/layout/menuConfig";
+import { inferRoleFromCodes, type MenuRole } from "@/components/layout/menuConfig";
 
 /** 应用卡片条目（本地穷举枚举，与 AppSwitcher APPS 同源；后续增列在此登记） */
 interface AppEntry {
@@ -40,7 +41,7 @@ interface AppEntry {
 }
 
 /**
- * v1 穷举本地枚举：仅「云管」（e-cam-web）。
+ * 穷举本地枚举：「云管」（e-cam-web）+「运维 Agent」（opsagent-web）。
  * Hard Rule：不做运行时注册；后续应用增列在此常量逐条登记。
  * 与 AppSwitcher APPS 同口径（tech-design §Integration Specs 2 SSO）。
  */
@@ -50,6 +51,12 @@ const APPS: readonly AppEntry[] = [
     label: "云管",
     desc: "多云资源管理",
     url: import.meta.env.VITE_APP_CAM_BASE ?? "/cam/",
+  },
+  {
+    key: "opsagent",
+    label: "运维 Agent",
+    desc: "对话式排障编排",
+    url: import.meta.env.VITE_APP_OPSAGENT_BASE ?? "/opsagent/",
   },
 ];
 
@@ -78,7 +85,7 @@ const cardsDisabled = computed(
   () => isRestricted.value || eiamUnavailable.value,
 );
 
-/** 角色档位 → 展示标签（provisional，与 menuConfig.inferRole 同信号源） */
+/** 角色档位 → 展示标签（P0 词表驱动：与菜单/路由/按钮裁剪同信号源，parity §5 已定稿） */
 const ROLE_LABELS: Record<MenuRole, string> = {
   platform_admin: "平台管理员",
   readonly_audit: "只读/审计",
@@ -86,11 +93,12 @@ const ROLE_LABELS: Record<MenuRole, string> = {
   normal: "普通用户",
 };
 
-/** 我的信息·角色字段：由会话信号派生（parity：profile 无 roles，Hard Rule 不加端点） */
+/** 我的信息·角色字段：由权限码词表派生（P0；profile 无 roles 字段，Hard Rule 不加端点） */
 const roleLabel = computed(() => {
-  const role = inferRole({
+  const role = inferRoleFromCodes({
+    codes: userStore.permissions,
     isAdmin: userStore.isAdmin,
-    tenantsCount: userStore.tenants.length,
+    restricted: isRestricted.value,
   });
   return ROLE_LABELS[role] ?? "普通用户";
 });

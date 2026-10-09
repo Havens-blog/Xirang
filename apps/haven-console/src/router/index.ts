@@ -2,6 +2,15 @@ import type { RouteLocation, RouteLocationRaw, RouteRecordRaw } from 'vue-router
 import { createRouter, createWebHistory } from 'vue-router'
 import { hasSessionCookie } from '@/api/request/eiam'
 import { useUserStore } from '@/stores/user'
+import {
+  IAM_DEPARTMENT,
+  IAM_IDENTITY_SOURCE,
+  IAM_PERMISSION,
+  IAM_POLICY,
+  IAM_ROLE,
+  IAM_TENANT,
+  IAM_USER,
+} from '@/config/permission-codes'
 
 /**
  * 路由表 + 全局守卫链（task 2.6）。
@@ -11,6 +20,10 @@ import { useUserStore } from '@/stores/user'
  *   ② mustSelectTenant（F-1：tenants.length>1）且 currentTenantId===0 → /tenant-select
  *   ③ permissions 裁剪不通过 → /forbidden（与菜单裁剪同口径，文案契约 forbidden）
  *   ④ 放行 → 记录 currentTenantId 入模块级单值快照（Integration 6 写前守卫取值）
+ *
+ * 权限码口径（P0，词表已定稿）：每条业务路由经 meta.permissions 声明所需 eiam 能力码
+ * （单一事实源 src/config/permission-codes.ts，落档 parity §5）；requiresAdmin
+ * （/tenants、/policies 平台管理员独占）为独立双保险，与权限码一起构成「两道闸俱过」。
  *
  * 路由全部 `import()` 懒加载（性能预算：11 页路由级代码分割）。
  * 快照非持久化、非第二份租户真相存储（Hard Rule）——仅页面进入时刻的观测值，
@@ -27,7 +40,7 @@ declare module 'vue-router' {
     skipTenantGuard?: boolean
     /** 仅平台管理员可访问（ui-design：租户/策略管理仅平台管理员） */
     requiresAdmin?: boolean
-    /** 所需 eiam 权限码（用户须具备全部；词表待 parity §5 定稿后由 2.8 落地，当前留扩展点） */
+    /** 所需 eiam 权限码（用户须具备全部；词表 = config/permission-codes.ts，parity §5 定稿） */
     permissions?: string[]
   }
 }
@@ -53,40 +66,47 @@ export const routes: RouteRecordRaw[] = [
   {
     path: '/users',
     component: () => import('@/views/users/UserList.vue'),
+    meta: { permissions: [IAM_USER.VIEW] },
   },
   {
     path: '/users/:id',
     component: () => import('@/views/users/UserDetail.vue'),
+    meta: { permissions: [IAM_USER.VIEW] },
   },
   {
     path: '/organizations',
     component: () => import('@/views/organizations/OrgList.vue'),
+    meta: { permissions: [IAM_DEPARTMENT.VIEW] },
   },
   {
     path: '/tenants',
     component: () => import('@/views/tenants/TenantList.vue'),
-    meta: { requiresAdmin: true },
+    meta: { requiresAdmin: true, permissions: [IAM_TENANT.VIEW] },
   },
   {
     path: '/identity-sources',
     component: () => import('@/views/identity-sources/IdpList.vue'),
+    meta: { permissions: [IAM_IDENTITY_SOURCE.VIEW] },
   },
   {
     path: '/roles',
     component: () => import('@/views/roles/RoleList.vue'),
+    meta: { permissions: [IAM_ROLE.VIEW] },
   },
   {
     path: '/roles/:id',
     component: () => import('@/views/roles/RoleDetail.vue'),
+    meta: { permissions: [IAM_ROLE.VIEW] },
   },
   {
     path: '/authorizations',
     component: () => import('@/views/authorizations/AuthorizationList.vue'),
+    meta: { permissions: [IAM_PERMISSION.VIEW_AUTHORIZATIONS] },
   },
   {
     path: '/policies',
     component: () => import('@/views/policies/PolicyList.vue'),
-    meta: { requiresAdmin: true },
+    meta: { requiresAdmin: true, permissions: [IAM_POLICY.VIEW] },
   },
   {
     path: '/tenant-select',
@@ -169,24 +189,34 @@ function redirectToLogin(to: RouteLocation): RouteLocationRaw {
   return { path: '/login', query: { redirect: to.fullPath } }
 }
 
-/** 403 跳转目标（守卫 ③ 裁剪不通过 → 403 页，文案契约 forbidden） */
-function redirectToForbidden(): RouteLocationRaw {
-  return { name: 'forbidden' }
+/** 403 跳转目标（守卫 ③ 裁剪不通过 → 403 页，文案契约 forbidden；缺失码经 query 透传 403 页展示） */
+function redirectToForbidden(missing: readonly string[]): RouteLocationRaw {
+  return missing.length > 0
+    ? { name: 'forbidden', query: { required: missing.join(',') } }
+    : { name: 'forbidden' }
 }
 
 /**
  * 权限裁剪（守卫 ③，与菜单裁剪同口径）。
- * - requiresAdmin：!isAdmin → 403（ui-design：租户/策略管理仅平台管理员）
- * - permissions：用户须具备全部所需权限码（hasPermission 逐项；词表待 parity §5 定稿）
+ * - requiresAdmin：!isAdmin → 403（ui-design：租户/策略管理仅平台管理员；缺失码记 'is_admin'）
+ * - permissions：用户须具备全部所需权限码（hasPermission 逐项；词表 = permission-codes.ts，parity §5 定稿）
+ * 返回缺失码清单（空数组 = 放行），供守卫决策与 403 页展示（原型口径：展示所需码）。
  */
-function passesPermissionCheck(to: RouteLocation): boolean {
+function missingPermissionCodes(to: RouteLocation): string[] {
   const userStore = useUserStore()
-  if (to.meta.requiresAdmin && !userStore.isAdmin) return false
+  const missing: string[] = []
+  if (to.meta.requiresAdmin && !userStore.isAdmin) missing.push('is_admin')
   const required = to.meta.permissions
   if (required && required.length > 0) {
-    if (!required.every((code) => userStore.hasPermission(code))) return false
+    for (const code of required) {
+      if (!userStore.hasPermission(code)) missing.push(code)
+    }
   }
-  return true
+  return missing
+}
+
+function passesPermissionCheck(to: RouteLocation): boolean {
+  return missingPermissionCodes(to).length === 0
 }
 
 router.beforeEach(async (to) => {
@@ -221,9 +251,9 @@ router.beforeEach(async (to) => {
     }
   }
 
-  // ③ permissions 裁剪不通过 → 403 页（与菜单裁剪同口径）
+  // ③ permissions 裁剪不通过 → 403 页（与菜单裁剪同口径；缺失码透传展示）
   if (!passesPermissionCheck(to)) {
-    return redirectToForbidden()
+    return redirectToForbidden(missingPermissionCodes(to))
   }
 
   // ④ 放行 → 记录 currentTenantId 入模块级单值快照（写前守卫 3.1 取值）

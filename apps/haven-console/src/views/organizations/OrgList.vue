@@ -32,8 +32,13 @@ import {
 import { ApiError, type OrganizationNode } from "@/api/types";
 import { contractText, formatContractText } from "@/utils/copyContract";
 import CopyContractText from "@/components/CopyContractText.vue";
+import { useCan } from "@/composables/useCan";
+import { IAM_DEPARTMENT } from "@/config/permission-codes";
 
 const store = useOrgListStore();
+
+// P0 权限码按钮裁剪（词表 permission-codes.ts / parity §5；与菜单 & 路由守卫同口径）
+const { can } = useCan();
 
 // ---- 树展开态（id → expanded）----
 const expanded = ref<Set<number>>(new Set());
@@ -372,7 +377,12 @@ onMounted(async () => {
   <section class="page-org-list" :aria-busy="store.loading">
     <header class="page-head">
       <h2 class="page-title">组织管理</h2>
-      <button type="button" class="btn btn--primary" @click="openCreateRoot">
+      <button
+        v-if="can(IAM_DEPARTMENT.ADD)"
+        type="button"
+        class="btn btn--primary"
+        @click="openCreateRoot"
+      >
         新增根组织
       </button>
     </header>
@@ -532,6 +542,7 @@ onMounted(async () => {
             </dl>
             <div class="detail-actions">
               <button
+                v-if="can(IAM_DEPARTMENT.ADD)"
                 type="button"
                 class="btn btn--text"
                 :disabled="!store.canAddChild(store.selectedId).allowed"
@@ -541,6 +552,7 @@ onMounted(async () => {
                 新增子组织
               </button>
               <button
+                v-if="can(IAM_DEPARTMENT.EDIT)"
                 type="button"
                 class="btn btn--text"
                 @click="openEdit(store.selectedNode)"
@@ -548,6 +560,7 @@ onMounted(async () => {
                 编辑
               </button>
               <button
+                v-if="can(IAM_DEPARTMENT.DELETE)"
                 type="button"
                 class="btn btn--text btn--danger"
                 @click="openDelete(store.selectedNode)"

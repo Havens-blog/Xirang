@@ -329,8 +329,9 @@ export interface CreateAuthorizationPayload {
  * - action="assign" → POST /api/iam/role/batch_assign {usernames:[subject], role_codes:[resource]}
  *   （主体为 username，资源为角色 code；A 档实核端点）。
  * - action="attach" → POST /api/iam/policy/batch-attach
- *   {subjects:[{sub_type: subType ?? "user", code: subject}], policy_codes:[resource]}
- *   （C 档形状分歧 D-3 路径改判；主体可 user/role/group 混合）。
+ *   {subjects:[{type: subType ?? "user", code: subject}], policy_codes:[resource]}
+ *   （D-3 形状实核：eiam SubjectItem 主体键为 **type** 非 sub_type，policy/vo.go:84-89；
+ *   主体可 user/role/group 混合）。
  * 唯一性由前端预检（authorizationList store）+ eiam 服务端兜底（conflict kind → grant.duplicate）。
  */
 export async function createAuthorization(
@@ -349,7 +350,7 @@ export async function createAuthorization(
     const subType = payload.subType ?? "user";
     await unwrapEnvelope<null>(
       eiamAxios.post<Envelope<null>>("/api/iam/policy/batch-attach", {
-        subjects: [{ sub_type: subType, code: payload.subject }],
+        subjects: [{ type: subType, code: payload.subject }],
         policy_codes: [payload.resource],
       }),
     );
@@ -371,8 +372,9 @@ export interface RevokeAuthorizationPayload {
  * 撤销授权（G-6 语义映射降级）。
  * - action="assign" → POST /api/iam/role/batch_unassign {usernames:[subject], role_codes:[resource]}。
  * - action="attach" → POST /api/iam/policy/batch-detach
- *   {assignments:[{subject:{sub_type: subType ?? "user", code: subject}, policy_code: resource}]}
- *   （显式逐条，避免笛卡尔积误删，与 roles.ts detachPoliciesFromRole 同款口径）。
+ *   {assignments:[{sub_type: subType, sub_code: subject, policy_code: resource}]}
+ *   （D-3 形状实核：eiam Assignment 扁平逐条 sub_type/sub_code/policy_code，
+ *   无 subject 嵌套，policy/vo.go:133-144；与 roles.ts detachPoliciesFromRole 同款口径）。
  */
 export async function revokeAuthorization(
   payload: RevokeAuthorizationPayload,
@@ -392,7 +394,8 @@ export async function revokeAuthorization(
       eiamAxios.post<Envelope<null>>("/api/iam/policy/batch-detach", {
         assignments: [
           {
-            subject: { sub_type: subType, code: payload.subject },
+            sub_type: subType,
+            sub_code: payload.subject,
             policy_code: payload.resource,
           },
         ],

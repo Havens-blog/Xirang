@@ -27,8 +27,14 @@ import { useIdpListStore } from "@/stores/idpList";
 import { ApiError, type IdentitySource } from "@/api/types";
 import { contractText } from "@/utils/copyContract";
 import CopyContractText from "@/components/CopyContractText.vue";
+import { useCan } from "@/composables/useCan";
+import { IAM_IDENTITY_SOURCE } from "@/config/permission-codes";
 
 const store = useIdpListStore();
+
+// P0 权限码按钮裁剪（词表 permission-codes.ts / parity §5；与菜单 & 路由守卫同口径；
+// save 为新增/编辑共用 upsert，test/toggle/delete 各自独立动词）
+const { can } = useCan();
 
 // ---- 列表加载 ----
 async function reload(): Promise<void> {
@@ -293,7 +299,12 @@ const isEmpty = computed(
   <section class="page-idp-list" :aria-busy="store.loading">
     <header class="page-head">
       <h2 class="page-title">身份源管理</h2>
-      <button type="button" class="btn btn--primary" @click="openCreate">
+      <button
+        v-if="can(IAM_IDENTITY_SOURCE.SAVE)"
+        type="button"
+        class="btn btn--primary"
+        @click="openCreate"
+      >
         新增身份源
       </button>
     </header>
@@ -326,6 +337,7 @@ const isEmpty = computed(
                   type="checkbox"
                   class="switch__input"
                   :checked="src.enabled"
+                  :disabled="!can(IAM_IDENTITY_SOURCE.TOGGLE)"
                   data-testid="toggle-enabled"
                   @change="onToggle(src)"
                 />
@@ -334,6 +346,7 @@ const isEmpty = computed(
             </td>
             <td>
               <button
+                v-if="can(IAM_IDENTITY_SOURCE.SAVE)"
                 type="button"
                 class="btn btn--text"
                 data-testid="edit-idp"
@@ -342,6 +355,7 @@ const isEmpty = computed(
                 编辑
               </button>
               <button
+                v-if="can(IAM_IDENTITY_SOURCE.DELETE)"
                 type="button"
                 class="btn btn--text btn--danger"
                 data-testid="delete-idp"
@@ -571,6 +585,7 @@ const isEmpty = computed(
           </p>
           <div class="dialog__actions">
             <button
+              v-if="can(IAM_IDENTITY_SOURCE.TEST)"
               type="button"
               class="btn btn--ghost"
               :disabled="testing"
@@ -583,6 +598,7 @@ const isEmpty = computed(
               取消
             </button>
             <button
+              v-if="can(IAM_IDENTITY_SOURCE.SAVE)"
               type="submit"
               class="btn btn--primary"
               :disabled="formLoading || testing"

@@ -551,7 +551,7 @@ describe("create / update / remove（写前守卫放行路径）", () => {
 });
 
 describe("applyPolicyDelta（D-3：policy 侧承载 batch-attach/batch-detach）", () => {
-  it("added → batch-attach（载荷 subjects sub_type=role + policy_codes）；removed → batch-detach（assignments 逐条）", async () => {
+  it("added → batch-attach（载荷 subjects type=role + policy_codes）；removed → batch-detach（assignments 扁平逐条）", async () => {
     stubLocation("http://localhost:8888/console/roles");
     const { store, calls } = await freshStore(
       () => ({
@@ -561,7 +561,7 @@ describe("applyPolicyDelta（D-3：policy 侧承载 batch-attach/batch-detach）
       {
         attach: (config) => {
           const body = JSON.parse(String(config.data));
-          expect(body.subjects).toEqual([{ sub_type: "role", code: "admin" }]);
+          expect(body.subjects).toEqual([{ type: "role", code: "admin" }]);
           expect(body.policy_codes).toEqual(["p1", "p2"]);
           return { status: 200, body: { code: 0, msg: "", data: null } };
         },
@@ -569,7 +569,8 @@ describe("applyPolicyDelta（D-3：policy 侧承载 batch-attach/batch-detach）
           const body = JSON.parse(String(config.data));
           expect(body.assignments).toEqual([
             {
-              subject: { sub_type: "role", code: "admin" },
+              sub_type: "role",
+              sub_code: "admin",
               policy_code: "p0",
             },
           ]);

@@ -39,11 +39,25 @@ import { listUsers, listUsersByRole } from "@/api/users";
 import { ApiError, type Role, type User } from "@/api/types";
 import { contractText } from "@/utils/copyContract";
 import CopyContractText from "@/components/CopyContractText.vue";
+import { useCan } from "@/composables/useCan";
+import { IAM_POLICY, IAM_ROLE } from "@/config/permission-codes";
 
 const route = useRoute();
 const router = useRouter();
 const store = useRoleListStore();
 const userStore = useUserStore();
+
+// P0 权限码裁剪（词表 permission-codes.ts / parity §5；与菜单 & 路由守卫同口径）：
+// 基本信息 → iam:role:edit；策略绑定 → iam:policy:batch_attach|batch_detach；
+// 用户绑定 → iam:role:batch_assign|batch_unassign。
+const { can, canSome } = useCan();
+const canEditRole = computed(() => can(IAM_ROLE.EDIT));
+const canManagePolicyBind = computed(() =>
+  canSome([IAM_POLICY.BATCH_ATTACH, IAM_POLICY.BATCH_DETACH]),
+);
+const canManageUserBind = computed(() =>
+  canSome([IAM_ROLE.BATCH_ASSIGN, IAM_ROLE.BATCH_UNASSIGN]),
+);
 
 // 路由 :id 实为角色 code（eiam role/detail 按 code 查询，非 id）
 const roleCode = computed(() => decodeURIComponent(String(route.params.id)));
@@ -260,6 +274,7 @@ function back(): void {
       </button>
       <h2 class="detail-title">{{ role?.name ?? "角色详情" }}</h2>
       <button
+        v-if="canEditRole"
         type="button"
         class="btn btn--primary"
         :disabled="loading || saving || !hasChanges"
@@ -306,6 +321,7 @@ function back(): void {
             type="text"
             class="input"
             data-testid="detail-role-name"
+            :disabled="!canEditRole"
           />
           <span class="muted">1–64 字符，租户内唯一（eiam 校验）</span>
         </label>
@@ -315,6 +331,7 @@ function back(): void {
             v-model="roleDesc"
             class="input input--textarea"
             rows="2"
+            :disabled="!canEditRole"
           />
         </label>
         <div class="field">
@@ -328,8 +345,9 @@ function back(): void {
         <legend>策略绑定</legend>
         <p class="muted">
           仅列 eiam 返回的可绑定策略；本页不提供策略新建/编辑/删除入口。
+          绑定变更需持有 iam:policy:batch_attach / batch_detach。
         </p>
-        <div class="checkbox-group">
+        <div v-if="canManagePolicyBind" class="checkbox-group">
           <label
             v-for="p in policyOptions"
             :key="p.code"
@@ -348,8 +366,14 @@ function back(): void {
             >无可绑定策略</span
           >
         </div>
+        <p v-else class="muted">
+          当前绑定：{{ selectedPolicyCodes.join("、") || "无" }}（只读，缺绑定码）
+        </p>
         <p
-          v-if="policyDelta.added.length || policyDelta.removed.length"
+          v-if="
+            canManagePolicyBind &&
+            (policyDelta.added.length || policyDelta.removed.length)
+          "
           class="muted"
         >
           待应用：新增 {{ policyDelta.added.length }} 项 / 移除
@@ -360,7 +384,10 @@ function back(): void {
       <!-- 用户绑定多选（支持搜索，AC-3 整页承载）-->
       <fieldset class="form-section">
         <legend>用户绑定</legend>
-        <p class="muted">已绑用户（{{ selectedUsernames.length }}）</p>
+        <p class="muted">
+          已绑用户（{{ selectedUsernames.length }}）；绑定变更需持有
+          iam:role:batch_assign / batch_unassign。
+        </p>
         <ul class="bound-list">
           <li
             v-for="username in selectedUsernames"
@@ -369,6 +396,7 @@ function back(): void {
           >
             <span>{{ username }}</span>
             <button
+              v-if="canManageUserBind"
               type="button"
               class="btn btn--text btn--danger btn--sm"
               :data-testid="`unbind-user-${username}`"
@@ -383,43 +411,48 @@ function back(): void {
         </ul>
 
         <!-- 用户搜索（绑定多选支持搜索）-->
-        <div class="user-search">
-          <input
-            v-model="userSearchKeyword"
-            type="text"
-            class="input"
-            placeholder="搜索用户名添加"
-            data-testid="user-search-input"
-            @keyup.enter="searchUsers"
-          />
-          <button
-            type="button"
-            class="btn btn--ghost btn--sm"
-            :disabled="userSearchLoading"
-            @click="searchUsers"
-          >
-            {{ userSearchLoading ? "搜索中…" : "搜索" }}
-          </button>
-        </div>
-        <ul v-if="userSearchResults.length > 0" class="search-results">
-          <li
-            v-for="u in userSearchResults"
-            :key="u.id"
-            class="search-item"
-          >
-            <span>{{ u.username }}</span>
+        <template v-if="canManageUserBind">
+          <div class="user-search">
+            <input
+              v-model="userSearchKeyword"
+              type="text"
+              class="input"
+              placeholder="搜索用户名添加"
+              data-testid="user-search-input"
+              @keyup.enter="searchUsers"
+            />
             <button
               type="button"
-              class="btn btn--text btn--sm"
-              :data-testid="`add-user-${u.username}`"
-              @click="addSearchedUser(u)"
+              class="btn btn--ghost btn--sm"
+              :disabled="userSearchLoading"
+              @click="searchUsers"
             >
-              添加
+              {{ userSearchLoading ? "搜索中…" : "搜索" }}
             </button>
-          </li>
-        </ul>
+          </div>
+          <ul v-if="userSearchResults.length > 0" class="search-results">
+            <li
+              v-for="u in userSearchResults"
+              :key="u.id"
+              class="search-item"
+            >
+              <span>{{ u.username }}</span>
+              <button
+                type="button"
+                class="btn btn--text btn--sm"
+                :data-testid="`add-user-${u.username}`"
+                @click="addSearchedUser(u)"
+              >
+                添加
+              </button>
+            </li>
+          </ul>
+        </template>
         <p
-          v-if="userDelta.added.length || userDelta.removed.length"
+          v-if="
+            canManageUserBind &&
+            (userDelta.added.length || userDelta.removed.length)
+          "
           class="muted"
         >
           待应用：新增 {{ userDelta.added.length }} 项 / 移除
@@ -432,6 +465,7 @@ function back(): void {
           取消
         </button>
         <button
+          v-if="canEditRole"
           type="submit"
           class="btn btn--primary"
           :disabled="saving || !hasChanges"

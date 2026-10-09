@@ -322,7 +322,7 @@ describe("createAuthorization（G-6 语义映射）", () => {
     });
   });
 
-  it("action=attach → policy/batch-attach {subjects[{sub_type, code}], policy_codes}", async () => {
+  it("action=attach → policy/batch-attach {subjects[{type, code}], policy_codes}", async () => {
     const calls: InternalAxiosRequestConfig[] = [];
     adapterFor((config) => {
       calls.push(config);
@@ -336,7 +336,7 @@ describe("createAuthorization（G-6 语义映射）", () => {
     });
     expect(calls[0]!.url).toContain("/policy/batch-attach");
     expect(JSON.parse(calls[0]!.data)).toEqual({
-      subjects: [{ sub_type: "role", code: "admin" }],
+      subjects: [{ type: "role", code: "admin" }],
       policy_codes: ["P1"],
     });
   });
@@ -352,7 +352,7 @@ describe("createAuthorization（G-6 语义映射）", () => {
       resource: "P1",
       action: "attach",
     });
-    expect(JSON.parse(calls[0]!.data).subjects[0].sub_type).toBe("user");
+    expect(JSON.parse(calls[0]!.data).subjects[0].type).toBe("user");
   });
 
   it("未知 action → 抛错不发请求", async () => {
@@ -407,7 +407,8 @@ describe("revokeAuthorization（G-6 语义映射）", () => {
     expect(JSON.parse(calls[0]!.data)).toEqual({
       assignments: [
         {
-          subject: { sub_type: "role", code: "admin" },
+          sub_type: "role",
+          sub_code: "admin",
           policy_code: "P1",
         },
       ],
