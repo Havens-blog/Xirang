@@ -47,10 +47,15 @@ describe('classifyBucket', () => {
   it('classifies js/vendor-*.js as remainder', () => {
     expect(classifyBucket('js/vendor-HASH.js.gz')).toBe('remainder')
   })
+  it('classifies named view chunks (lazy routes) as routes', () => {
+    expect(classifyBucket('js/PolicyList-HASH.js.gz')).toBe('routes')
+    expect(classifyBucket('js/MainLayout-HASH.js.gz')).toBe('routes')
+    expect(classifyBucket('js/auth-HASH.js.gz')).toBe('routes')
+  })
   it('classifies css as remainder', () => {
     expect(classifyBucket('css/index-HASH.css.gz')).toBe('remainder')
   })
-  it('classifies unknown as remainder', () => {
+  it('classifies unknown non-js as remainder', () => {
     expect(classifyBucket('fonts/icon-HASH.woff2.gz')).toBe('remainder')
   })
 })
@@ -97,6 +102,7 @@ describe('summarizeGz + checkBudget', () => {
     expect(s.buckets['element-plus'].bytes).toBe(10 * 1024)
     expect(s.buckets['vue-ecosystem'].bytes).toBe(3 * 1024)
     expect(s.buckets.remainder.bytes).toBe(2 * 1024 + 4 * 1024)
+    expect(s.buckets.routes.bytes).toBe(0)
     const expectedTotal = 1000 + 5 * 1024 + 10 * 1024 + 3 * 1024 + 2 * 1024 + 4 * 1024
     expect(s.totalBytes).toBe(expectedTotal)
   })
@@ -140,6 +146,14 @@ describe('summarizeGz + checkBudget', () => {
     expect(r.failures.some((f) => f.scope === 'remainder')).toBe(true)
   })
 
+  it('fails when routes exceeds 90KB', () => {
+    writeFileSync(join(dir, 'js', 'PolicyList-huge.js.gz'), Buffer.alloc(95 * 1024))
+    const s = summarizeGz(dir)
+    const r = checkBudget(s)
+    expect(r.passed).toBe(false)
+    expect(r.failures.some((f) => f.scope === 'routes')).toBe(true)
+  })
+
   it('fails when total exceeds 300KB even if each bucket ok', () => {
     // 让四桶各接近上限但总和超 300
     const dir2 = mkdtempSync(join(tmpdir(), 'gz-total-'))
@@ -165,6 +179,7 @@ describe('summarizeGz + checkBudget', () => {
     expect(BUDGETS.entry.limit).toBe(60)
     expect(BUDGETS['element-plus'].limit).toBe(140)
     expect(BUDGETS['vue-ecosystem'].limit).toBe(50)
+    expect(BUDGETS.routes.limit).toBe(90)
     expect(BUDGETS.remainder.limit).toBe(50)
   })
 
