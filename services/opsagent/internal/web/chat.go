@@ -9,10 +9,21 @@ import (
 
 	"github.com/gin-gonic/gin"
 
+	"github.com/Havens-blog/opsagent/internal/baseclient"
 	"github.com/Havens-blog/opsagent/internal/domain"
 	"github.com/Havens-blog/opsagent/internal/middleware"
 	"github.com/Havens-blog/opsagent/internal/orchestrator"
 )
+
+// orientRequestContext 为编排链挂载请求级上下文：
+//  1. 用户会话令牌原文（baseclient 透传底座 eiam 鉴权，契约 B1）；
+//  2. 会话用户名（correction_log 的 By 字段审计）。
+//
+// 鉴权结论仍只认 EiamAuth 中间件注入的会话主体，此处仅透传面向下游的数据。
+func orientRequestContext(c *gin.Context) context.Context {
+	ctx := baseclient.WithUserToken(c.Request.Context(), middleware.RawToken(c))
+	return domain.WithUserAttr(ctx, middleware.GetUsername(c))
+}
 
 // chat 响应 type 枚举（api-handbook §1 严格一致）。
 const (
@@ -40,11 +51,11 @@ type chatRunner interface {
 	RunChat(ctx context.Context, session *domain.Session, input string) (*domain.Diagnosis, error)
 }
 
-// guidedResolver 超能力意图引导话术解析（settings.guided_templates，Flow C）。
-type guidedResolver func(category string) (string, bool)
+// guidedResolver 超能力意图引导话术解析（settings.guided_templates 按租户，Flow C）。
+type guidedResolver func(tenantID, category string) (string, bool)
 
-// presetsLoader L2 预置查询目录（settings.preset_queries）。
-type presetsLoader func() []domain.PresetQuery
+// presetsLoader L2 预置查询目录（settings.preset_queries，按租户读取）。
+type presetsLoader func(tenantID string) []domain.PresetQuery
 
 // chatRequest POST /chat 请求体。
 type chatRequest struct {
@@ -104,6 +115,7 @@ func (h *ChatHandler) RegisterRoutes(group *gin.RouterGroup) {
 
 // Chat 发起对话排障：创建会话 + 意图分类 + 编排。
 func (h *ChatHandler) Chat(c *gin.Context) {
+	c.Request = c.Request.WithContext(orientRequestContext(c))
 	var req chatRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		FailErr(c, &middleware.ParamInvalidError{Msg: "请求体非法"})
@@ -138,6 +150,7 @@ func (h *ChatHandler) Chat(c *gin.Context) {
 
 // Correct 会话内纠正（一键纠正 XOR 自然语言纠正重路由）。
 func (h *ChatHandler) Correct(c *gin.Context) {
+	c.Request = c.Request.WithContext(orientRequestContext(c))
 	sessionID := c.Param("sessionId")
 	tenant := middleware.TenantIDString(c)
 
@@ -160,7 +173,7 @@ func (h *ChatHandler) Correct(c *gin.Context) {
 		return
 	}
 
-	res, err := h.intent.Correct(c.Request.Context(), sessionID, domain.IntentType(req.TargetIntent), req.Params, req.Message)
+	res, err := h.intent.Correct(c.Request.Context(), tenant, sessionID, domain.IntentType(req.TargetIntent), req.Params, req.Message)
 	if err != nil {
 		FailErr(c, err)
 		return
@@ -187,14 +200,15 @@ func (h *ChatHandler) execute(c *gin.Context, sess *domain.Session, input string
 	}
 
 	// 降级决策（LLM 可用 → L0；不可用 → L1 模板 / L2 预置入口 / L3 明示降级）。
-	decision := h.degrade.Decide(sess.ID, h.llmOK, intentRes, h.presets())
+	presets := h.presets(sess.TenantID)
+	decision := h.degrade.Decide(sess.ID, h.llmOK, intentRes, presets)
 	switch decision.Level {
 	case orchestrator.LevelPreset:
 		c.JSON(http.StatusOK, Response{Code: "0", Message: "ok", Data: chatData{
 			SessionID:    sess.ID,
 			Type:         chatTypePresetEntries,
 			DegradeLevel: int(decision.Level),
-			Presets:      h.presets(),
+			Presets:      presets,
 		}})
 		return
 	case orchestrator.LevelNotice:
@@ -248,7 +262,7 @@ func (h *ChatHandler) continueAsync(sess *domain.Session, input string) {
 func (h *ChatHandler) writeGuided(c *gin.Context, sess *domain.Session, intentRes domain.IntentResult) {
 	report := "这是开发咨询类问题，超出运维排障能力范围，请走对应渠道处理。"
 	if h.guided != nil {
-		if tmpl, ok := h.guided(string(intentRes.Type)); ok && tmpl != "" {
+		if tmpl, ok := h.guided(sess.TenantID, string(intentRes.Type)); ok && tmpl != "" {
 			report = tmpl
 		}
 	}

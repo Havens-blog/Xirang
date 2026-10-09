@@ -163,6 +163,53 @@ func TestSessionDAO_UpdateStatus(t *testing.T) {
 	}
 }
 
+// TestSessionDAO_AppendCorrection 纠正记录 $push 落库 + 强制租户谓词：
+// 跨租户/不存在 → ErrNoDocuments；归属租户追加后回读可见。
+func TestSessionDAO_AppendCorrection(t *testing.T) {
+	db := newTestMongo(t)
+	d := NewSessionDAO(db)
+	ctx := context.Background()
+
+	s := newTestSession("tenant-a", "svc", "q", mustUTCMillis(time.Now()))
+	if err := d.Insert(ctx, s); err != nil {
+		t.Fatalf("insert: %v", err)
+	}
+
+	rec := domain.CorrectionRecord{
+		From:    domain.IntentResource,
+		To:      domain.IntentDiagnose,
+		By:      "u1",
+		At:      time.Now(),
+		Message: "不对，我要排障",
+	}
+	if err := d.AppendCorrection(ctx, "tenant-a", s.ID, rec); err != nil {
+		t.Fatalf("append correction: %v", err)
+	}
+	out, err := d.GetByID(ctx, "tenant-a", s.ID)
+	if err != nil {
+		t.Fatalf("get: %v", err)
+	}
+	if len(out.CorrectionLog) != 1 {
+		t.Fatalf("correction_log len = %d, want 1", len(out.CorrectionLog))
+	}
+	got := out.CorrectionLog[0]
+	if got.From != domain.IntentResource || got.To != domain.IntentDiagnose || got.By != "u1" {
+		t.Fatalf("correction = %+v, want resource→diagnose by u1", got)
+	}
+
+	// 跨租户追加必须不命中（SC-6），也不得写入文档。
+	if err := d.AppendCorrection(ctx, "tenant-x", s.ID, rec); !errors.Is(err, mongo.ErrNoDocuments) {
+		t.Fatalf("cross-tenant append err = %v, want ErrNoDocuments", err)
+	}
+	out, err = d.GetByID(ctx, "tenant-a", s.ID)
+	if err != nil {
+		t.Fatalf("get after cross-tenant attempt: %v", err)
+	}
+	if len(out.CorrectionLog) != 1 {
+		t.Fatalf("cross-tenant attempt leaked a write: len = %d, want 1", len(out.CorrectionLog))
+	}
+}
+
 // TestSessionDAO_TenantIsolation AC-3（SC-6）：跨租户 GetByID 返回 NotFound 语义、
 // 检索返回空；非法 ID 与不存在等价（不泄露资源存在性，service 层映射 404）。
 func TestSessionDAO_TenantIsolation(t *testing.T) {

@@ -13,14 +13,23 @@ server:
   read_timeout_seconds: 30   # 与编排侧 25s 同步预算对齐（tech-design）
   write_timeout_seconds: 30
 
+mongo:
+  uri: "mongodb://127.0.0.1:27017"   # 本地 dev mongod（与 e-cam-service 脚本/DAO 集成测试同源；远端 106.52.187.69:27017 需认证凭据）
+  dbname: "opsagent"
+
+base:
+  logquery_base_url: "http://localhost:8001"   # e-cam-service（契约 B1 日志联邦）
+  mcp_server_path: ""                           # 资产查询 mcp-server（契约 B2，stdio；未配置则资产查询降级）
+
 redis:
-  addr: "127.0.0.1:6379"
-  password: ""
+  addr: "106.52.187.69:6379"   # 与 eiam/config.yaml 会话存储一致（远端共享 Redis）
+  password: "1234567890"       # 必须与 eiam/config.yaml redis.password 一致，否则读不到 eiam 签发会话（恒 401）
   db: 1                      # 必须与 eiam 会话 DB 一致
 
+# 与 eiam/config.yaml 的 session_encrypted_key 完全一致，否则解不开 eiam 签发的 token（恒 401）。
 session:
-  encrypted_key: "change-me-opsagent-session-key"   # 生产环境用 env 注入
-  cookie_name: "opsagent-token"
+  encrypted_key: "1234567890Key"
+  cookie_name: "ecmdb-token-key"   # 与 eiam/e-cam-service 同名（eiam 签发的会话 cookie，浏览器兜底载体）
   cookie_domain: "localhost"
   whitelist:                 # 跳过用户会话鉴权的路径（精确或 /path/* 前缀）
     - /api/v1/opsagent/health

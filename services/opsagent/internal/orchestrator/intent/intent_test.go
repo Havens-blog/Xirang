@@ -124,10 +124,10 @@ func TestClassify_LLMPath(t *testing.T) {
 func TestCorrect_XOR(t *testing.T) {
 	c := New(nil, nil, nil)
 	ctx := context.Background()
-	if _, err := c.Correct(ctx, "s1", "", domain.DiagnoseParams{}, ""); err == nil {
+	if _, err := c.Correct(ctx, "t1", "s1", "", domain.DiagnoseParams{}, ""); err == nil {
 		t.Fatal("both empty should error (XOR)")
 	}
-	if _, err := c.Correct(ctx, "s1", domain.IntentDiagnose, domain.DiagnoseParams{}, "自然语言"); err == nil {
+	if _, err := c.Correct(ctx, "t1", "s1", domain.IntentDiagnose, domain.DiagnoseParams{}, "自然语言"); err == nil {
 		t.Fatal("both set should error (XOR)")
 	}
 }
@@ -135,7 +135,7 @@ func TestCorrect_XOR(t *testing.T) {
 // TestCorrect_Target 一键纠正：target+params 直接重路由。
 func TestCorrect_Target(t *testing.T) {
 	c := New(nil, nil, nil)
-	res, err := c.Correct(context.Background(), "s1", domain.IntentResource, domain.DiagnoseParams{ServiceName: "rds-1"}, "")
+	res, err := c.Correct(context.Background(), "t1", "s1", domain.IntentResource, domain.DiagnoseParams{ServiceName: "rds-1"}, "")
 	if err != nil {
 		t.Fatalf("correct: %v", err)
 	}
@@ -147,7 +147,7 @@ func TestCorrect_Target(t *testing.T) {
 // TestCorrect_Message 自然语言纠正：message 重新分类。
 func TestCorrect_Message(t *testing.T) {
 	c := New(nil, nil, nil)
-	res, err := c.Correct(context.Background(), "s1", "", domain.DiagnoseParams{}, "不是排障，帮我查资产有多少 ecs")
+	res, err := c.Correct(context.Background(), "t1", "s1", "", domain.DiagnoseParams{}, "不是排障，帮我查资产有多少 ecs")
 	if err != nil {
 		t.Fatalf("correct: %v", err)
 	}
@@ -160,7 +160,8 @@ func TestCorrect_Message(t *testing.T) {
 func TestCorrect_AppendCorrection(t *testing.T) {
 	store := &fakeStore{sess: domain.Session{IntentType: domain.IntentDiagnose}}
 	c := New(nil, store, nil)
-	if _, err := c.Correct(context.Background(), "s1", domain.IntentResource, domain.DiagnoseParams{}, ""); err != nil {
+	ctx := domain.WithUserAttr(context.Background(), "admin")
+	if _, err := c.Correct(ctx, "t1", "s1", domain.IntentResource, domain.DiagnoseParams{}, ""); err != nil {
 		t.Fatalf("correct: %v", err)
 	}
 	if len(store.corrections) != 1 {
@@ -169,12 +170,15 @@ func TestCorrect_AppendCorrection(t *testing.T) {
 	if store.corrections[0].From != domain.IntentDiagnose || store.corrections[0].To != domain.IntentResource {
 		t.Fatalf("correction = %+v, want diagnose→resource", store.corrections[0])
 	}
+	if store.corrections[0].By != "admin" {
+		t.Fatalf("correction By = %q, want admin（来自请求上下文用户属性）", store.corrections[0].By)
+	}
 }
 
 // TestCorrect_InvalidTarget 非法 target 拒绝。
 func TestCorrect_InvalidTarget(t *testing.T) {
 	c := New(nil, nil, nil)
-	if _, err := c.Correct(context.Background(), "s1", domain.IntentType("bogus"), domain.DiagnoseParams{}, ""); err == nil {
+	if _, err := c.Correct(context.Background(), "t1", "s1", domain.IntentType("bogus"), domain.DiagnoseParams{}, ""); err == nil {
 		t.Fatal("invalid target should error")
 	}
 }

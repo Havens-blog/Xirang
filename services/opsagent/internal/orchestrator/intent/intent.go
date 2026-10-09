@@ -185,8 +185,9 @@ func (c *Classifier) ruleAlternatives(input string, now time.Time) []domain.Inte
 
 // Correct 依据用户纠正重路由（api-handbook §2）：target+params 与 message 二选一
 // （XOR）。target+params 为一键纠正；message 为自然语言纠正（服务端重新分类）。
-// 附带回填 correction_log（store 非 nil 时）。
-func (c *Classifier) Correct(ctx context.Context, sessionID string, target domain.IntentType, params domain.DiagnoseParams, message string) (domain.IntentResult, error) {
+// 附带回填 correction_log（store 非 nil 时）。tenantID 为会话归属租户：
+// 校验与落库均强制租户谓词，跨租户/不存在 → ErrNoDocuments（404，不泄露存在性）。
+func (c *Classifier) Correct(ctx context.Context, tenantID, sessionID string, target domain.IntentType, params domain.DiagnoseParams, message string) (domain.IntentResult, error) {
 	hasTarget := target != ""
 	hasMessage := strings.TrimSpace(message) != ""
 	if hasTarget == hasMessage {
@@ -201,33 +202,45 @@ func (c *Classifier) Correct(ctx context.Context, sessionID string, target domai
 		res = domain.IntentResult{Type: target, Params: params, Confidence: 1}
 	} else {
 		var err error
-		res, err = c.Classify(ctx, message, "")
+		res, err = c.Classify(ctx, message, tenantID)
 		if err != nil {
 			return domain.IntentResult{}, err
 		}
 	}
 
 	if c.store != nil {
-		if err := c.appendCorrection(ctx, sessionID, res, message); err != nil {
+		if err := c.appendCorrection(ctx, tenantID, sessionID, res, message); err != nil {
 			return domain.IntentResult{}, err
 		}
 	}
 	return res, nil
 }
 
-// appendCorrection 读取会话旧意图并追加纠正记录（误分类 + 纠正）。
-func (c *Classifier) appendCorrection(ctx context.Context, sessionID string, res domain.IntentResult, message string) error {
-	sess, err := c.store.GetByID(ctx, "", sessionID)
+// appendCorrection 读取会话旧意图并追加纠正记录（误分类 + 纠正；By 取自请求上下文用户属性）。
+func (c *Classifier) appendCorrection(ctx context.Context, tenantID, sessionID string, res domain.IntentResult, message string) error {
+	sess, err := c.store.GetByID(ctx, tenantID, sessionID)
 	if err != nil {
 		return err
 	}
 	rec := domain.CorrectionRecord{
 		From:    sess.IntentType,
 		To:      res.Type,
+		By:      domain.UserAttrFrom(ctx),
 		At:      time.Now(),
 		Message: message,
 	}
-	return c.store.AppendCorrection(ctx, "", sessionID, rec)
+	return c.store.AppendCorrection(ctx, tenantID, sessionID, rec)
+}
+
+// DefaultGuidedTemplates P1 内置引导话术（settings.guided_templates 未配置时兜底；
+// 键为超能力意图类别，与 settings PUT 的 guidedTemplates 同构，可被管理员覆盖）。
+func DefaultGuidedTemplates() map[string]GuidedTemplate {
+	return map[string]GuidedTemplate{
+		"out_of_scope": {
+			Template: "这是开发咨询类问题，超出运维排障能力范围，请走对应渠道处理。",
+			Channel:  "对应业务系统/工单渠道",
+		},
+	}
 }
 
 // Guided 返回某超能力意图类别的引导话术（Flow C）。

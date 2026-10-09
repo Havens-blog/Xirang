@@ -372,6 +372,42 @@ func TestBuildNotifyBody(t *testing.T) {
 	}
 }
 
+// TestQueryLogs_TokenForwarding 上下文挂载用户令牌时，底座 HTTP 调用透传
+// Authorization: Bearer <token>（契约 B1/B3：底座按 eiam 会话鉴权）。
+func TestQueryLogs_TokenForwarding(t *testing.T) {
+	const wantToken = "eiam-signed-token-xyz"
+	seen := make(chan string, 1)
+	c := newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+		seen <- r.Header.Get("Authorization")
+		_, _ = w.Write([]byte(`{"code":0,"msg":"ok","data":{"total":0,"truncated":false,"entries":[]}}`))
+	}, Config{})
+
+	ctx := WithUserToken(context.Background(), wantToken)
+	if _, err := c.QueryLogs(ctx, testLogRequest()); err != nil {
+		t.Fatalf("QueryLogs: %v", err)
+	}
+	if got := <-seen; got != "Bearer "+wantToken {
+		t.Fatalf("Authorization = %q, want %q", got, "Bearer "+wantToken)
+	}
+}
+
+// TestQueryLogs_NoTokenForwarding 未挂载令牌（告警 worker 链路）时不透传该头；
+// 底座 401 由调用方按契约降级「无数据」，客户端不伪造凭证。
+func TestQueryLogs_NoTokenForwarding(t *testing.T) {
+	seen := make(chan string, 1)
+	c := newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+		seen <- r.Header.Get("Authorization")
+		_, _ = w.Write([]byte(`{"code":0,"msg":"ok","data":{"total":0,"truncated":false,"entries":[]}}`))
+	}, Config{})
+
+	if _, err := c.QueryLogs(context.Background(), testLogRequest()); err != nil {
+		t.Fatalf("QueryLogs: %v", err)
+	}
+	if got := <-seen; got != "" {
+		t.Fatalf("Authorization = %q, want empty", got)
+	}
+}
+
 // TestIsRetryable 重试判定：5xx 可重试、业务错误/漂移不重试。
 func TestIsRetryable(t *testing.T) {
 	if !isRetryable(&ModuleError{Status: 500}) {

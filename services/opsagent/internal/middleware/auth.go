@@ -99,3 +99,18 @@ func matchWhitelist(path string, whitelist []string) bool {
 	}
 	return false
 }
+
+// RawToken 提取请求携带的 eiam 会话令牌原文（Authorization: Bearer x，或裸令牌）。
+// 供编排层向底座（e-cam-service 契约 B1）透传调用方凭证；鉴权本身由 EiamAuth 完成，
+// 本函数不做校验、只取原文。告警 webhook 等服务间请求不携带用户令牌，返回空串。
+func RawToken(c *gin.Context) string {
+	auth := strings.TrimSpace(c.GetHeader("Authorization"))
+	if auth == "" {
+		return ""
+	}
+	const bearer = "Bearer "
+	if strings.HasPrefix(auth, bearer) {
+		return strings.TrimSpace(auth[len(bearer):])
+	}
+	return auth
+}

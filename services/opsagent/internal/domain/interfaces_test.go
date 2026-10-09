@@ -17,7 +17,7 @@ func (stubIntentClassifier) Classify(ctx context.Context, input string, tenant s
 	return domain.IntentResult{Type: domain.IntentDiagnose, Confidence: 1, Params: domain.DiagnoseParams{ServiceName: input}}, nil
 }
 
-func (stubIntentClassifier) Correct(ctx context.Context, sessionID string, target domain.IntentType, params domain.DiagnoseParams, message string) (domain.IntentResult, error) {
+func (stubIntentClassifier) Correct(ctx context.Context, tenantID, sessionID string, target domain.IntentType, params domain.DiagnoseParams, message string) (domain.IntentResult, error) {
 	return domain.IntentResult{Type: target}, nil
 }
 

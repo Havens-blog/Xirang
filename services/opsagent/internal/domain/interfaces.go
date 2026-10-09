@@ -12,8 +12,9 @@ type IntentClassifier interface {
 	Classify(ctx context.Context, input string, tenant string) (IntentResult, error)
 	// Correct 依据用户纠正重路由，返回新意图并保留误分类+纠正记录。
 	// target+params 与 message 二选一（XOR，与 api-handbook §2 一致）：
-	// target+params = 候选意图一键纠正；message = 自然语言纠正（服务端重新分类）
-	Correct(ctx context.Context, sessionID string, target IntentType, params DiagnoseParams, message string) (IntentResult, error)
+	// target+params = 候选意图一键纠正；message = 自然语言纠正（服务端重新分类）。
+	// tenant 用于强制租户谓词：会话归属校验与 correction_log 落库均不可跨租户。
+	Correct(ctx context.Context, tenantID, sessionID string, target IntentType, params DiagnoseParams, message string) (IntentResult, error)
 }
 
 // BaseModuleClient 底座模块统一调用封装：超时/重试/降级语义在客户端内闭环

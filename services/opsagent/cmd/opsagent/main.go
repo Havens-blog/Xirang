@@ -56,7 +56,25 @@ func main() {
 
 	sp := newSessionProvider(cfg, rdb, logger)
 
-	server := web.NewServer(cfg, sp, logger, opsagentModules()...)
+	// 组合根装配全部业务组件（DAO/编排/handler/worker），失败即终止启动。
+	ap, err := buildApp(cfg, rdb, logger)
+	if err != nil {
+		logger.Error("装配业务组件失败，服务无法启动", elog.FieldErr(err))
+		fmt.Fprintf(os.Stderr, "装配业务组件失败，服务无法启动: %v\n", err)
+		os.Exit(1)
+	}
+	defer func() {
+		ap.worker.Stop()
+		if err := ap.mongoClient.Disconnect(context.Background()); err != nil {
+			logger.Warn("关闭 Mongo 连接失败", elog.FieldErr(err))
+		}
+	}()
+
+	server := web.NewServer(cfg, sp, logger, ap.modules...)
+	// 告警入站 webhook 挂开放组（不经 EiamAuth/RequireTenant，服务间密钥鉴权替代）。
+	ap.alertModule.RegisterRoutes(server.Engine().Group("/api/v1/opsagent"))
+	// 告警异步排查 worker（后台并发池）。
+	ap.worker.Start(context.Background())
 
 	httpServer := &http.Server{
 		Addr:         fmt.Sprintf(":%d", cfg.Server.Port),
@@ -109,11 +127,4 @@ func newSessionProvider(cfg *config.Config, rdb *goRedis.Client, logger *elog.Co
 		elog.String("cookie_name", cfg.Session.CookieName),
 		elog.Int("redis_db", cfg.Redis.DB))
 	return sp
-}
-
-// opsagentModules 返回当前装配的功能模块（后续任务逐个接入）。
-func opsagentModules() []web.Module {
-	// P0 骨架暂无业务模块；后续任务在此追加：
-	// chat 模块 / risk-center 模块 / settings 模块 / 告警 webhook 模块等。
-	return nil
 }

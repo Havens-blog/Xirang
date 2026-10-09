@@ -33,6 +33,9 @@ session:
   cookie_domain: "localhost"
   whitelist:
     - /api/v1/opsagent/health
+mongo:
+  uri: "mongodb://127.0.0.1:27017"
+  dbname: "opsagent"
 notify:
   alert_webhook_key: "unit-test-webhook-key"
   channels:
@@ -168,6 +171,9 @@ session:
   encrypted_key: "k"
   cookie_name: "c"
   cookie_domain: "d"
+mongo:
+  uri: "mongodb://127.0.0.1:27017"
+  dbname: "opsagent"
 notify:
   alert_webhook_key: "w"
 `

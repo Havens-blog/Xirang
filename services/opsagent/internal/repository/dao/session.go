@@ -72,6 +72,9 @@ type SessionDAO interface {
 	ListByService(ctx context.Context, tenantID, serviceName string, limit, offset int) ([]domain.Session, error)
 	// UpdateStatus 流转会话状态（running|done|failed），同部刷新 updated_at。
 	UpdateStatus(ctx context.Context, tenantID, id string, status domain.SessionStatus) error
+	// AppendCorrection 追加纠正记录（sessions.correction_log，$push）；会话须归属该租户，
+	// 跨租户/不存在 → mongo.ErrNoDocuments（不泄露资源存在性）。
+	AppendCorrection(ctx context.Context, tenantID, id string, rec domain.CorrectionRecord) error
 	// InitIndexes 初始化 schema.mongo.js 定义的 sessions 索引（幂等）。
 	InitIndexes(ctx context.Context) error
 }
@@ -107,12 +110,17 @@ func (d *sessionDAO) InitIndexes(ctx context.Context) error {
 }
 
 // Insert 创建会话；缺省补齐 ID/status/时间戳（orchestration_trace 内嵌随文档写入）。
+// CorrectionLog 为 nil 时归一化为空数组：保证 correction_log 字段以 [] 落库
+// （nil 切片在 bson 下编码为 null，后续 $push 会把 null 当非数组报错）。
 func (d *sessionDAO) Insert(ctx context.Context, s *domain.Session) error {
 	if s.ID == "" {
 		s.ID = primitive.NewObjectID().Hex()
 	}
 	if s.Status == "" {
 		s.Status = domain.SessionStatusRunning
+	}
+	if s.CorrectionLog == nil {
+		s.CorrectionLog = []domain.CorrectionRecord{}
 	}
 	now := time.Now()
 	if s.CreatedAt.IsZero() {
@@ -185,6 +193,36 @@ func (d *sessionDAO) UpdateStatus(ctx context.Context, tenantID, id string, stat
 	}
 	filter := bson.M{"_id": oid, "tenant_id": tenantID}
 	update := bson.M{"$set": bson.M{"status": string(status), "updated_at": time.Now()}}
+	res, err := d.db.Collection(SessionsCollection).UpdateOne(ctx, filter, update)
+	if err != nil {
+		return err
+	}
+	if res.MatchedCount == 0 {
+		return mongo.ErrNoDocuments
+	}
+	return nil
+}
+
+// AppendCorrection 追加纠正记录；过滤 {_id, tenant_id} 强制租户谓词，
+// 匹配计数为 0 视为「不存在或跨租户」→ mongo.ErrNoDocuments。
+// 采用聚合管道更新：兼容存量文档 correction_log 为 null 的形态（
+// $push 对 null 字段会报「must be an array」，此处 null 等价空数组）。
+func (d *sessionDAO) AppendCorrection(ctx context.Context, tenantID, id string, rec domain.CorrectionRecord) error {
+	oid, err := objectIDOrErr(id)
+	if err != nil {
+		return err
+	}
+	filter := bson.M{"_id": oid, "tenant_id": tenantID}
+	update := mongo.Pipeline{
+		{{Key: "$set", Value: bson.D{{Key: "correction_log", Value: bson.D{
+			{Key: "$cond", Value: bson.A{
+				bson.D{{Key: "$isArray", Value: "$correction_log"}},
+				bson.D{{Key: "$concatArrays", Value: bson.A{"$correction_log", bson.A{rec}}}},
+				bson.A{rec},
+			}},
+		}}}}},
+		{{Key: "$set", Value: bson.D{{Key: "updated_at", Value: time.Now()}}}},
+	}
 	res, err := d.db.Collection(SessionsCollection).UpdateOne(ctx, filter, update)
 	if err != nil {
 		return err

@@ -26,6 +26,8 @@ type Config struct {
 	Server     ServerConfig     `mapstructure:"server"`
 	Redis      RedisConfig      `mapstructure:"redis"`
 	Session    SessionConfig    `mapstructure:"session"`
+	Mongo      MongoConfig      `mapstructure:"mongo"`
+	Base       BaseConfig       `mapstructure:"base"`
 	LLM        LLMConfig        `mapstructure:"llm"`
 	Notify     NotifyConfig     `mapstructure:"notify"`
 	Thresholds ThresholdsConfig `mapstructure:"thresholds"`
@@ -52,6 +54,18 @@ type SessionConfig struct {
 	CookieName   string   `mapstructure:"cookie_name"`
 	CookieDomain string   `mapstructure:"cookie_domain"`
 	Whitelist    []string `mapstructure:"whitelist"`
+}
+
+// MongoConfig MongoDB 连接配置（DB: opsagent，8 集合）。
+type MongoConfig struct {
+	URI    string `mapstructure:"uri"`
+	DBName string `mapstructure:"dbname"`
+}
+
+// BaseConfig 底座客户端配置（地址与本地资产 MCP 服务路径）。
+type BaseConfig struct {
+	LogqueryBaseURL string `mapstructure:"logquery_base_url"` // e-cam-service 前缀（契约 B1）
+	McpServerPath   string `mapstructure:"mcp_server_path"`   // 资产查询 mcp-server 路径（契约 B2，stdio）
 }
 
 // LLMConfig LLM Provider 配置（未配置 API Key 时走降级路径，不阻塞启动）。
@@ -233,6 +247,8 @@ func validate(cfg *Config) error {
 		{"session.encrypted_key", cfg.Session.EncryptedKey == ""},
 		{"session.cookie_name", cfg.Session.CookieName == ""},
 		{"session.cookie_domain", cfg.Session.CookieDomain == ""},
+		{"mongo.uri", cfg.Mongo.URI == ""},
+		{"mongo.dbname", cfg.Mongo.DBName == ""},
 		{"notify.alert_webhook_key", cfg.Notify.AlertWebhookKey == ""},
 	}
 

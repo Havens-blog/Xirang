@@ -22,7 +22,7 @@ type fakeIntent struct {
 func (f *fakeIntent) Classify(context.Context, string, string) (domain.IntentResult, error) {
 	return f.result, f.err
 }
-func (f *fakeIntent) Correct(context.Context, string, domain.IntentType, domain.DiagnoseParams, string) (domain.IntentResult, error) {
+func (f *fakeIntent) Correct(context.Context, string, string, domain.IntentType, domain.DiagnoseParams, string) (domain.IntentResult, error) {
 	return domain.IntentResult{}, nil
 }
 

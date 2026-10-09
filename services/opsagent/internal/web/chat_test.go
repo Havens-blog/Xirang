@@ -47,7 +47,7 @@ func (f *fakeIntent) Classify(context.Context, string, string) (domain.IntentRes
 	return f.result, f.err
 }
 
-func (f *fakeIntent) Correct(context.Context, string, domain.IntentType, domain.DiagnoseParams, string) (domain.IntentResult, error) {
+func (f *fakeIntent) Correct(context.Context, string, string, domain.IntentType, domain.DiagnoseParams, string) (domain.IntentResult, error) {
 	f.corrected = true
 	return f.correctResult, nil
 }
@@ -103,7 +103,7 @@ func newTestHandler(store *fakeChatStore, intent domain.IntentClassifier, runner
 	llmOK bool, presets []domain.PresetQuery, budget time.Duration) *ChatHandler {
 	degrade := orchestrator.NewDegradationController(0, 0.6, nil)
 	llm := func() bool { return llmOK }
-	presetsFn := func() []domain.PresetQuery { return presets }
+	presetsFn := func(_ string) []domain.PresetQuery { return presets }
 	return NewChatHandler(store, intent, runner, degrade, llm, presetsFn, nil, budget)
 }
 

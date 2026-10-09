@@ -231,6 +231,11 @@ func (c *Client) once(ctx context.Context, module, method, url string, body io.R
 		return &ModuleError{Module: module, Msg: err.Error()}
 	}
 	req.Header.Set("Content-Type", "application/json")
+	if tok := userTokenFrom(ctx); tok != "" {
+		// 契约 B1/B3：底座按 eiam 会话鉴权；透传调用方令牌（header 载体，与 e-cam-service
+		// 自身 mixin carrier 一致）。无令牌（告警链路）时底座 401 → 上层降级「无数据」。
+		req.Header.Set("Authorization", "Bearer "+tok)
+	}
 
 	resp, err := c.hc.Do(req)
 	if err != nil {
