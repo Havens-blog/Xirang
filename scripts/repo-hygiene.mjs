@@ -1,8 +1,8 @@
 // repo-hygiene.mjs — 仓库卫生门禁（CI hygiene job / 本地 `node scripts/repo-hygiene.mjs`）
 //
 // 检查 tracked 文件全集（git ls-files）：
-//   1. 禁用目录零容忍：logs/ build/ dist/ node_modules/ .claude/ .forge/ .kiro/
-//      .superpowers/ .idea/ .vscode/ temp/ 及任意层 .exe/.dll/bin 二进制产物
+//   1. 禁用目录零容忍：build/ dist/ node_modules/ .claude/ .forge/ .kiro/
+//      .superpowers/ .idea/ temp/ 及任意层 .exe/.dll/*.log 文件
 //   2. 大文件零容忍：任何 tracked 文件 > 3MB
 // 违反 → 逐条列出并 exit 1（Hard Rule），保证单仓不会再次混入运行时垃圾。
 import { execSync } from 'node:child_process'
@@ -10,7 +10,6 @@ import { statSync, existsSync } from 'node:fs'
 import { join } from 'node:path'
 
 const FORBIDDEN_SEGMENTS = [
-  /(^|\/)logs\//,
   /(^|\/)build\//,
   /(^|\/)dist\//,
   /(^|\/)node_modules\//,
@@ -20,9 +19,10 @@ const FORBIDDEN_SEGMENTS = [
   /(^|\/)\.kiro\//,
   /(^|\/)\.superpowers\//,
   /(^|\/)\.idea\//,
-  /(^|\/)\.vscode\//,
 ]
-const FORBIDDEN_FILES = [/\.exe$/i, /\.dll$/i]
+// NOTE: logs 目录本身不违禁（e-cam-web 有合法的 src/views/logs 视图模块，见 6.6 记录）；
+// *.log 文件与 *.exe/*.dll 二进制产物才违禁
+const FORBIDDEN_FILES = [/\.exe$/i, /\.dll$/i, /\.log$/i]
 const MAX_BYTES = 3 * 1024 * 1024
 
 /** 对单个相对路径做规则判定，返回违规列表（空=干净） */

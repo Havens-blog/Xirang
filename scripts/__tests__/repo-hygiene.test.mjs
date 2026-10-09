@@ -11,15 +11,23 @@ describe('classifyPath', () => {
     expect(classifyPath('scripts/repo-hygiene.mjs')).toEqual([])
   })
   it('禁用目录任意层级命中', () => {
-    expect(classifyPath('services/eiam/logs/a.log')).toContain('禁用目录: services/eiam/logs/a.log')
     expect(classifyPath('apps/e-cam-web/dist/index.html')).toContain('禁用目录')
     expect(classifyPath('node_modules/x.js')).toContain('禁用目录')
     expect(classifyPath('services/x/.claude/y')).toContain('禁用目录')
+    expect(classifyPath('services/x/build/f')).toContain('禁用目录')
+  })
+  it('logs 视图目录不违禁（只有 *.log 文件违禁）', () => {
+    expect(classifyPath('apps/e-cam-web/src/views/logs/csv.ts')).toEqual([])
+    expect(classifyPath('apps/e-cam-web/src/views/audit/logs/index.vue')).toEqual([])
+    expect(classifyPath('services/eiam/logs/eiam.log')).toContain('二进制产物')
   })
   it('工具残留目录命中', () => {
-    for (const d of ['.forge/a', '.kiro/b', '.superpowers/c', '.idea/d', '.vscode/e', 'services/x/build/f']) {
+    for (const d of ['.forge/a', '.kiro/b', '.superpowers/c', '.idea/d', 'services/x/build/f']) {
       expect(classifyPath(d).length).toBeGreaterThan(0)
     }
+  })
+  it('.vscode 目录不违禁（合法推荐扩展配置）', () => {
+    expect(classifyPath('apps/e-cam-web/.vscode/extensions.json')).toEqual([])
   })
   it('二进制产物命中', () => {
     expect(classifyPath('tools/mcp-server.exe')).toContain('二进制产物')
