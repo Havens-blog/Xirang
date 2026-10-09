@@ -1,0 +1,14 @@
+# 统一行尾：文本文件入库一律 LF（杜绝 Windows CRLF 入库导致的哈希/漂移类问题）
+* text=auto eol=lf
+
+# 二进制豁免
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.woff binary
+*.woff2 binary
+*.pdf binary
+*.zip binary
+*.gz binary

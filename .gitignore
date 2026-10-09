@@ -1,0 +1,38 @@
+# === 依赖/构建产物 ===
+node_modules/
+dist/
+build/
+!.gitkeep
+
+# === 运行日志/临时 ===
+logs/
+*.log
+temp/
+*.tmp
+
+# === 二进制（编译产物不允许入库）===
+*.exe
+*.dll
+*.so
+*.bin
+
+# === 环境文件（示例保留；真实值走部署/密钥管理，历史已存在的除外）===
+.env.local
+.env.*.local
+
+# === Agent/IDE 工具残留 ===
+.claude/
+.forge/
+.kiro/
+.superpowers/
+.idea/
+.vscode/
+.browser-verify/
+
+# === 控制台诊断残留 ===
+diag-*.png
+e2e/_diag_*.spec.ts
+
+# === 本机验证下载物 ===
+_coverage/
+.reports/
