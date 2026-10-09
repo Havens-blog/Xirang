@@ -799,16 +799,20 @@ func TestTriggerProbeRootAsyncFiltersByRoot(t *testing.T) {
 		{Hostname: "api.jlcerp.com", RecordType: "A", TenantID: 3},
 	})
 	require.NoError(t, svc.TriggerProbeRootAsync(context.Background(), " EASYEDA.com "))
-	// 轮询等待后台轮完成（dialer 立即失败 → 两条 unreachable 全部落库）
+	// 轮询等待后台轮完成（dialer 立即失败 → 两条 unreachable 全部落库）。
+	// 用锁下快照 all() 观测与断言：后台 goroutine 直写 fakeProbeRepo，
+	// 直读 created 字段会被竞态检测器标记。
 	deadline := time.Now().Add(2 * time.Second)
-	for len(probes.created) < 2 {
+	var snapshot []domain.ProbeResult
+	for len(snapshot) < 2 {
 		if time.Now().After(deadline) {
-			t.Fatalf("expected 2 persisted results, got %d", len(probes.created))
+			t.Fatalf("expected 2 persisted results, got %d", len(snapshot))
 		}
 		time.Sleep(5 * time.Millisecond)
+		snapshot = probes.all()
 	}
 	domains := map[string]bool{}
-	for _, r := range probes.created {
+	for _, r := range snapshot {
 		domains[r.Domain] = true
 	}
 	assert.True(t, domains["www.easyeda.com"], "根域子域名应命中")

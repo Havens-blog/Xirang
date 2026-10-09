@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"sync"
 	"testing"
 	"time"
 
@@ -18,26 +19,47 @@ import (
 )
 
 // waitForAuditLogs 轮询等待异步审计写入落袋（中间件经 goroutine 写入）。
+// 通过锁保护的 count() 观测，创建 happens-before 关系；
+// 调用方随后用 snapshot() 取锁下副本再断言。
 func waitForAuditLogs(t *testing.T, dao *captureAuditDAO, n int) {
 	t.Helper()
 	deadline := time.Now().Add(2 * time.Second)
 	for time.Now().Before(deadline) {
-		if len(dao.logs) >= n {
+		if dao.count() >= n {
 			return
 		}
 		time.Sleep(5 * time.Millisecond)
 	}
-	t.Fatalf("audit logs not written within deadline: got %d want %d", len(dao.logs), n)
+	t.Fatalf("audit logs not written within deadline: got %d want %d", dao.count(), n)
 }
 
 // captureAuditDAO 捕获中间件写入的审计日志（Create 落内存）。
+// 中间件是 fire-and-forget：Create 在请求 goroutine 之外的 goroutine 里被调用，
+// 必须加锁（无锁 append + 测试读切片头会被竞态检测器标记）。
 type captureAuditDAO struct {
+	mu   sync.Mutex
 	logs []domain.AuditLog
 }
 
 func (d *captureAuditDAO) Create(_ context.Context, l domain.AuditLog) (int64, error) {
+	d.mu.Lock()
+	defer d.mu.Unlock()
 	d.logs = append(d.logs, l)
 	return int64(len(d.logs)), nil
+}
+
+// count 锁保护的长度观测（轮询等待用）。
+func (d *captureAuditDAO) count() int {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	return len(d.logs)
+}
+
+// snapshot 锁下的副本（断言用）。
+func (d *captureAuditDAO) snapshot() []domain.AuditLog {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	return append([]domain.AuditLog(nil), d.logs...)
 }
 
 func (d *captureAuditDAO) List(context.Context, domain.AuditLogFilter) ([]domain.AuditLog, error) {
@@ -118,7 +140,8 @@ func TestAuditMiddleware_MultipartBodyOmitted(t *testing.T) {
 	require.Equal(t, http.StatusCreated, w.Code)
 
 	waitForAuditLogs(t, dao, 1)
-	log := dao.logs[0]
+	logs := dao.snapshot()
+	log := logs[0]
 	assert.Equal(t, "api_cert_create", string(log.OperationType))
 	assert.Equal(t, "[multipart/form-data body omitted]", log.RequestBody)
 	assert.NotContains(t, log.RequestBody, "PRIVATE KEY")
@@ -144,7 +167,8 @@ func TestAuditMiddleware_JSONBodySanitized(t *testing.T) {
 	require.Equal(t, http.StatusOK, w.Code)
 
 	waitForAuditLogs(t, dao, 1)
-	log := dao.logs[0]
+	logs := dao.snapshot()
+	log := logs[0]
 	assert.Contains(t, log.RequestBody, "***")
 	assert.NotContains(t, log.RequestBody, "p@ss")
 	assert.Equal(t, "api_settings_update", string(log.OperationType))

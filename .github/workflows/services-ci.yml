@@ -103,14 +103,23 @@ jobs:
       - name: go mod download
         run: go mod download
 
+      # -race 全树桩编译 + 测试二进制链接吃盘（首轮实测 link 阶段 "no space left
+      # on device"）；清掉 runner 预装但本 job 不用的 SDK，保留 hostedtoolcache（Go 本体）
+      - name: 释放 runner 磁盘
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /usr/local/.ghcup \
+            /usr/share/swift /usr/local/share/boost /usr/local/share/chromium
+          df -h /
+
       # -skip：live-probe 手动探索测试（waf/拓扑缓存探测等）读 config/prod.yaml 的
       # 占位 DSN 直连真实网络（20~30s 超时失败）；CI 无真实凭据，按测试自身
       # 「读不到配置即 skip」的设计意图在门禁侧精确跳过，本地带凭据仍可跑
       # -race：竞态检测已恢复（cost/analysis 三处测试夹具竞态已修复：
       # TestGetCostSummary_Cache/DateRanges、TestProperty14_FilterCorrectness）
+      # -p 2：压低并行编译峰值，配合上方磁盘释放避免二次爆盘
       - name: go test（需 mongo+redis 容器；-race）
         run: |
-          go test -race -coverprofile=coverage.out \
+          go test -race -p 2 -coverprofile=coverage.out \
             -skip '^(TestProbeAWSWAFInstances|TestLiveAWSWAFResolved|TestProbeLiveBuildWAFtoALB|TestProbeTencentWAFSourceInDB|TestProbeTopoCache)$' \
             ./...
 
