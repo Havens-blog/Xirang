@@ -106,14 +106,14 @@ jobs:
       # 暂不 -race：cost/analysis 存在真实数据竞争（TestGetCostSummary_Cache /
       # TestGetCostSummary_DateRanges / TestProperty14_FilterCorrectness，service_test.go），
       # 已归档 7.1 修复任务；race 修复后恢复 -race
+      # -skip：live-probe 手动探索测试（waf/拓扑缓存探测等）读 config/prod.yaml 的
+      # 占位 DSN 直连真实网络（20~30s 超时失败）；CI 无真实凭据，按测试自身
+      # 「读不到配置即 skip」的设计意图在门禁侧精确跳过，本地带凭据仍可跑
       - name: go test（需 mongo+redis 容器）
-        run: go test -coverprofile=coverage.out ./...
-
-      - name: go vet
-        run: go vet ./...
-
-      - name: go build
-        run: go build ./...
+        run: |
+          go test -coverprofile=coverage.out \
+            -skip '^(TestProbeAWSWAFInstances|TestLiveAWSWAFResolved|TestProbeLiveBuildWAFtoALB|TestProbeTencentWAFSourceInDB|TestProbeTopoCache)$' \
+            ./...
 
       - name: go vet
         run: go vet ./...

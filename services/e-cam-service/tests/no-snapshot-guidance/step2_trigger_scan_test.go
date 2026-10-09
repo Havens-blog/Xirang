@@ -54,7 +54,7 @@ func TestStep2_TriggerScan_Success(t *testing.T) {
 
 	resp := h.Post(scanRoute(certID), nil)
 	resp.RequireJSON(t)
-	require.Equal(t, http.StatusOK, resp.StatusCode, resp.Body)
+	require.Equal(t, http.StatusAccepted, resp.StatusCode, resp.Body)
 	assert.True(t, resp.Env.Success)
 	data := resp.DataMap(t)
 	snapshotID, _ := data["snapshotId"].(string)

@@ -48,7 +48,7 @@ func TestNoSnapshotGuidance_Smoke(t *testing.T) {
 		{Cloud: domain.CloudAliyun, AccountKey: "acct-a", CloudCertID: "cert-A", Fingerprint: b.Fingerprint, ResourceID: "res-1"},
 	})
 	triggered := h.Post(scanRoute(cert.ID.Hex()), nil)
-	require.Equal(t, http.StatusOK, triggered.StatusCode, triggered.Body)
+	require.Equal(t, http.StatusAccepted, triggered.StatusCode, triggered.Body)
 	tData := triggered.DataMap(t)
 	snapshotID, _ := tData["snapshotId"].(string)
 	require.NotEmpty(t, snapshotID)

@@ -271,7 +271,9 @@ func seedProbe(t *testing.T, probes *certtest.FakeProbeResultRepo, domainName st
 func TestDashboard_ItemsFields(t *testing.T) {
 	engine, d := newDashSettingsRouter(t, RoleViewer)
 
-	d.seedDashboardCert(t, dfp(1), []string{"web.a.example.com"}, 12*24*time.Hour, domain.HostingStatusComplete)
+	// +1h 余量：daysLeft 为 floor((notAfter-now)/24h) 口径，恰好 288h 的种子会因
+	// 播种到断言的微秒流逝被截断为 11，+1h 后仍落级 le14 且 DaysLeft=12 稳定。
+	d.seedDashboardCert(t, dfp(1), []string{"web.a.example.com"}, 12*24*time.Hour+time.Hour, domain.HostingStatusComplete)
 	seedDoneSnapshotRefs(t, d, []domain.CertReference{
 		{CertFingerprint: dfp(1), Cloud: domain.CloudTencent, Product: "cdn", ResourceID: "r1"},
 		{CertFingerprint: dfp(1), Cloud: domain.CloudTencent, Product: "waf", ResourceID: "r2"},

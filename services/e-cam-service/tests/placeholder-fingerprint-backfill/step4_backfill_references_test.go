@@ -113,7 +113,7 @@ func TestStep4_BackfillReferences_WrongBackfillRescanRecoverable(t *testing.T) {
 	h.Scan.SetRefsToWrite([]discoverytest.RefSpec{placeholderRefSpec("tencent", "acct-tx", "ssl-9", "res-wrong", "")})
 	cert := h.SeedCert(discoverytest.FP("phb-recover-anchor"), time.Date(2027, 5, 1, 0, 0, 0, 0, time.UTC))
 	triggered := h.Post("/api/v1/certs/"+cert.ID.Hex()+discoverytest.RouteCertScanSuffix, nil)
-	require.Equal(t, http.StatusOK, triggered.StatusCode, triggered.Body)
+	require.Equal(t, http.StatusAccepted, triggered.StatusCode, triggered.Body)
 	h.FinishScanDone(triggered.DataMap(t)["snapshotId"].(string))
 
 	ph := discoverytest.PlaceholderFP("tencent", "acct-tx", "ssl-9")

@@ -75,7 +75,7 @@ func TestStep5_VerifyReferenceList_PartialFailureRescanRefresh(t *testing.T) {
 	})
 	anchor := h.Ledger()[0]
 	triggered := h.Post("/api/v1/certs/"+anchor.ID.Hex()+discoverytest.RouteCertScanSuffix, nil)
-	require.Equal(t, http.StatusOK, triggered.StatusCode, triggered.Body)
+	require.Equal(t, http.StatusAccepted, triggered.StatusCode, triggered.Body)
 	h.FinishScanDone(triggered.DataMap(t)["snapshotId"].(string))
 
 	// The cloud-side problem is fixed; the rerun converges the remainder.
