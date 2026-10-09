@@ -30,10 +30,15 @@ import { ApiError, type RoleRef } from "@/api/types";
 import { contractText } from "@/utils/copyContract";
 import CopyContractText from "@/components/CopyContractText.vue";
 import StatusBadge from "@/components/StatusBadge.vue";
+import { useCan } from "@/composables/useCan";
+import { IAM_ROLE, IAM_USER } from "@/config/permission-codes";
 
 const router = useRouter();
 const store = useUserListStore();
 const userStore = useUserStore();
+
+// P0 权限码按钮裁剪（词表 permission-codes.ts / parity §5；与菜单 & 路由守卫同口径）
+const { can } = useCan();
 
 // ---- 角色过滤 / 绑定下拉数据源（listRoles A 档）----
 const roleOptions = ref<RoleRef[]>([]);
@@ -281,7 +286,12 @@ const isEmpty = computed(
   <section class="page-user-list" :aria-busy="store.loading">
     <header class="page-head">
       <h2 class="page-title">用户管理</h2>
-      <button type="button" class="btn btn--primary" @click="openCreate">
+      <button
+        v-if="can(IAM_USER.ADD)"
+        type="button"
+        class="btn btn--primary"
+        @click="openCreate"
+      >
         新增用户
       </button>
     </header>
@@ -348,6 +358,7 @@ const isEmpty = computed(
             </td>
             <td>
               <button
+                v-if="can(IAM_USER.EDIT)"
                 type="button"
                 class="btn btn--text"
                 data-testid="edit-user"
@@ -356,12 +367,22 @@ const isEmpty = computed(
                 编辑
               </button>
               <button
+                v-if="can(IAM_USER.DELETE)"
                 type="button"
                 class="btn btn--text btn--danger"
                 data-testid="delete-user"
                 @click="openDelete(u.id, u.username)"
               >
                 删除
+              </button>
+              <button
+                v-if="!can(IAM_USER.EDIT) && !can(IAM_USER.DELETE)"
+                type="button"
+                class="btn btn--text"
+                data-testid="view-user"
+                @click="gotoDetail(u.id)"
+              >
+                查看
               </button>
             </td>
           </tr>
@@ -521,7 +542,7 @@ const isEmpty = computed(
           </label>
           <div class="field">
             <span class="field__label">角色绑定</span>
-            <div class="checkbox-group">
+            <div v-if="can(IAM_ROLE.BATCH_ASSIGN)" class="checkbox-group">
               <label
                 v-for="r in roleOptions"
                 :key="r.code"
@@ -539,6 +560,9 @@ const isEmpty = computed(
                 >无可选角色</span
               >
             </div>
+            <span v-else class="muted"
+              >创建时绑定角色需持有 iam:role:batch_assign（当前未持有，跳过绑定）</span
+            >
           </div>
           <div class="field">
             <span class="field__label">所属租户</span>

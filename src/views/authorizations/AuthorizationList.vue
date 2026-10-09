@@ -27,8 +27,27 @@ import { useAuthorizationListStore } from "@/stores/authorizationList";
 import { ApiError } from "@/api/types";
 import { contractText } from "@/utils/copyContract";
 import CopyContractText from "@/components/CopyContractText.vue";
+import { useCan } from "@/composables/useCan";
+import { IAM_POLICY, IAM_ROLE } from "@/config/permission-codes";
 
 const store = useAuthorizationListStore();
+
+// P0 权限码按钮裁剪（词表 permission-codes.ts / parity §5；与菜单 & 路由守卫同口径）。
+// G-6 语义映射：新增/撤销授权落二元绑定端点 → 按动作映射到 role/policy 的批量绑定码：
+//   assign → iam:role:batch_assign（撤销 batch_unassign）；attach → iam:policy:batch_attach（撤销 batch_detach）。
+const { can, canSome } = useCan();
+
+/** 新增授权：持有任一绑定动作码即可进入（具体动作单选在 Dialog 内） */
+const canCreateAuth = computed(() =>
+  canSome([IAM_ROLE.BATCH_ASSIGN, IAM_POLICY.BATCH_ATTACH]),
+);
+
+/** 行级撤销：按行的绑定语义（action）查对应解绑码 */
+function canRevoke(action: string): boolean {
+  if (action === "assign") return can(IAM_ROLE.BATCH_UNASSIGN);
+  if (action === "attach") return can(IAM_POLICY.BATCH_DETACH);
+  return false;
+}
 
 // ---- 搜索（切过滤重置 page=1，E7）----
 const keywordInput = ref("");
@@ -183,7 +202,12 @@ const isEmpty = computed(
   <section class="page-authorization-list" :aria-busy="store.loading">
     <header class="page-head">
       <h2 class="page-title">授权管理</h2>
-      <button type="button" class="btn btn--primary" @click="openCreate">
+      <button
+        v-if="canCreateAuth"
+        type="button"
+        class="btn btn--primary"
+        @click="openCreate"
+      >
         新增授权
       </button>
     </header>
@@ -246,7 +270,7 @@ const isEmpty = computed(
                 >生效中</span
               >
               <button
-                v-else
+                v-else-if="canRevoke(auth.action)"
                 type="button"
                 class="btn btn--text btn--danger"
                 :data-testid="`revoke-auth-${idx}`"

@@ -24,8 +24,14 @@ import { ApiError } from "@/api/types";
 import { contractText, formatContractText } from "@/utils/copyContract";
 import CopyContractText from "@/components/CopyContractText.vue";
 import StatusBadge from "@/components/StatusBadge.vue";
+import { useCan } from "@/composables/useCan";
+import { IAM_TENANT } from "@/config/permission-codes";
 
 const store = useTenantListStore();
+
+// P0 权限码按钮裁剪（词表 permission-codes.ts / parity §5；与菜单 & 路由守卫同口径；
+// 页面级由 requiresAdmin + iam:tenant:view 双闸，按钮级再细分 add/edit/delete）
+const { can } = useCan();
 
 // ---- 搜索（切过滤重置 page=1，E7）----
 const keywordInput = ref("");
@@ -277,7 +283,12 @@ const isEmpty = computed(
   <section class="page-tenant-list" :aria-busy="store.loading">
     <header class="page-head">
       <h2 class="page-title">租户管理</h2>
-      <button type="button" class="btn btn--primary" @click="openCreate">
+      <button
+        v-if="can(IAM_TENANT.ADD)"
+        type="button"
+        class="btn btn--primary"
+        @click="openCreate"
+      >
         新增租户
       </button>
     </header>
@@ -327,6 +338,7 @@ const isEmpty = computed(
             <td class="muted">{{ sessionPlaceholder }}</td>
             <td>
               <button
+                v-if="can(IAM_TENANT.EDIT)"
                 type="button"
                 class="btn btn--text"
                 data-testid="edit-tenant"
@@ -337,7 +349,9 @@ const isEmpty = computed(
                 编辑
               </button>
               <button
-                v-if="(t.status ?? 'unknown') === 'active'"
+                v-if="
+                  can(IAM_TENANT.EDIT) && (t.status ?? 'unknown') === 'active'
+                "
                 type="button"
                 class="btn btn--text btn--danger"
                 data-testid="disable-tenant"
@@ -346,7 +360,7 @@ const isEmpty = computed(
                 禁用
               </button>
               <button
-                v-else
+                v-else-if="can(IAM_TENANT.EDIT)"
                 type="button"
                 class="btn btn--text"
                 data-testid="enable-tenant"
@@ -355,6 +369,7 @@ const isEmpty = computed(
                 启用
               </button>
               <button
+                v-if="can(IAM_TENANT.DELETE)"
                 type="button"
                 class="btn btn--text btn--danger"
                 data-testid="delete-tenant"

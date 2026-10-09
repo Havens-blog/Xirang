@@ -1,26 +1,23 @@
-// 主布局侧边栏分组菜单配置 + 角色裁剪（task 2.8，ui-design UF-2）。
+// 主布局侧边栏分组菜单配置 + 权限码裁剪（task 2.8 基线 → P0 权限码驱动版）。
 //
-// 三组 8 项（与 UF-2「侧边栏」逐字一致）：
+// 三组 8 项：
 //   概览 —— 工作台
 //   身份治理 —— 用户管理 / 组织管理 / 租户管理 / 身份源管理
 //   权限管理 —— 角色管理 / 授权管理 / 策略管理
 //
-// 裁剪口径（Hard Rule：与各 UF Validation Rules 可见口径逐项一致）：
-//   - 普通用户：仅工作台
-//   - 只读/审计：工作台 / 用户 / 组织 / 身份源 / 角色 / 授权（仅查看，不渲染增删改入口）
-//   - 租户管理员：工作台 / 用户 / 角色 / 授权
-//   - 平台管理员：全 8 项；**租户管理 / 策略管理仅平台管理员渲染**（Hard Rule 显式钉死）
+// 裁剪口径（P0 定稿，词表 = src/config/permission-codes.ts / parity §5）：
+//   - 菜单项经 `code` 声明所需能力码（undefined = 登录态即可，现仅工作台）；
+//   - 可见 = 持有对应码 && 非 adminOnly 或 isAdmin；
+//   - `restricted`（零租户受限态：!isAdmin && 无所属租户）→ 仅渲染无码项（工作台），
+//     与 UF-2 受限视图口径一致；
+//   - **tenant_admin 档自此由权限码自然得出**（原 inferRole(isAdmin/tenantsCount) 三分支
+//     无法区分租户管理员与只读审计——非管理员一律落入 readonly_audit 最宽集，已修复）；
+//   - adminOnly（租户/策略管理）双保险保留：权限码 + isAdmin 两道闸。
 //
-// 角色判定数据源（tech-design Architecture：主布局消费 user store）：
-//   - isAdmin → 平台管理员（profile.is_admin，eiam 权威）
-//   - tenants.length === 0（零租户受限态）→ 普通用户口径（仅工作台，UF-2 受限态）
-//   - 其余非 admin → 默认按「只读/审计」可见集渲染（最宽容非 admin 集，路由守卫
-//     requiresAdmin 对租户/策略二次拦截；tenant_admin 与 readonly_audit 的细分
-//     待 parity §5 权限词表定稿后由权限码精细化，此处为 provisional 推断）。
-//
-// provisional 说明：router task 2.6 已留 permissions?: string[] 扩展点，词表待
-// parity §5 定稿。本配置的 ROLE_VISIBILITY 已覆盖四档全集，inferRole 返回值
-// 一旦词表落地即可按权限码精细化，无需改 visibleMenuItems / SidebarMenu。
+// 三态收敛（MainLayout）：
+//   - 403 原地 toast（请求层 forbidden → ElMessage 契约文案）
+//   - 401 跳登录（eiamAxios 拦截器）
+//   - 零租户受限态：侧边栏仅工作台 + header 租户选择器禁用占位 + 应用切换器隐藏
 import {
   Connection,
   Document,
@@ -31,6 +28,17 @@ import {
   User,
 } from '@element-plus/icons-vue'
 import type { Component } from 'vue'
+import {
+  IAM_DEPARTMENT,
+  IAM_IDENTITY_SOURCE,
+  IAM_MANAGE_CODES,
+  IAM_PERMISSION,
+  IAM_POLICY,
+  IAM_ROLE,
+  IAM_TENANT,
+  IAM_USER,
+  IAM_VIEW_CODES,
+} from '@/config/permission-codes'
 
 /** 菜单组（组标题 uppercase 11px 灰色，UF-2） */
 export interface MenuGroup {
@@ -45,7 +53,9 @@ export interface MenuItem {
   path: string
   icon: Component
   group: MenuGroup['id']
-  /** 平台管理员独占（Hard Rule：租户管理 / 策略管理） */
+  /** 所需能力码（undefined = 登录态即可；词表 permission-codes.ts，parity §5） */
+  code?: string
+  /** 平台管理员独占（Hard Rule：租户管理 / 策略管理；与 code 双保险） */
   adminOnly?: boolean
 }
 
@@ -56,7 +66,7 @@ export const MENU_GROUPS: MenuGroup[] = [
   { id: 'permission', title: '权限管理' },
 ]
 
-/** 8 项（顺序即组内渲染顺序，与 UF-2 逐字一致） */
+/** 8 项（顺序即组内渲染顺序，与 UF-2 逐字一致；code = 路由守卫 meta.permissions 同源） */
 export const MENU_ITEMS: MenuItem[] = [
   {
     key: 'workbench',
@@ -71,6 +81,7 @@ export const MENU_ITEMS: MenuItem[] = [
     path: '/users',
     icon: User,
     group: 'identity',
+    code: IAM_USER.VIEW,
   },
   {
     key: 'organizations',
@@ -78,6 +89,7 @@ export const MENU_ITEMS: MenuItem[] = [
     path: '/organizations',
     icon: OfficeBuilding,
     group: 'identity',
+    code: IAM_DEPARTMENT.VIEW,
   },
   {
     key: 'tenants',
@@ -85,6 +97,7 @@ export const MENU_ITEMS: MenuItem[] = [
     path: '/tenants',
     icon: Connection,
     group: 'identity',
+    code: IAM_TENANT.VIEW,
     adminOnly: true,
   },
   {
@@ -93,6 +106,7 @@ export const MENU_ITEMS: MenuItem[] = [
     path: '/identity-sources',
     icon: Key,
     group: 'identity',
+    code: IAM_IDENTITY_SOURCE.VIEW,
   },
   {
     key: 'roles',
@@ -100,6 +114,7 @@ export const MENU_ITEMS: MenuItem[] = [
     path: '/roles',
     icon: Lock,
     group: 'permission',
+    code: IAM_ROLE.VIEW,
   },
   {
     key: 'authorizations',
@@ -107,6 +122,7 @@ export const MENU_ITEMS: MenuItem[] = [
     path: '/authorizations',
     icon: Document,
     group: 'permission',
+    code: IAM_PERMISSION.VIEW_AUTHORIZATIONS,
   },
   {
     key: 'policies',
@@ -114,83 +130,64 @@ export const MENU_ITEMS: MenuItem[] = [
     path: '/policies',
     icon: Connection,
     group: 'permission',
+    code: IAM_POLICY.VIEW,
     adminOnly: true,
   },
 ]
 
-/** 角色档位（与裁剪口径四档一一对应） */
+/** 角色档位（工作台「我的信息·角色」展示标签用；与裁剪层同信号源） */
 export type MenuRole =
   'platform_admin' | 'readonly_audit' | 'tenant_admin' | 'normal'
 
-/** 各角色可见菜单 key 全集（与 UF-2 裁剪口径逐项一致） */
-const ROLE_VISIBILITY: Record<MenuRole, readonly string[]> = {
-  // 全 8 项
-  platform_admin: [
-    'workbench',
-    'users',
-    'organizations',
-    'tenants',
-    'identity-sources',
-    'roles',
-    'authorizations',
-    'policies',
-  ],
-  // 工作台 / 用户 / 组织 / 身份源 / 角色 / 授权（无租户/策略）
-  readonly_audit: [
-    'workbench',
-    'users',
-    'organizations',
-    'identity-sources',
-    'roles',
-    'authorizations',
-  ],
-  // 工作台 / 用户 / 角色 / 授权
-  tenant_admin: ['workbench', 'users', 'roles', 'authorizations'],
-  // 仅工作台（普通用户 / 零租户受限态）
-  normal: ['workbench'],
-}
-
-/** inferRole 的输入信号（从 user store 派生，纯数据便于单测） */
-export interface RoleSignals {
+/** 菜单可见性信号（由 user store 派生，纯数据便于单测） */
+export interface MenuVisibility {
+  /** 当前用户能力码全集（profile.permissions） */
+  codes: readonly string[]
+  /** 平台管理员（profile.is_admin，eiam 权威） */
   isAdmin: boolean
-  /** 所属租户数（零租户 → 受限态，仅工作台） */
-  tenantsCount: number
+  /** 零租户受限态（!isAdmin && 无所属租户）：仅渲染无码项（工作台） */
+  restricted: boolean
 }
 
 /**
- * 由会话信号推断菜单角色档位。
+ * 由权限码推断角色档位（P0 词表驱动，替代 inferRole(isAdmin/tenantsCount) 三分支）。
  *
  * - isAdmin → platform_admin（全量）
- * - !isAdmin && tenants.length === 0 → normal（零租户受限态：仅工作台，UF-2 受限视图）
- * - !isAdmin && tenants.length > 0 → readonly_audit（provisional：最宽容非 admin 集；
- *   tenant_admin 细分待 parity §5 权限词表，见模块注释）
+ * - restricted（零租户受限态）→ normal（仅工作台）
+ * - 持有任一 mutation 码 → tenant_admin（可治理）
+ * - 持有任一 view 码 → readonly_audit（可查看）
+ * - 无 iam:* 码 → normal（消费侧）
  */
-export function inferRole(signals: RoleSignals): MenuRole {
-  if (signals.isAdmin) return 'platform_admin'
-  if (signals.tenantsCount === 0) return 'normal'
-  return 'readonly_audit'
+export function inferRoleFromCodes(v: MenuVisibility): MenuRole {
+  if (v.isAdmin) return 'platform_admin'
+  if (v.restricted) return 'normal'
+  const owned = new Set(v.codes)
+  if (IAM_MANAGE_CODES.some((c) => owned.has(c))) return 'tenant_admin'
+  if (IAM_VIEW_CODES.some((c) => owned.has(c))) return 'readonly_audit'
+  return 'normal'
 }
 
 /**
- * 按角色裁剪后的可见菜单项（保留组内顺序）。
+ * 按权限码裁剪后的可见菜单项（保留组内顺序）。
  *
- * adminOnly 项（租户/策略）即便角色可见集含其 key，也仅 platform_admin 渲染——
- * Hard Rule 双保险：角色集 + adminOnly 标记两道闸，任一改错不致越权渲染。
+ * 判定链：restricted → 仅无码项（工作台）；
+ * code 未持有 → 隐藏；adminOnly 非 isAdmin → 隐藏（Hard Rule 双保险：权限码 + 管理员两道闸）。
  */
-export function visibleMenuItems(role: MenuRole): MenuItem[] {
-  const allowed = new Set(ROLE_VISIBILITY[role])
+export function visibleMenuItems(v: MenuVisibility): MenuItem[] {
+  const owned = new Set(v.codes)
   return MENU_ITEMS.filter((item) => {
-    if (!allowed.has(item.key)) return false
-    if (item.adminOnly && role !== 'platform_admin') return false
+    if (v.restricted) return item.code === undefined
+    if (item.code !== undefined && !owned.has(item.code)) return false
+    if (item.adminOnly && !v.isAdmin) return false
     return true
   })
 }
 
-/** 按组归集可见项（供侧边栏分组渲染） */
+/** 按组归集可见项（供侧边栏分组渲染；空组滤除） */
 export function groupedVisibleMenu(
-  role: MenuRole,
+  v: MenuVisibility,
 ): { group: MenuGroup; items: MenuItem[] }[] {
-  const items = visibleMenuItems(role)
+  const items = visibleMenuItems(v)
   return MENU_GROUPS.map((group) => ({
     group,
     items: items.filter((i) => i.group === group.id),

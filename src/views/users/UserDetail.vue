@@ -29,11 +29,27 @@ import { ApiError, type RoleRef, type User } from "@/api/types";
 import { contractText } from "@/utils/copyContract";
 import CopyContractText from "@/components/CopyContractText.vue";
 import StatusBadge from "@/components/StatusBadge.vue";
+import { useCan } from "@/composables/useCan";
+import { IAM_ROLE, IAM_USER } from "@/config/permission-codes";
 
 const route = useRoute();
 const router = useRouter();
 const store = useUserListStore();
 const userStore = useUserStore();
+
+// P0 权限码裁剪（词表 permission-codes.ts / parity §5；与菜单 & 路由守卫同口径）：
+// 编辑域（基本信息 + 状态）→ iam:user:edit；角色绑定域 → iam:role:batch_assign|batch_unassign。
+const { can, canSome } = useCan();
+const canEditUser = computed(() => can(IAM_USER.EDIT));
+const canManageRoleBind = computed(() =>
+  canSome([IAM_ROLE.BATCH_ASSIGN, IAM_ROLE.BATCH_UNASSIGN]),
+);
+/** 只读回显：已选角色名（无绑定码时替代勾选组展示） */
+const boundRoleNames = computed(() =>
+  selectedRoleCodes.value
+    .map((c) => roleOptions.value.find((o) => o.code === c)?.name ?? c)
+    .join("、"),
+);
 
 const userId = computed(() => Number(route.params.id));
 
@@ -184,6 +200,7 @@ const passkeyBound = computed(() => user.value?.passkeyRegistered ?? false);
       </button>
       <h2 class="detail-title">{{ user?.username ?? "用户详情" }}</h2>
       <button
+        v-if="canEditUser"
         type="button"
         class="btn btn--primary"
         :disabled="loading || saving || !hasChanges"
@@ -232,32 +249,57 @@ const passkeyBound = computed(() => user.value?.passkeyRegistered ?? false);
         </label>
         <label class="field">
           <span class="field__label">状态</span>
-          <select v-model="status" class="input" data-testid="detail-status">
+          <select
+            v-model="status"
+            class="input"
+            data-testid="detail-status"
+            :disabled="!canEditUser"
+          >
             <option value="active">启用</option>
             <option value="disable">禁用</option>
           </select>
         </label>
         <label class="field">
           <span class="field__label">昵称</span>
-          <input v-model="nickname" type="text" class="input" />
+          <input
+            v-model="nickname"
+            type="text"
+            class="input"
+            :disabled="!canEditUser"
+          />
         </label>
         <label class="field">
           <span class="field__label">邮箱</span>
-          <input v-model="email" type="email" class="input" />
+          <input
+            v-model="email"
+            type="email"
+            class="input"
+            :disabled="!canEditUser"
+          />
         </label>
         <label class="field">
           <span class="field__label">手机</span>
-          <input v-model="phone" type="tel" class="input" />
+          <input
+            v-model="phone"
+            type="tel"
+            class="input"
+            :disabled="!canEditUser"
+          />
         </label>
         <label class="field">
           <span class="field__label">职位</span>
-          <input v-model="jobTitle" type="text" class="input" />
+          <input
+            v-model="jobTitle"
+            type="text"
+            class="input"
+            :disabled="!canEditUser"
+          />
         </label>
       </fieldset>
 
       <fieldset class="form-section">
         <legend>角色绑定</legend>
-        <div class="checkbox-group">
+        <div v-if="canManageRoleBind" class="checkbox-group">
           <label v-for="r in roleOptions" :key="r.code" class="checkbox-item">
             <input
               type="checkbox"
@@ -270,8 +312,15 @@ const passkeyBound = computed(() => user.value?.passkeyRegistered ?? false);
           </label>
           <span v-if="roleOptions.length === 0" class="muted">无可选角色</span>
         </div>
+        <p v-else class="muted">
+          当前角色：{{ boundRoleNames || "无" }}（绑定变更需持有
+          iam:role:batch_assign / batch_unassign）
+        </p>
         <p
-          v-if="roleDelta.added.length || roleDelta.removed.length"
+          v-if="
+            canManageRoleBind &&
+            (roleDelta.added.length || roleDelta.removed.length)
+          "
           class="muted"
         >
           待应用：新增 {{ roleDelta.added.length }} 项 / 移除
@@ -321,6 +370,7 @@ const passkeyBound = computed(() => user.value?.passkeyRegistered ?? false);
       <div class="form-actions">
         <button type="button" class="btn btn--ghost" @click="back">取消</button>
         <button
+          v-if="canEditUser"
           type="submit"
           class="btn btn--primary"
           :disabled="saving || !hasChanges"

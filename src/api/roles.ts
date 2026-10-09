@@ -6,12 +6,18 @@
  *   role/batch_assign|batch_unassign（{usernames, role_codes}，以 code 为准）。
  * - C 档（路径实存、形状待核验）：role/create {name, code, desc}、role/update {id, name, code, desc}、
  *   role/delete/:id、role/detail/:code（按 code 查询，非 id）。
- * - C 档形状分歧 D-3（路径改判，非缺口）：角色↔策略绑定经 **policy 侧**承载——
- *   绑定 = POST /api/iam/policy/batch-attach {subjects:[{sub_type, code}], policy_codes}（主体可
- *   user/role/group 混合，角色为主体时 sub_type=role）；
- *   解绑 = POST /api/iam/policy/batch-detach {assignments:[{subject, policy_code}]}（显式逐条，
- *   避免笛卡尔积误删）；另有单体 policy/detach。
- *   角色已绑策略清单 = POST /api/iam/policy/list/attached/role {role_code, offset, limit, keyword, type}。
+ * - C 档形状分歧 D-3（路径改判 + 形状实核，eiam policy/vo.go）：
+ *   角色↔策略绑定经 **policy 侧**承载——
+ *   绑定 = POST /api/iam/policy/batch-attach {subjects:[{type, code}], policy_codes}（SubjectItem：
+ *   eiam policy/vo.go:84-89，主体键为 **type** 非 sub_type；主体可 user/role/group 混合，
+ *   角色为主体时 type=role）；
+ *   解绑 = POST /api/iam/policy/batch-detach {assignments:[{sub_type, sub_code, policy_code}]}
+ *   （Assignment 显式扁平逐条，eiam policy/vo.go:133-144；避免笛卡尔积误删）；
+ *   另有单体 policy/detach。
+ *   角色已绑策略清单 = POST /api/iam/policy/list/attached/role {role_code, offset, limit, keyword}
+ *   （ListRolePoliciesReq type 为 **uint8**（policy/vo.go:62），0=不过滤全类型
+ *   （repository/dao/policy.go:246 policyType != 0 才过滤）——**不得传字符串 "role"**：
+ *   字符串入 uint8 触发 gin JSON 绑定失败 → HTTP 400，即「编辑角色 400」事故）。
  * - 角色已绑用户清单 = POST /api/iam/user/list/attached/role {role_code, ...}（A 档路径实存，
  *   反向承接 C 档推定的 role/attached/users；已在 users.ts 实现为 listUsersByRole，本域复用）。
  *
@@ -203,8 +209,11 @@ export async function deleteRole(id: number): Promise<void> {
 // ---- 策略绑定（D-3：经 policy 侧承载）----
 
 /**
- * 角色已绑策略清单（POST /api/iam/policy/list/attached/role，C 档路径实存、形状待核验）。
- * 载荷 {role_code, offset, limit, keyword, type}；响应归一为 PolicyRef[]（详情页策略回显 + 列表页计数）。
+ * 角色已绑策略清单（POST /api/iam/policy/list/attached/role，D-3 形状实核）。
+ * 载荷 {role_code, offset, limit, keyword}——**不带 type**（eiam ListRolePoliciesReq.type 为 uint8，
+ * policy/vo.go:62；0=不过滤全类型，dao/policy.go:246）。传字符串 "role" 会在 gin JSON 绑定层
+ * 直接 400（「编辑角色 HTTP 400」事故根因）。
+ * 响应归一为 PolicyRef[]（详情页策略回显 + 列表页计数）。
  * @param roleCode 角色 code（非 id；policy 侧以 role_code 为键）
  */
 export async function listPoliciesForRole(
@@ -216,7 +225,6 @@ export async function listPoliciesForRole(
       offset: 0,
       limit: 100,
       keyword: "",
-      type: "role",
     }),
   );
   return toPolicyRefs(data);
@@ -253,16 +261,17 @@ export async function listBindablePolicies(
   };
 }
 
-/** 主体引用（policy/batch-attach 载荷 subjects 成员；角色为主体时 sub_type=role） */
+/** 主体引用（policy/batch-attach 载荷 subjects 成员；eiam SubjectItem 键为 type，policy/vo.go:84-89） */
 export interface PolicySubject {
-  sub_type: "user" | "role" | "group";
+  type: "user" | "role" | "group";
   code: string;
 }
 
 /**
- * 绑定策略到角色（POST /api/iam/policy/batch-attach，C 档形状分歧 D-3 路径改判）。
- * 载荷 {subjects:[{sub_type:"role", code: roleCode}], policy_codes}（主体可 user/role/group 混合；
- * 角色为主体时 sub_type=role）。G-6 语义映射：角色↔策略绑定落点在 policy 侧。
+ * 绑定策略到角色（POST /api/iam/policy/batch-attach，D-3 路径改判 + 形状实核）。
+ * 载荷 {subjects:[{type:"role", code: roleCode}], policy_codes}（主体键 **type** 非 sub_type，
+ * 与 eiam SubjectItem 对齐；主体可 user/role/group 混合，角色为主体时 type=role）。
+ * G-6 语义映射：角色↔策略绑定落点在 policy 侧。
  * @param roleCode 角色 code（主体键）
  * @param policyCodes 待绑定策略 code 列表
  */
@@ -272,15 +281,16 @@ export async function attachPoliciesToRole(
 ): Promise<void> {
   await unwrapEnvelope<null>(
     eiamAxios.post<Envelope<null>>("/api/iam/policy/batch-attach", {
-      subjects: [{ sub_type: "role", code: roleCode }] as PolicySubject[],
+      subjects: [{ type: "role", code: roleCode }] as PolicySubject[],
       policy_codes: policyCodes,
     }),
   );
 }
 
 /**
- * 解绑策略（POST /api/iam/policy/batch-detach，C 档形状分歧 D-3 路径改判）。
- * 载荷 {assignments:[{subject, policy_code}]}（显式逐条，避免笛卡尔积误删）。
+ * 解绑策略（POST /api/iam/policy/batch-detach，D-3 路径改判 + 形状实核）。
+ * 载荷 {assignments:[{sub_type, sub_code, policy_code}]}——eiam Assignment 为扁平逐条
+ * （policy/vo.go:133-144），**无 subject 嵌套**；显式逐条避免笛卡尔积误删。
  * @param roleCode 角色 code（主体键）
  * @param policyCodes 待解绑策略 code 列表（逐条构造 assignment）
  */
@@ -289,7 +299,8 @@ export async function detachPoliciesFromRole(
   policyCodes: string[],
 ): Promise<void> {
   const assignments = policyCodes.map((code) => ({
-    subject: { sub_type: "role", code: roleCode } as PolicySubject,
+    sub_type: "role",
+    sub_code: roleCode,
     policy_code: code,
   }));
   await unwrapEnvelope<null>(

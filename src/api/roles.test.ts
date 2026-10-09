@@ -9,10 +9,13 @@
  * - createRole：载荷 {name, code, desc} → 新 id；
  * - updateRole：载荷 {id, name, code, desc}；
  * - deleteRole：DELETE /role/delete/:id；
- * - listPoliciesForRole：policy/list/attached/role 载荷 role_code → PolicyRef[]；
+ * - listPoliciesForRole：policy/list/attached/role 载荷 role_code（不带 type，uint8 字段，
+ *   传字符串会 400）→ PolicyRef[]；
  * - listBindablePolicies：policy/list → Page<PolicyRef>；
- * - attachPoliciesToRole：batch-attach 载荷 subjects[{sub_type:"role", code}] + policy_codes；
- * - detachPoliciesFromRole：batch-detach 载荷 assignments 逐条；
+ * - attachPoliciesToRole：batch-attach 载荷 subjects[{type:"role", code}] + policy_codes
+ *   （eiam SubjectItem 键为 type）；
+ * - detachPoliciesFromRole：batch-detach 载荷 assignments 扁平逐条
+ *   {sub_type, sub_code, policy_code}（eiam Assignment 无 subject 嵌套）；
  * - assignUsersToRole / unassignUsersFromRole：batch_assign / batch_unassign 载荷
  *   {usernames, role_codes:[code]}（A 档以 code 为准）。
  */
@@ -267,7 +270,7 @@ describe("listPoliciesForRole（D-3：policy/list/attached/role）", () => {
     ]);
     const body = JSON.parse(String(capture[0]?.data));
     expect(body.role_code).toBe("admin");
-    expect(body.type).toBe("role");
+    expect(body.type).toBeUndefined(); // eiam ListRolePoliciesReq.type 为 uint8：省略即 0=全类型，传字符串会 400
   });
 });
 
@@ -291,7 +294,7 @@ describe("listBindablePolicies（policy/list → Page<PolicyRef>）", () => {
 });
 
 describe("attachPoliciesToRole（D-3：policy/batch-attach）", () => {
-  it("载荷 subjects[{sub_type:role, code}] + policy_codes", async () => {
+  it("载荷 subjects[{type:role, code}] + policy_codes（eiam SubjectItem 键为 type）", async () => {
     const capture: InternalAxiosRequestConfig[] = [];
     adapterFor(() => ({
       status: 200,
@@ -299,13 +302,13 @@ describe("attachPoliciesToRole（D-3：policy/batch-attach）", () => {
     }), capture);
     await attachPoliciesToRole("admin", ["p1", "p2"]);
     const body = JSON.parse(String(capture[0]?.data));
-    expect(body.subjects).toEqual([{ sub_type: "role", code: "admin" }]);
+    expect(body.subjects).toEqual([{ type: "role", code: "admin" }]);
     expect(body.policy_codes).toEqual(["p1", "p2"]);
   });
 });
 
 describe("detachPoliciesFromRole（D-3：policy/batch-detach）", () => {
-  it("载荷 assignments 逐条（subject + policy_code）", async () => {
+  it("载荷 assignments 扁平逐条 {sub_type, sub_code, policy_code}", async () => {
     const capture: InternalAxiosRequestConfig[] = [];
     adapterFor(() => ({
       status: 200,
@@ -314,8 +317,8 @@ describe("detachPoliciesFromRole（D-3：policy/batch-detach）", () => {
     await detachPoliciesFromRole("admin", ["p0", "p1"]);
     const body = JSON.parse(String(capture[0]?.data));
     expect(body.assignments).toEqual([
-      { subject: { sub_type: "role", code: "admin" }, policy_code: "p0" },
-      { subject: { sub_type: "role", code: "admin" }, policy_code: "p1" },
+      { sub_type: "role", sub_code: "admin", policy_code: "p0" },
+      { sub_type: "role", sub_code: "admin", policy_code: "p1" },
     ]);
   });
 });

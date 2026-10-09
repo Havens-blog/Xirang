@@ -2,7 +2,8 @@
 // 侧边栏（task 2.8，UF-2）：logo 区 + 分组菜单 + 折叠/抽屉态。
 //
 // - 220px ↔ 64px 折叠（300ms 过渡）；< 1024px 转抽屉（点折叠按钮开合）
-// - 分组菜单 3 组 8 项，按角色裁剪（menuConfig.visibleMenuItems）
+// - 分组菜单 3 组 8 项，按权限码裁剪（P0：menuConfig.groupedVisibleMenu(codes)，
+//   替代原 inferRole 两档；tenant_admin 档由码自然得出）
 // - active = accent-primary 15% 底 + accent-blue 文字/图标；hover = bg-hover
 // - 折叠态仅图标，组标题隐藏，el-tooltip + aria-label 兜底
 // - logo 区点击回工作台（/workbench）
@@ -11,7 +12,7 @@
 import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
-import { groupedVisibleMenu, inferRole } from './menuConfig'
+import { groupedVisibleMenu, type MenuVisibility } from './menuConfig'
 
 const props = defineProps<{
   /** 折叠态（true = 64px 仅图标） */
@@ -29,14 +30,18 @@ const route = useRoute()
 const router = useRouter()
 const userStore = useUserStore()
 
-const role = computed(() =>
-  inferRole({
-    isAdmin: userStore.isAdmin,
-    tenantsCount: userStore.tenants.length,
-  }),
-)
+/**
+ * 菜单可见性信号（P0 权限码驱动，与路由守卫 ③ / 按钮 v-if 同口径）：
+ * - codes = profile.permissions（eiam 权威）
+ * - restricted = 零租户受限态（!isAdmin && 无所属租户）→ 仅工作台（UF-2 受限视图）
+ */
+const menuVisibility = computed<MenuVisibility>(() => ({
+  codes: userStore.permissions,
+  isAdmin: userStore.isAdmin,
+  restricted: !userStore.isAdmin && userStore.tenants.length === 0,
+}))
 
-const groups = computed(() => groupedVisibleMenu(role.value))
+const groups = computed(() => groupedVisibleMenu(menuVisibility.value))
 
 /** 当前 active 菜单项（按 route.path 前缀匹配） */
 const activeKey = computed(() => {
