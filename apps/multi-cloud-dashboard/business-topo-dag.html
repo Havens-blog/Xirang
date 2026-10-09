@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CloudNexus - 业务链路拓扑（DAG）</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg0:#0a0e1a;--bg1:#111827;--bg2:#1a2236;--bg3:#1f2a42;--bd:rgba(255,255,255,.06);--bda:rgba(99,102,241,.5);--c1:#f1f5f9;--c2:#94a3b8;--c3:#64748b;--ac:#6366f1;--acl:#818cf8;--ok:#10b981;--wn:#f59e0b;--ng:#ef4444;--inf:#3b82f6;--ali:#ff6a00;--aws:#ff9900;--tc:#00a4ff;--hw:#cf0a2c}
+body{font-family:Inter,-apple-system,sans-serif;background:var(--bg0);color:var(--c1);height:100vh;overflow:hidden}
+::-webkit-scrollbar{width:5px}::-webkit-scrollbar-thumb{background:rgba(255,255,255,.1);border-radius:3px}
+#app{display:flex;height:100vh}
+.sidebar{width:260px;background:var(--bg1);border-right:1px solid var(--bd);display:flex;flex-direction:column;flex-shrink:0}
+.s-hd{padding:24px 20px;border-bottom:1px solid var(--bd);display:flex;align-items:center;gap:12px}
+.logo{width:36px;height:36px;background:linear-gradient(135deg,#6366f1,#8b5cf6);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;color:#fff;box-shadow:0 4px 12px rgba(99,102,241,.4)}
+.brand{font-size:18px;font-weight:700}.brand b{color:var(--acl)}
+.s-nv{flex:1;padding:16px 12px;overflow-y:auto}
+.ns{margin-bottom:24px}.ns-t{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:1.2px;color:var(--c3);padding:0 12px;margin-bottom:8px}
+.ni{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:10px;color:var(--c2);cursor:pointer;font-size:14px;font-weight:500;position:relative;margin-bottom:2px;transition:all .2s}
+.ni:hover{background:rgba(255,255,255,.05);color:var(--c1)}.ni.act{background:rgba(99,102,241,.12);color:var(--acl)}
+.ni.act::before{content:"";position:absolute;left:0;top:50%;transform:translateY(-50%);width:3px;height:20px;background:var(--ac);border-radius:0 3px 3px 0}
+.ni i{width:20px;text-align:center;font-size:15px}
+.nbg{margin-left:auto;background:var(--ng);color:#fff;font-size:11px;font-weight:600;padding:2px 7px;border-radius:10px}
+.s-ft{padding:16px 12px;border-top:1px solid var(--bd)}
+.u-card{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px}
+.u-av{width:34px;height:34px;border-radius:10px;background:linear-gradient(135deg,#3b82f6,#06b6d4);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600}
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.topbar{background:rgba(10,14,26,.85);backdrop-filter:blur(20px);border-bottom:1px solid var(--bd);padding:12px 24px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.t-l{display:flex;align-items:center;gap:16px}.bc{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--c3);margin-bottom:2px}
+.pg-t{font-size:20px;font-weight:700;letter-spacing:-.5px}
+.t-r{display:flex;align-items:center;gap:6px}
+.btn{height:34px;border-radius:6px;background:var(--bg2);border:1px solid var(--bd);color:var(--c2);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:12px;padding:0 12px;gap:5px;font-family:inherit;transition:all .2s}
+.btn:hover{background:var(--bg3);color:var(--c1)}.btn.act{background:var(--ac);color:#fff;border-color:var(--ac)}
+.btn-i{width:34px;padding:0}.sep{width:1px;height:20px;background:var(--bd);margin:0 4px}
+</style>
+</head>
+<body>
+<div id="app">
+<aside class="sidebar">
+<div class="s-hd"><div class="logo">C</div><div class="brand">Cloud<b>Nexus</b></div></div>
+<nav class="s-nv">
+<div class="ns"><div class="ns-t">概览</div>
+<div class="ni"><i class="fas fa-th-large"></i> 仪表盘</div>
+<div class="ni"><i class="fas fa-chart-line"></i> 分析中心</div>
+<div class="ni"><i class="fas fa-project-diagram"></i> 资源拓扑</div>
+<div class="ni act"><i class="fas fa-route"></i> 业务拓扑</div></div>
+<div class="ns"><div class="ns-t">资源管理</div>
+<div class="ni"><i class="fas fa-server"></i> 计算资源 <span class="nbg">128</span></div>
+<div class="ni"><i class="fas fa-database"></i> 存储 &amp; 数据库</div>
+<div class="ni"><i class="fas fa-network-wired"></i> 网络</div>
+<div class="ni"><i class="fas fa-cubes"></i> 容器 &amp; K8s</div></div>
+<div class="ns"><div class="ns-t">运维</div>
+<div class="ni"><i class="fas fa-shield-alt"></i> 安全合规</div>
+<div class="ni"><i class="fas fa-dollar-sign"></i> 成本优化</div>
+<div class="ni"><i class="fas fa-bell"></i> 告警中心 <span class="nbg">7</span></div></div>
+</nav>
+<div class="s-ft"><div class="u-card"><div class="u-av">YL</div><div><div style="font-size:13px;font-weight:600">运维管理员</div><div style="font-size:11px;color:var(--c3)">超级管理员</div></div></div></div>
+</aside>
+<main class="main">
+<header class="topbar">
+<div class="t-l"><div><div class="bc"><span>概览</span> <i class="fas fa-chevron-right" style="font-size:9px"></i> <span style="color:var(--c1)">业务链路拓扑</span></div><h1 class="pg-t">业务链路拓扑</h1></div>
+<div style="display:flex;align-items:center;gap:8px;margin-left:16px"><div style="width:8px;height:8px;background:var(--ok);border-radius:50%;animation:pulse 2s infinite"></div><span style="font-size:12px;color:var(--ok);font-weight:500">实时</span></div></div>
+<div class="t-r">
+<button class="btn"><i class="fas fa-sync-alt"></i> 刷新</button><div class="sep"></div>
+<button class="btn btn-i" title="放大"><i class="fas fa-search-plus"></i></button>
+<button class="btn btn-i" title="缩小"><i class="fas fa-search-minus"></i></button>
+<button class="btn btn-i" title="适应画布"><i class="fas fa-compress-arrows-alt"></i></button><div class="sep"></div>
+<button class="btn act"><i class="fas fa-sitemap"></i> DAG分层</button>
+<button class="btn"><i class="fas fa-atom"></i> 力导向</button><div class="sep"></div>
+<button class="btn"><i class="fas fa-eye-slash"></i> 隐藏沉默</button>
+<button class="btn btn-i" title="全屏"><i class="fas fa-expand"></i></button>
+</div></header>
+<div style="flex:1;display:flex;overflow:hidden;position:relative">
+<!-- Filter Panel -->
+<div style="width:256px;background:var(--bg1);border-right:1px solid var(--bd);display:flex;flex-direction:column;flex-shrink:0;overflow-y:auto">
+<div style="padding:16px 18px;border-bottom:1px solid var(--bd);display:flex;align-items:center;justify-content:space-between">
+<div style="font-size:14px;font-weight:600;display:flex;align-items:center;gap:8px"><i class="fas fa-filter" style="color:var(--acl);font-size:13px"></i> 筛选条件</div>
+<button style="font-size:12px;color:var(--acl);cursor:pointer;background:none;border:none;font-family:inherit">重置</button></div>
+<div style="padding:14px 18px;border-bottom:1px solid var(--bd)">
+<div style="font-size:11px;font-weight:600;color:var(--c3);text-transform:uppercase;letter-spacing:.8px;margin-bottom:10px">入口域名</div>
+<select style="width:100%;background:var(--bg2);border:1px solid var(--bd);border-radius:6px;padding:8px 12px;color:var(--c1);font-size:13px;font-family:inherit">
+<option>全部域名</option><option selected>全部域名（显示 4 条链路）</option><option>api.example.com</option><option>web.example.com</option><option>static.example.com</option><option>admin.example.com</option></select></div>
+<div style="padding:14px 18px;border-bottom:1px solid var(--bd)">
+<div style="font-size:11px;font-weight:600;color:var(--c3);text-transform:uppercase;letter-spacing:.8px;margin-bottom:10px">云厂商</div>
+<div style="display:flex;flex-wrap:wrap;gap:6px">
+<div style="display:flex;align-items:center;gap:5px;padding:5px 11px;border-radius:20px;font-size:12px;font-weight:500;cursor:pointer;border:1px solid var(--ac);background:rgba(99,102,241,.12);color:var(--acl)"><span style="width:8px;height:8px;border-radius:50%;background:var(--ali)"></span> 阿里云</div>
+<div style="display:flex;align-items:center;gap:5px;padding:5px 11px;border-radius:20px;font-size:12px;font-weight:500;cursor:pointer;border:1px solid var(--ac);background:rgba(99,102,241,.12);color:var(--acl)"><span style="width:8px;height:8px;border-radius:50%;background:var(--aws)"></span> AWS</div>
+<div style="display:flex;align-items:center;gap:5px;padding:5px 11px;border-radius:20px;font-size:12px;font-weight:500;cursor:pointer;border:1px solid var(--bd);background:transparent;color:var(--c2)"><span style="width:8px;height:8px;border-radius:50%;background:var(--tc)"></span> 腾讯云</div></div></div>
+<div style="padding:14px 18px;border-bottom:1px solid var(--bd)">
+<div style="font-size:11px;font-weight:600;color:var(--c3);text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px">链路概览</div>
+<div style="display:flex;align-items:center;justify-content:space-between;padding:5px 0"><span style="font-size:12px;color:var(--c3)">域名入口</span><span style="font-size:14px;font-weight:700">4</span></div>
+<div style="display:flex;align-items:center;justify-content:space-between;padding:5px 0"><span style="font-size:12px;color:var(--c3)">链路节点</span><span style="font-size:14px;font-weight:700">22</span></div>
+<div style="display:flex;align-items:center;justify-content:space-between;padding:5px 0"><span style="font-size:12px;color:var(--c3)">活跃连线</span><span style="font-size:14px;font-weight:700;color:var(--ok)">28</span></div>
+<div style="display:flex;align-items:center;justify-content:space-between;padding:5px 0"><span style="font-size:12px;color:var(--c3)">断链节点</span><span style="font-size:14px;font-weight:700;color:var(--ng)">1</span></div>
+<div style="display:flex;align-items:center;justify-content:space-between;padding:5px 0"><span style="font-size:12px;color:var(--c3)">最大深度</span><span style="font-size:14px;font-weight:700">7</span></div></div>
+<div style="padding:14px 18px">
+<div style="font-size:11px;font-weight:600;color:var(--c3);text-transform:uppercase;letter-spacing:.8px;margin-bottom:10px">图例 - 节点类型</div>
+<div style="display:flex;flex-direction:column;gap:4px">
+<div style="display:flex;align-items:center;gap:8px;font-size:11px;color:var(--c2)"><div style="width:10px;height:10px;border-radius:3px;background:#a78bfa"></div> DNS 域名</div>
+<div style="display:flex;align-items:center;gap:8px;font-size:11px;color:var(--c2)"><div style="width:10px;height:10px;border-radius:3px;background:#c084fc"></div> CDN</div>
+<div style="display:flex;align-items:center;gap:8px;font-size:11px;color:var(--c2)"><div style="width:10px;height:10px;border-radius:3px;background:#f87171"></div> WAF / 安全</div>
+<div style="display:flex;align-items:center;gap:8px;font-size:11px;color:var(--c2)"><div style="width:10px;height:10px;border-radius:3px;background:#38bdf8"></div> 负载均衡</div>
+<div style="display:flex;align-items:center;gap:8px;font-size:11px;color:var(--c2)"><div style="width:10px;height:10px;border-radius:3px;background:#fbbf24"></div> 网关</div>
+<div style="display:flex;align-items:center;gap:8px;font-size:11px;color:var(--c2)"><div style="width:10px;height:10px;border-radius:3px;background:#818cf8"></div> Service</div>
+<div style="display:flex;align-items:center;gap:8px;font-size:11px;color:var(--c2)"><div style="width:10px;height:10px;border-radius:3px;background:#34d399"></div> Deployment</div>
+<div style="display:flex;align-items:center;gap:8px;font-size:11px;color:var(--c2)"><div style="width:10px;height:10px;border-radius:3px;background:#f472b6"></div> 数据库 / 存储</div>
+<div style="display:flex;align-items:center;gap:8px;font-size:11px;color:var(--c2)"><div style="width:10px;height:10px;border-radius:3px;background:#64748b"></div> 外部 / 未知</div></div>
+<div style="font-size:11px;font-weight:600;color:var(--c3);text-transform:uppercase;letter-spacing:.8px;margin:14px 0 10px">图例 - 连线</div>
+<div style="display:flex;flex-direction:column;gap:4px">
+<div style="display:flex;align-items:center;gap:8px;font-size:11px;color:var(--c2)"><div style="width:24px;height:0;border-top:2px solid var(--ok)"></div> 活跃</div>
+<div style="display:flex;align-items:center;gap:8px;font-size:11px;color:var(--c2)"><div style="width:24px;height:0;border-top:2px solid var(--c3);opacity:.3"></div> 沉默</div>
+<div style="display:flex;align-items:center;gap:8px;font-size:11px;color:var(--c2)"><div style="width:24px;height:0;border-top:2px dashed var(--ng)"></div> 断链</div></div></div>
+</div>
+<!-- Canvas -->
+<div style="flex:1;position:relative;overflow:hidden;background:radial-gradient(ellipse at 30% 40%,rgba(99,102,241,.03) 0%,transparent 60%)">
+<div style="position:absolute;inset:0;background-size:40px 40px;background-image:linear-gradient(rgba(255,255,255,.02) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.02) 1px,transparent 1px);pointer-events:none;z-index:0"></div>
+<div style="position:absolute;top:14px;left:14px;background:rgba(26,34,54,.92);border:1px solid var(--bd);border-radius:10px;padding:8px 14px;font-size:12px;color:var(--c2);z-index:10;display:flex;align-items:center;gap:10px;backdrop-filter:blur(10px)">
+<i class="fas fa-route"></i> 域名 <strong style="color:var(--c1);font-size:16px">4</strong> | 节点 <strong style="color:var(--c1);font-size:16px">22</strong> | 连线 <strong style="color:var(--c1);font-size:16px">28</strong></div>
+<!-- Depth labels at top -->
+<div style="position:absolute;top:14px;right:14px;background:rgba(26,34,54,.92);border:1px solid var(--bd);border-radius:10px;padding:6px 12px;font-size:11px;color:var(--c3);z-index:10;backdrop-filter:blur(10px)">
+DAG 深度: 0 → 7 &nbsp;<i class="fas fa-arrow-right" style="font-size:9px;color:var(--c3)"></i></div>
+
+<svg viewBox="0 0 1500 900" style="width:100%;height:100%;position:relative;z-index:1" id="svg">
+<defs>
+<marker id="a" viewBox="0 0 10 6" refX="10" refY="3" markerWidth="8" markerHeight="6" orient="auto"><path d="M0,0 L10,3 L0,6" fill="rgba(16,185,129,.5)"/></marker>
+<marker id="ad" viewBox="0 0 10 6" refX="10" refY="3" markerWidth="8" markerHeight="6" orient="auto"><path d="M0,0 L10,3 L0,6" fill="rgba(100,116,139,.25)"/></marker>
+<marker id="an" viewBox="0 0 10 6" refX="10" refY="3" markerWidth="8" markerHeight="6" orient="auto"><path d="M0,0 L10,3 L0,6" fill="rgba(239,68,68,.5)"/></marker>
+<filter id="g"><feGaussianBlur stdDeviation="4" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+</defs>
+
+<!-- Depth column hints (very subtle) -->
+<text x="80" y="42" text-anchor="middle" fill="var(--c3)" font-size="9" font-weight="600" font-family="Inter" opacity=".35">depth 0</text>
+<text x="260" y="42" text-anchor="middle" fill="var(--c3)" font-size="9" font-weight="600" font-family="Inter" opacity=".35">depth 1</text>
+<text x="440" y="42" text-anchor="middle" fill="var(--c3)" font-size="9" font-weight="600" font-family="Inter" opacity=".35">depth 2</text>
+<text x="620" y="42" text-anchor="middle" fill="var(--c3)" font-size="9" font-weight="600" font-family="Inter" opacity=".35">depth 3</text>
+<text x="800" y="42" text-anchor="middle" fill="var(--c3)" font-size="9" font-weight="600" font-family="Inter" opacity=".35">depth 4</text>
+<text x="980" y="42" text-anchor="middle" fill="var(--c3)" font-size="9" font-weight="600" font-family="Inter" opacity=".35">depth 5</text>
+<text x="1160" y="42" text-anchor="middle" fill="var(--c3)" font-size="9" font-weight="600" font-family="Inter" opacity=".35">depth 6</text>
+<text x="1340" y="42" text-anchor="middle" fill="var(--c3)" font-size="9" font-weight="600" font-family="Inter" opacity=".35">depth 7</text>
+<!-- ===== EDGES ===== -->
+<g opacity=".55">
+<!-- Chain A: api.example.com → CDN → WAF → SLB → Gateway → Service(x2) → Deploy(x2) → RDS/Redis (depth 0-7, full chain) -->
+<path d="M115,130 C160,130 200,130 225,130" stroke="#10b981" stroke-width="1.8" fill="none" stroke-dasharray="8,4" marker-end="url(#a)" style="animation:fd 1.5s linear infinite"/>
+<path d="M295,130 C340,130 380,130 405,130" stroke="#10b981" stroke-width="1.8" fill="none" stroke-dasharray="8,4" marker-end="url(#a)" style="animation:fd 1.5s linear infinite"/>
+<path d="M475,130 C520,130 560,130 585,130" stroke="#10b981" stroke-width="1.8" fill="none" stroke-dasharray="8,4" marker-end="url(#a)" style="animation:fd 1.5s linear infinite"/>
+<path d="M655,130 C700,130 740,130 765,130" stroke="#10b981" stroke-width="1.8" fill="none" stroke-dasharray="8,4" marker-end="url(#a)" style="animation:fd 1.5s linear infinite"/>
+<path d="M835,130 C870,130 910,100 945,100" stroke="#10b981" stroke-width="1.8" fill="none" stroke-dasharray="8,4" marker-end="url(#a)" style="animation:fd 1.5s linear infinite"/>
+<path d="M835,130 C870,130 910,170 945,170" stroke="#10b981" stroke-width="1.5" fill="none" stroke-dasharray="8,4" marker-end="url(#a)" style="animation:fd 1.5s linear infinite"/>
+<path d="M1015,100 C1050,100 1090,100 1125,100" stroke="#10b981" stroke-width="1.8" fill="none" stroke-dasharray="8,4" marker-end="url(#a)" style="animation:fd 1.5s linear infinite"/>
+<path d="M1015,170 C1050,170 1090,170 1125,170" stroke="#10b981" stroke-width="1.5" fill="none" stroke-dasharray="8,4" marker-end="url(#a)" style="animation:fd 1.5s linear infinite"/>
+<path d="M1195,100 C1230,100 1270,80 1305,80" stroke="#10b981" stroke-width="1.5" fill="none" stroke-dasharray="8,4" marker-end="url(#a)" style="animation:fd 1.5s linear infinite"/>
+<path d="M1195,100 C1230,100 1270,160 1305,160" stroke="#10b981" stroke-width="1.2" fill="none" stroke-dasharray="8,4" marker-end="url(#a)" style="animation:fd 1.5s linear infinite"/>
+<path d="M1195,170 C1230,170 1270,160 1305,160" stroke="#10b981" stroke-width="1.2" fill="none" stroke-dasharray="8,4" marker-end="url(#a)" style="animation:fd 1.5s linear infinite"/>
+
+<!-- Chain B: web.example.com → WAF → ALB → Ingress → Service → Deploy (depth 0-5, no CDN) -->
+<path d="M115,330 C160,330 200,330 405,330" stroke="#10b981" stroke-width="1.8" fill="none" stroke-dasharray="8,4" marker-end="url(#a)" style="animation:fd 1.5s linear infinite"/>
+<path d="M475,330 C520,330 560,330 585,330" stroke="#10b981" stroke-width="1.8" fill="none" stroke-dasharray="8,4" marker-end="url(#a)" style="animation:fd 1.5s linear infinite"/>
+<path d="M655,330 C700,330 740,330 765,330" stroke="#10b981" stroke-width="1.8" fill="none" stroke-dasharray="8,4" marker-end="url(#a)" style="animation:fd 1.5s linear infinite"/>
+<path d="M835,330 C870,330 910,330 945,330" stroke="#10b981" stroke-width="1.8" fill="none" stroke-dasharray="8,4" marker-end="url(#a)" style="animation:fd 1.5s linear infinite"/>
+<path d="M1015,330 C1050,330 1090,330 1125,330" stroke="#10b981" stroke-width="1.8" fill="none" stroke-dasharray="8,4" marker-end="url(#a)" style="animation:fd 1.5s linear infinite"/>
+
+<!-- Chain C: static.example.com → CDN → OSS (depth 0-2, short chain!) -->
+<path d="M115,530 C160,530 200,530 225,530" stroke="#10b981" stroke-width="1.8" fill="none" stroke-dasharray="8,4" marker-end="url(#a)" style="animation:fd 1.5s linear infinite"/>
+<path d="M295,530 C340,530 380,530 405,530" stroke="#10b981" stroke-width="1.8" fill="none" stroke-dasharray="8,4" marker-end="url(#a)" style="animation:fd 1.5s linear infinite"/>
+
+<!-- Chain D: admin.example.com → SLB → ECS (depth 0-2, direct to IP, short chain) -->
+<path d="M115,700 C160,700 200,700 405,700" stroke="#10b981" stroke-width="1.5" fill="none" stroke-dasharray="8,4" marker-end="url(#a)" style="animation:fd 1.5s linear infinite"/>
+<path d="M475,700 C520,700 560,700 585,700" stroke="#10b981" stroke-width="1.5" fill="none" stroke-dasharray="8,4" marker-end="url(#a)" style="animation:fd 1.5s linear infinite"/>
+<!-- Broken link from ECS -->
+<path d="M655,700 C700,700 740,700 765,700" stroke="#ef4444" stroke-width="1.5" fill="none" stroke-dasharray="4,4" marker-end="url(#an)"/>
+
+<!-- Shared node: Chain B deploy → same Redis as Chain A (cross-chain shared node) -->
+<path d="M1195,330 C1230,330 1270,160 1305,160" stroke="#10b981" stroke-width="1" fill="none" stroke-dasharray="8,4" opacity=".4" marker-end="url(#a)" style="animation:fd 1.5s linear infinite"/>
+</g>
+<!-- ===== NODES ===== -->
+<!-- === Chain A: api.example.com (full 8-depth chain, 阿里云) === -->
+<!-- depth 0: DNS -->
+<g class="nd" data-n="api.example.com" data-t="DNS 域名" data-p="阿里云 DNS" data-s="活跃" data-x="CNAME → cdn-ali.example.com | A备 → 1.2.3.4 | 来源: DNS API" style="cursor:pointer">
+<circle cx="80" cy="130" r="28" fill="rgba(167,139,250,.1)" stroke="#a78bfa" stroke-width="2.5"/>
+<text x="80" y="124" text-anchor="middle" fill="#a78bfa" font-size="11" font-weight="700" font-family="Inter">DNS</text>
+<text x="80" y="138" text-anchor="middle" fill="#a78bfa" font-size="9" font-family="Inter">&#xf0ac;</text>
+<text x="80" y="172" text-anchor="middle" fill="var(--c1)" font-size="10" font-weight="600" font-family="Inter">api.example.com</text>
+</g>
+<!-- depth 1: CDN -->
+<g class="nd" data-n="CDN-阿里云" data-t="CDN" data-p="阿里云" data-s="运行中" data-x="命中率: 87% | 来源: 云API" style="cursor:pointer">
+<circle cx="260" cy="130" r="24" fill="rgba(192,132,252,.1)" stroke="#c084fc" stroke-width="2"/>
+<text x="260" y="126" text-anchor="middle" fill="#c084fc" font-size="14" font-family="Font Awesome 6 Free" font-weight="900">&#xf0b2;</text>
+<text x="260" y="168" text-anchor="middle" fill="var(--c2)" font-size="10" font-weight="500" font-family="Inter">CDN-阿里云</text>
+<circle cx="278" cy="110" r="7" fill="#ff6a00" stroke="var(--bg0)" stroke-width="1.5"/><text x="278" y="113" text-anchor="middle" fill="#fff" font-size="6" font-weight="700">阿</text>
+</g>
+<!-- depth 2: WAF -->
+<g class="nd" data-n="WAF-Pro" data-t="Web应用防火墙" data-p="阿里云" data-s="运行中" data-x="拦截: 342/h | 来源: 云API" style="cursor:pointer">
+<circle cx="440" cy="130" r="24" fill="rgba(248,113,113,.1)" stroke="#f87171" stroke-width="2"/>
+<text x="440" y="126" text-anchor="middle" fill="#f87171" font-size="14" font-family="Font Awesome 6 Free" font-weight="900">&#xf3ed;</text>
+<text x="440" y="168" text-anchor="middle" fill="var(--c2)" font-size="10" font-weight="500" font-family="Inter">WAF-Pro</text>
+<circle cx="458" cy="110" r="7" fill="#ff6a00" stroke="var(--bg0)" stroke-width="1.5"/><text x="458" y="113" text-anchor="middle" fill="#fff" font-size="6" font-weight="700">阿</text>
+</g>
+<!-- depth 3: SLB -->
+<g class="nd" data-n="SLB-API" data-t="负载均衡" data-p="阿里云" data-s="运行中" data-x="连接数: 8,200 | 来源: 云API" style="cursor:pointer">
+<circle cx="620" cy="130" r="26" fill="rgba(56,189,248,.1)" stroke="#38bdf8" stroke-width="2.5"/>
+<text x="620" y="126" text-anchor="middle" fill="#38bdf8" font-size="15" font-family="Font Awesome 6 Free" font-weight="900">&#xf074;</text>
+<text x="620" y="170" text-anchor="middle" fill="var(--c2)" font-size="10" font-weight="600" font-family="Inter">SLB-API</text>
+<circle cx="640" cy="108" r="7" fill="#ff6a00" stroke="var(--bg0)" stroke-width="1.5"/><text x="640" y="111" text-anchor="middle" fill="#fff" font-size="6" font-weight="700">阿</text>
+</g>
+<!-- depth 4: Gateway -->
+<g class="nd" data-n="BizGateway-v2" data-t="自研网关" data-p="self-hosted" data-s="运行中" data-x="路由: 48 | K8s-hz · prod | 来源: 声明" style="cursor:pointer">
+<circle cx="800" cy="130" r="26" fill="rgba(251,191,36,.1)" stroke="#fbbf24" stroke-width="2.5"/>
+<text x="800" y="126" text-anchor="middle" fill="#fbbf24" font-size="15" font-family="Font Awesome 6 Free" font-weight="900">&#xf0e8;</text>
+<text x="800" y="170" text-anchor="middle" fill="var(--c2)" font-size="10" font-weight="600" font-family="Inter">BizGateway-v2</text>
+<text x="800" y="184" text-anchor="middle" fill="var(--c3)" font-size="9" font-family="Inter">自研 · K8s-hz</text>
+<circle cx="820" cy="108" r="7" fill="var(--ac)" stroke="var(--bg0)" stroke-width="1.5"/><text x="820" y="111" text-anchor="middle" fill="#fff" font-size="6" font-weight="700">自</text>
+</g>
+<!-- depth 5: Services -->
+<g class="nd" data-n="user-service" data-t="K8s Service" data-p="阿里云" data-s="运行中" data-x="Endpoints: 3 | K8s-hz · prod | 来源: K8s" style="cursor:pointer">
+<circle cx="980" cy="100" r="22" fill="rgba(129,140,248,.1)" stroke="#818cf8" stroke-width="2"/>
+<text x="980" y="96" text-anchor="middle" fill="#818cf8" font-size="13" font-family="Font Awesome 6 Free" font-weight="900">&#xf1b3;</text>
+<text x="980" y="134" text-anchor="middle" fill="var(--c2)" font-size="10" font-weight="500" font-family="Inter">user-svc</text>
+</g>
+<g class="nd" data-n="order-service" data-t="K8s Service" data-p="阿里云" data-s="运行中" data-x="Endpoints: 5 | K8s-hz · prod | 来源: K8s" style="cursor:pointer">
+<circle cx="980" cy="170" r="22" fill="rgba(129,140,248,.1)" stroke="#818cf8" stroke-width="2"/>
+<text x="980" y="166" text-anchor="middle" fill="#818cf8" font-size="13" font-family="Font Awesome 6 Free" font-weight="900">&#xf1b3;</text>
+<text x="980" y="204" text-anchor="middle" fill="var(--c2)" font-size="10" font-weight="500" font-family="Inter">order-svc</text>
+</g>
+<!-- depth 6: Deployments -->
+<g class="nd" data-n="user-deploy" data-t="Deployment" data-p="阿里云" data-s="运行中" data-x="Pods: 3/3 Ready | 来源: K8s" style="cursor:pointer">
+<circle cx="1160" cy="100" r="22" fill="rgba(52,211,153,.1)" stroke="#34d399" stroke-width="2"/>
+<text x="1160" y="96" text-anchor="middle" fill="#34d399" font-size="13" font-family="Font Awesome 6 Free" font-weight="900">&#xf48b;</text>
+<text x="1160" y="134" text-anchor="middle" fill="var(--c2)" font-size="10" font-weight="500" font-family="Inter">user-deploy</text>
+<text x="1160" y="148" text-anchor="middle" fill="var(--ok)" font-size="9" font-family="Inter">3/3</text>
+</g>
+<g class="nd" data-n="order-deploy" data-t="Deployment" data-p="阿里云" data-s="运行中" data-x="Pods: 5/5 Ready | 来源: K8s" style="cursor:pointer">
+<circle cx="1160" cy="170" r="22" fill="rgba(52,211,153,.1)" stroke="#34d399" stroke-width="2"/>
+<text x="1160" y="166" text-anchor="middle" fill="#34d399" font-size="13" font-family="Font Awesome 6 Free" font-weight="900">&#xf48b;</text>
+<text x="1160" y="204" text-anchor="middle" fill="var(--c2)" font-size="10" font-weight="500" font-family="Inter">order-deploy</text>
+<text x="1160" y="218" text-anchor="middle" fill="var(--ok)" font-size="9" font-family="Inter">5/5</text>
+</g>
+<!-- depth 7: Data -->
+<g class="nd" data-n="RDS-MySQL" data-t="云数据库" data-p="阿里云" data-s="运行中" data-x="连接: 120 | IOPS: 3400 | 来源: 云API" style="cursor:pointer">
+<circle cx="1340" cy="80" r="20" fill="rgba(244,114,182,.1)" stroke="#f472b6" stroke-width="2"/>
+<text x="1340" y="76" text-anchor="middle" fill="#f472b6" font-size="12" font-family="Font Awesome 6 Free" font-weight="900">&#xf1c0;</text>
+<text x="1340" y="112" text-anchor="middle" fill="var(--c2)" font-size="10" font-weight="500" font-family="Inter">RDS-MySQL</text>
+<circle cx="1354" cy="64" r="7" fill="#ff6a00" stroke="var(--bg0)" stroke-width="1.5"/><text x="1354" y="67" text-anchor="middle" fill="#fff" font-size="6" font-weight="700">阿</text>
+</g>
+<g class="nd" data-n="Redis-缓存" data-t="Redis" data-p="阿里云" data-s="运行中" data-x="内存: 62% | 来源: 云API | ★ 被多条链路共享" style="cursor:pointer">
+<circle cx="1340" cy="160" r="20" fill="rgba(244,114,182,.1)" stroke="#f472b6" stroke-width="2"/>
+<text x="1340" y="156" text-anchor="middle" fill="#f472b6" font-size="12" font-family="Font Awesome 6 Free" font-weight="900">&#xf6ff;</text>
+<text x="1340" y="192" text-anchor="middle" fill="var(--c2)" font-size="10" font-weight="500" font-family="Inter">Redis-缓存</text>
+</g>
+<!-- === Chain B: web.example.com (no CDN, depth 0→skip→2→3→4→5, AWS) === -->
+<!-- depth 0: DNS -->
+<g class="nd" data-n="web.example.com" data-t="DNS 域名" data-p="AWS Route53" data-s="活跃" data-x="CNAME → waf-xxx.awswaf.com | 来源: DNS API" style="cursor:pointer">
+<circle cx="80" cy="330" r="28" fill="rgba(167,139,250,.1)" stroke="#a78bfa" stroke-width="2.5"/>
+<text x="80" y="324" text-anchor="middle" fill="#a78bfa" font-size="11" font-weight="700" font-family="Inter">DNS</text>
+<text x="80" y="338" text-anchor="middle" fill="#a78bfa" font-size="9" font-family="Inter">&#xf0ac;</text>
+<text x="80" y="372" text-anchor="middle" fill="var(--c1)" font-size="10" font-weight="600" font-family="Inter">web.example.com</text>
+</g>
+<!-- depth 1: WAF (skipped CDN, goes directly to WAF at depth 1 position) -->
+<g class="nd" data-n="AWS WAF" data-t="WAF" data-p="AWS" data-s="运行中" data-x="来源: 云API" style="cursor:pointer">
+<circle cx="440" cy="330" r="24" fill="rgba(248,113,113,.1)" stroke="#f87171" stroke-width="2"/>
+<text x="440" y="326" text-anchor="middle" fill="#f87171" font-size="14" font-family="Font Awesome 6 Free" font-weight="900">&#xf3ed;</text>
+<text x="440" y="368" text-anchor="middle" fill="var(--c2)" font-size="10" font-weight="500" font-family="Inter">AWS WAF</text>
+<circle cx="458" cy="310" r="7" fill="#ff9900" stroke="var(--bg0)" stroke-width="1.5"/><text x="458" y="313" text-anchor="middle" fill="#fff" font-size="6" font-weight="700">A</text>
+</g>
+<!-- depth 2: ALB -->
+<g class="nd" data-n="ALB-Web" data-t="Application LB" data-p="AWS" data-s="运行中" data-x="来源: 云API" style="cursor:pointer">
+<circle cx="620" cy="330" r="26" fill="rgba(56,189,248,.1)" stroke="#38bdf8" stroke-width="2.5"/>
+<text x="620" y="326" text-anchor="middle" fill="#38bdf8" font-size="15" font-family="Font Awesome 6 Free" font-weight="900">&#xf074;</text>
+<text x="620" y="370" text-anchor="middle" fill="var(--c2)" font-size="10" font-weight="600" font-family="Inter">ALB-Web</text>
+<circle cx="640" cy="308" r="7" fill="#ff9900" stroke="var(--bg0)" stroke-width="1.5"/><text x="640" y="311" text-anchor="middle" fill="#fff" font-size="6" font-weight="700">A</text>
+</g>
+<!-- depth 3: Ingress -->
+<g class="nd" data-n="Nginx Ingress" data-t="Ingress Controller" data-p="AWS" data-s="运行中" data-x="EKS-us · prod | 来源: K8s" style="cursor:pointer">
+<circle cx="800" cy="330" r="26" fill="rgba(251,191,36,.1)" stroke="#fbbf24" stroke-width="2.5"/>
+<text x="800" y="326" text-anchor="middle" fill="#fbbf24" font-size="15" font-family="Font Awesome 6 Free" font-weight="900">&#xf542;</text>
+<text x="800" y="370" text-anchor="middle" fill="var(--c2)" font-size="10" font-weight="600" font-family="Inter">Nginx Ingress</text>
+<text x="800" y="384" text-anchor="middle" fill="var(--c3)" font-size="9" font-family="Inter">EKS-us</text>
+<circle cx="820" cy="308" r="7" fill="#ff9900" stroke="var(--bg0)" stroke-width="1.5"/><text x="820" y="311" text-anchor="middle" fill="#fff" font-size="6" font-weight="700">A</text>
+</g>
+<!-- depth 4: Service -->
+<g class="nd" data-n="web-frontend" data-t="K8s Service" data-p="AWS" data-s="运行中" data-x="Endpoints: 4 | EKS-us · prod | 来源: K8s" style="cursor:pointer">
+<circle cx="980" cy="330" r="22" fill="rgba(129,140,248,.1)" stroke="#818cf8" stroke-width="2"/>
+<text x="980" y="326" text-anchor="middle" fill="#818cf8" font-size="13" font-family="Font Awesome 6 Free" font-weight="900">&#xf1b3;</text>
+<text x="980" y="364" text-anchor="middle" fill="var(--c2)" font-size="10" font-weight="500" font-family="Inter">web-frontend</text>
+</g>
+<!-- depth 5: Deploy -->
+<g class="nd" data-n="frontend-deploy" data-t="Deployment" data-p="AWS" data-s="运行中" data-x="Pods: 4/4 Ready | 来源: K8s" style="cursor:pointer">
+<circle cx="1160" cy="330" r="22" fill="rgba(52,211,153,.1)" stroke="#34d399" stroke-width="2"/>
+<text x="1160" y="326" text-anchor="middle" fill="#34d399" font-size="13" font-family="Font Awesome 6 Free" font-weight="900">&#xf48b;</text>
+<text x="1160" y="364" text-anchor="middle" fill="var(--c2)" font-size="10" font-weight="500" font-family="Inter">frontend-deploy</text>
+<text x="1160" y="378" text-anchor="middle" fill="var(--ok)" font-size="9" font-family="Inter">4/4</text>
+</g>
+<!-- === Chain C: static.example.com → CDN → OSS (only 3 nodes! short chain) === -->
+<!-- depth 0: DNS -->
+<g class="nd" data-n="static.example.com" data-t="DNS 域名" data-p="阿里云 DNS" data-s="活跃" data-x="CNAME → static.cdn.aliyuncs.com | 来源: DNS API" style="cursor:pointer">
+<circle cx="80" cy="530" r="28" fill="rgba(167,139,250,.1)" stroke="#a78bfa" stroke-width="2.5"/>
+<text x="80" y="524" text-anchor="middle" fill="#a78bfa" font-size="11" font-weight="700" font-family="Inter">DNS</text>
+<text x="80" y="538" text-anchor="middle" fill="#a78bfa" font-size="9" font-family="Inter">&#xf0ac;</text>
+<text x="80" y="572" text-anchor="middle" fill="var(--c1)" font-size="10" font-weight="600" font-family="Inter">static.example.com</text>
+</g>
+<!-- depth 1: CDN -->
+<g class="nd" data-n="CDN-静态" data-t="CDN" data-p="阿里云" data-s="运行中" data-x="命中率: 96% | 来源: 云API" style="cursor:pointer">
+<circle cx="260" cy="530" r="24" fill="rgba(192,132,252,.1)" stroke="#c084fc" stroke-width="2"/>
+<text x="260" y="526" text-anchor="middle" fill="#c084fc" font-size="14" font-family="Font Awesome 6 Free" font-weight="900">&#xf0b2;</text>
+<text x="260" y="568" text-anchor="middle" fill="var(--c2)" font-size="10" font-weight="500" font-family="Inter">CDN-静态</text>
+<circle cx="278" cy="510" r="7" fill="#ff6a00" stroke="var(--bg0)" stroke-width="1.5"/><text x="278" y="513" text-anchor="middle" fill="#fff" font-size="6" font-weight="700">阿</text>
+</g>
+<!-- depth 2: OSS (terminal node!) -->
+<g class="nd" data-n="OSS-static-prod" data-t="对象存储 OSS" data-p="阿里云" data-s="运行中" data-x="容量: 2.3TB | 来源: 云API | ★ 链路终点" style="cursor:pointer">
+<circle cx="440" cy="530" r="24" fill="rgba(244,114,182,.1)" stroke="#f472b6" stroke-width="2"/>
+<text x="440" y="526" text-anchor="middle" fill="#f472b6" font-size="14" font-family="Font Awesome 6 Free" font-weight="900">&#xf07b;</text>
+<text x="440" y="568" text-anchor="middle" fill="var(--c2)" font-size="10" font-weight="500" font-family="Inter">OSS-static-prod</text>
+<circle cx="458" cy="510" r="7" fill="#ff6a00" stroke="var(--bg0)" stroke-width="1.5"/><text x="458" y="513" text-anchor="middle" fill="#fff" font-size="6" font-weight="700">阿</text>
+</g>
+<!-- "链路终点" label -->
+<text x="440" y="600" text-anchor="middle" fill="var(--ok)" font-size="9" font-weight="600" font-family="Inter" opacity=".6">● 链路终点</text>
+
+<!-- === Chain D: admin.example.com → SLB → ECS → ??? (broken link) === -->
+<!-- depth 0: DNS -->
+<g class="nd" data-n="admin.example.com" data-t="DNS 域名" data-p="阿里云 DNS" data-s="活跃" data-x="A → 47.96.xx.xx (SLB VIP) | 来源: DNS API" style="cursor:pointer">
+<circle cx="80" cy="700" r="28" fill="rgba(167,139,250,.1)" stroke="#a78bfa" stroke-width="2.5"/>
+<text x="80" y="694" text-anchor="middle" fill="#a78bfa" font-size="11" font-weight="700" font-family="Inter">DNS</text>
+<text x="80" y="708" text-anchor="middle" fill="#a78bfa" font-size="9" font-family="Inter">&#xf0ac;</text>
+<text x="80" y="742" text-anchor="middle" fill="var(--c1)" font-size="10" font-weight="600" font-family="Inter">admin.example.com</text>
+</g>
+<!-- depth 1: SLB (direct A record, no CDN/WAF) -->
+<g class="nd" data-n="SLB-Admin" data-t="负载均衡" data-p="阿里云" data-s="运行中" data-x="来源: 云API" style="cursor:pointer">
+<circle cx="440" cy="700" r="24" fill="rgba(56,189,248,.1)" stroke="#38bdf8" stroke-width="2"/>
+<text x="440" y="696" text-anchor="middle" fill="#38bdf8" font-size="14" font-family="Font Awesome 6 Free" font-weight="900">&#xf074;</text>
+<text x="440" y="738" text-anchor="middle" fill="var(--c2)" font-size="10" font-weight="500" font-family="Inter">SLB-Admin</text>
+<circle cx="458" cy="680" r="7" fill="#ff6a00" stroke="var(--bg0)" stroke-width="1.5"/><text x="458" y="683" text-anchor="middle" fill="#fff" font-size="6" font-weight="700">阿</text>
+</g>
+<!-- depth 2: ECS (direct backend) -->
+<g class="nd" data-n="ECS-Admin-01" data-t="云服务器" data-p="阿里云" data-s="运行中" data-x="IP: 10.0.1.5 | 来源: 云API" style="cursor:pointer">
+<circle cx="620" cy="700" r="24" fill="rgba(129,140,248,.1)" stroke="#818cf8" stroke-width="2"/>
+<text x="620" y="696" text-anchor="middle" fill="#818cf8" font-size="14" font-family="Font Awesome 6 Free" font-weight="900">&#xf233;</text>
+<text x="620" y="738" text-anchor="middle" fill="var(--c2)" font-size="10" font-weight="500" font-family="Inter">ECS-Admin-01</text>
+<circle cx="638" cy="680" r="7" fill="#ff6a00" stroke="var(--bg0)" stroke-width="1.5"/><text x="638" y="683" text-anchor="middle" fill="#fff" font-size="6" font-weight="700">阿</text>
+</g>
+<!-- depth 3: Broken/unknown -->
+<g class="nd" data-n="未知下游" data-t="unknown" data-p="—" data-s="断链" data-x="ECS-Admin-01 的下游未采集 | 可能连接数据库?" style="cursor:pointer">
+<circle cx="800" cy="700" r="18" fill="none" stroke="#ef4444" stroke-width="1.5" stroke-dasharray="4,3" opacity=".6"/>
+<text x="800" y="697" text-anchor="middle" fill="#ef4444" font-size="14" font-family="Font Awesome 6 Free" font-weight="900" opacity=".6">&#xf128;</text>
+<text x="800" y="732" text-anchor="middle" fill="var(--ng)" font-size="9" font-weight="500" font-family="Inter" opacity=".7">断链 · 未采集</text>
+</g>
+
+<!-- Hover ring -->
+<circle id="hr" cx="0" cy="0" r="34" fill="none" stroke="rgba(255,255,255,.12)" stroke-width="2" style="display:none"/>
+</svg>
+</div>
+<!-- Detail Panel -->
+<div class="dp" id="dp" style="width:380px;background:var(--bg1);border-left:1px solid var(--bd);display:flex;flex-direction:column;flex-shrink:0;transform:translateX(100%);transition:transform .3s ease;position:absolute;right:0;top:0;bottom:0;z-index:20">
+<div class="dp-hd"><div class="dp-t"><i class="fas fa-info-circle" style="color:var(--acl)"></i> <span id="dn">节点详情</span></div>
+<button class="dp-x" onclick="document.getElementById('dp').classList.remove('open')"><i class="fas fa-times"></i></button></div>
+<div class="dp-bd">
+<div class="dp-s"><div class="dp-st">基本信息</div>
+<div class="dp-r"><span class="dp-rl">名称</span><span class="dp-rv" id="d-n">—</span></div>
+<div class="dp-r"><span class="dp-rl">类型</span><span class="dp-rv" id="d-t">—</span></div>
+<div class="dp-r"><span class="dp-rl">云厂商</span><span class="dp-rv" id="d-p">—</span></div>
+<div class="dp-r"><span class="dp-rl">状态</span><span class="dp-rv" id="d-s">—</span></div></div>
+<div class="dp-s"><div class="dp-st">扩展信息</div><div id="d-x" style="font-size:12px;color:var(--c2);line-height:1.8"></div></div>
+</div>
+<div class="dp-ft" style="padding:14px 18px;border-top:1px solid var(--bd)">
+<button class="btn-lk" style="width:100%;padding:10px;border-radius:6px;background:rgba(99,102,241,.1);border:1px solid rgba(99,102,241,.3);color:var(--acl);font-size:13px;font-weight:500;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:6px"><i class="fas fa-external-link-alt"></i> 查看实例拓扑</button></div>
+</div>
+<!-- Tooltip -->
+<div id="tt" style="position:absolute;background:rgba(26,34,54,.95);border:1px solid var(--bd);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--c1);pointer-events:none;z-index:30;white-space:nowrap;box-shadow:0 8px 32px rgba(0,0,0,.5);display:none;backdrop-filter:blur(10px)"></div>
+</div></main></div>
+<style>@keyframes fd{to{stroke-dashoffset:-24}}@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}.nd{cursor:pointer;transition:filter .2s}.nd:hover{filter:drop-shadow(0 0 8px rgba(255,255,255,.15))}.dp.open{transform:translateX(0)}</style>
+<script>
+const dp=document.getElementById('dp'),tt=document.getElementById('tt'),hr=document.getElementById('hr');
+document.querySelectorAll('.nd').forEach(n=>{
+  n.addEventListener('click',()=>{
+    document.getElementById('dn').textContent=n.dataset.n;
+    document.getElementById('d-n').textContent=n.dataset.n;
+    document.getElementById('d-t').textContent=n.dataset.t;
+    document.getElementById('d-p').textContent=n.dataset.p;
+    const s=document.getElementById('d-s');
+    s.innerHTML=n.dataset.s==='断链'?'<span style="display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:12px;font-size:12px;font-weight:500;background:rgba(239,68,68,.12);color:var(--ng)"><i class="fas fa-circle" style="font-size:6px"></i> 断链</span>':'<span style="display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:12px;font-size:12px;font-weight:500;background:rgba(16,185,129,.12);color:var(--ok)"><i class="fas fa-circle" style="font-size:6px"></i> '+n.dataset.s+'</span>';
+    const x=document.getElementById('d-x');
+    x.innerHTML=n.dataset.x?n.dataset.x.split('|').map(s=>{const p=s.split(':');return'<div style="display:flex;justify-content:space-between;padding:4px 0"><span style="color:var(--c3)">'+p[0].trim()+'</span><span style="font-weight:500">'+(p.slice(1).join(':').trim()||'—')+'</span></div>'}).join(''):'';
+    dp.classList.add('open');
+  });
+  n.addEventListener('mouseenter',e=>{
+    const c=n.querySelector('circle');if(c){hr.setAttribute('cx',c.getAttribute('cx'));hr.setAttribute('cy',c.getAttribute('cy'));hr.style.display='block'}
+    const r=n.getBoundingClientRect(),cv=document.getElementById('svg').closest('div').getBoundingClientRect();
+    tt.innerHTML='<div style="font-weight:600;margin-bottom:2px">'+n.dataset.n+'</div><div style="color:var(--c3);font-size:11px">'+n.dataset.t+' · '+n.dataset.p+'</div>';
+    if(n.dataset.x){const items=n.dataset.x.split('|').slice(0,3);tt.innerHTML+='<div style="margin-top:4px;padding-top:4px;border-top:1px solid rgba(255,255,255,.06);font-size:11px;color:var(--c2)">'+items.join('<br>')+'</div>'}
+    tt.style.display='block';tt.style.left=Math.min(r.left-cv.left+r.width/2-tt.offsetWidth/2,cv.width-tt.offsetWidth-10)+'px';tt.style.top=(r.top-cv.top-tt.offsetHeight-10)+'px';
+  });
+  n.addEventListener('mouseleave',()=>{hr.style.display='none';tt.style.display='none'});
+});
+</script>
+</body></html>
