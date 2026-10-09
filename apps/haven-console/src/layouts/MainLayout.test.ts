@@ -1,6 +1,7 @@
 // @vitest-environment happy-dom
-// MainLayout 集成单测（task 2.8，UF-2）：
-// - 角色裁剪渲染（platform_admin 全 8 / normal 仅工作台 / readonly_audit 6 项）
+// MainLayout 集成单测（task 2.8，UF-2 → P0 权限码驱动版）：
+// - 侧边栏权限码裁剪渲染（admin 全 8 / zero-tenant 仅工作台 / readonly_audit 6 项 /
+//   tenant_admin 4 项——原 inferRole 两档无法区分的档位由码自然得出）
 // - header 元素（折叠按钮 + 面包屑 + 主题切换 + 用户头像 + 登出下拉）
 // - 折叠态切换触发 collapse 事件
 // - 登出调 logout API + resetState + 跳 /login
@@ -17,6 +18,35 @@ import AppHeader from "@/components/layout/AppHeader.vue";
 import SidebarMenu from "@/components/layout/SidebarMenu.vue";
 import TenantSelector from "@/components/TenantSelector.vue";
 import { useUserStore } from "@/stores/user";
+import {
+  IAM_ALL_CODES,
+  IAM_DEPARTMENT,
+  IAM_IDENTITY_SOURCE,
+  IAM_PERMISSION,
+  IAM_ROLE,
+  IAM_USER,
+} from "@/config/permission-codes";
+
+/** 测试样本：只读审计码集（5 个查看页的 view 码） */
+const READONLY_CODES: readonly string[] = [
+  IAM_USER.VIEW,
+  IAM_DEPARTMENT.VIEW,
+  IAM_IDENTITY_SOURCE.VIEW,
+  IAM_ROLE.VIEW,
+  IAM_PERMISSION.VIEW_AUTHORIZATIONS,
+];
+
+/** 测试样本：租户管理员码集（工作台/用户/角色/授权 + 管理动词） */
+const TENANT_ADMIN_CODES: readonly string[] = [
+  IAM_USER.VIEW,
+  IAM_USER.ADD,
+  IAM_USER.EDIT,
+  IAM_ROLE.VIEW,
+  IAM_ROLE.EDIT,
+  IAM_ROLE.BATCH_ASSIGN,
+  IAM_ROLE.BATCH_UNASSIGN,
+  IAM_PERMISSION.VIEW_AUTHORIZATIONS,
+];
 
 // logout API mock（避免真实 HTTP）
 vi.mock("@/api/auth", () => ({
@@ -60,11 +90,18 @@ async function mountLayout(
     tenantsCount?: number;
     username?: string;
     path?: string;
+    codes?: readonly string[];
   } = {},
 ) {
   freshPinia();
   const userStore = useUserStore();
   userStore.isAdmin = opts.isAdmin ?? false;
+  // P0：权限码直接注入 permission 集合（profile.permissions 同形）
+  (
+    userStore as unknown as {
+      permissions: string[];
+    }
+  ).permissions = [...(opts.codes ?? [])];
   const tenants = Array.from({ length: opts.tenantsCount ?? 0 }, (_, i) => ({
     id: i + 1,
     name: `t${i + 1}`,
@@ -100,9 +137,13 @@ describe("MainLayout（2.8 壳层）", () => {
     document.documentElement.className = "";
   });
 
-  describe("侧边栏角色裁剪渲染", () => {
-    it("平台管理员：8 项全渲染（含租户/策略管理）", async () => {
-      const { wrapper } = await mountLayout({ isAdmin: true, tenantsCount: 2 });
+  describe("侧边栏权限码裁剪渲染", () => {
+    it("平台管理员（全码）：8 项全渲染（含租户/策略管理）", async () => {
+      const { wrapper } = await mountLayout({
+        isAdmin: true,
+        tenantsCount: 2,
+        codes: IAM_ALL_CODES,
+      });
       const sidebar = wrapper.findComponent(SidebarMenu);
       const items = sidebar.findAll(".sidebar-item");
       // 8 菜单项（折叠态不展开 tooltip 包裹也算 a.sidebar-item）
@@ -112,10 +153,11 @@ describe("MainLayout（2.8 壳层）", () => {
       expect(labels).toContain("策略管理");
     });
 
-    it("零租户受限态（普通用户）：仅工作台", async () => {
+    it("零租户受限态（持码也仅工作台）：restricted 优先于码集", async () => {
       const { wrapper } = await mountLayout({
         isAdmin: false,
         tenantsCount: 0,
+        codes: IAM_ALL_CODES,
       });
       const sidebar = wrapper.findComponent(SidebarMenu);
       const items = sidebar.findAll(".sidebar-item");
@@ -126,10 +168,11 @@ describe("MainLayout（2.8 壳层）", () => {
       expect(sidebar.text()).not.toContain("权限管理");
     });
 
-    it("非 admin 有租户（provisional readonly_audit）：6 项，无租户/策略", async () => {
+    it("只读审计码集（非 admin 有租户）：6 项，无租户/策略", async () => {
       const { wrapper } = await mountLayout({
         isAdmin: false,
         tenantsCount: 1,
+        codes: READONLY_CODES,
       });
       const sidebar = wrapper.findComponent(SidebarMenu);
       const items = sidebar.findAll(".sidebar-item");
@@ -143,6 +186,26 @@ describe("MainLayout（2.8 壳层）", () => {
       expect(labels).toContain("身份源管理");
       expect(labels).toContain("角色管理");
       expect(labels).toContain("授权管理");
+    });
+
+    it("租户管理员码集：4 项（工作台/用户/角色/授权）——档位由码自然得出", async () => {
+      const { wrapper } = await mountLayout({
+        isAdmin: false,
+        tenantsCount: 1,
+        codes: TENANT_ADMIN_CODES,
+      });
+      const sidebar = wrapper.findComponent(SidebarMenu);
+      const items = sidebar.findAll(".sidebar-item");
+      expect(items).toHaveLength(4);
+      const labels = items.map((n) => n.attributes("aria-label"));
+      expect(labels).toContain("工作台");
+      expect(labels).toContain("用户管理");
+      expect(labels).toContain("角色管理");
+      expect(labels).toContain("授权管理");
+      expect(labels).not.toContain("组织管理");
+      expect(labels).not.toContain("身份源管理");
+      expect(labels).not.toContain("租户管理");
+      expect(labels).not.toContain("策略管理");
     });
   });
 

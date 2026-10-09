@@ -10,11 +10,12 @@
 // 三态收敛（UF-2 States）：
 //   - 403 原地 toast（请求层 ApiError kind=forbidden → ElMessage 契约文案 forbidden）
 //   - 401 跳登录（请求层 eiamAxios 响应拦截器 redirectToLogin，守卫链 ① 同向）
-//   - 零租户受限态：侧边栏仅工作台（menuConfig inferRole → normal）+ header
-//     租户选择器禁用占位 + 应用切换器隐藏（AppHeader isRestricted）
+//   - 零租户受限态：侧边栏仅工作台（P0 权限码裁剪口径 restricted → 无码项）+ header
+//     租户选择器禁用占位 + 平台导航隐藏（AppSwitcher isRestricted，task 6.1）
 //
-// 注：应用切换器 / 租户选择器为 3.1 TenantSelector / AppSwitcher 共享组件，
-// **由本布局经 AppHeader 的 #header-actions slot 注入**（task 3.1 挂载点）。
+// 注：租户选择器为 3.1 TenantSelector 共享组件，**由本布局经 AppHeader 的
+// #header-actions slot 注入**；平台导航 AppSwitcher（6.1）经 AppHeader 的
+// **#header-nav slot**（面包屑旁）注入。
 import { computed, onMounted, onUnmounted, ref } from "vue";
 import { ElMessage } from "element-plus";
 import AppHeader from "@/components/layout/AppHeader.vue";
@@ -127,9 +128,11 @@ onUnmounted(() => {
         :collapsed="headerCollapsed"
         @toggle-collapse="onToggleCollapse"
       >
+        <template #header-nav>
+          <AppSwitcher />
+        </template>
         <template #header-actions>
           <TenantSelector />
-          <AppSwitcher />
         </template>
       </AppHeader>
       <main class="layout-content">
