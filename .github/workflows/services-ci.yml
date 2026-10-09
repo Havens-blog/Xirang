@@ -19,7 +19,8 @@ permissions:
   contents: read
 
 env:
-  GO_VERSION: '1.25.5'
+  # eiam 最新行要求 go>=1.26（toolchain go1.26.9，GOTOOLCHAIN=auto 会自动取用）
+  GO_VERSION: '1.26.x'
 
 jobs:
   # ── eiam ──────────────────────────────────────────────────────────
