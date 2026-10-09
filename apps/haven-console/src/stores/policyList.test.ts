@@ -354,7 +354,7 @@ describe("写前守卫（Hard Rule 不绕过）", () => {
       code: "new_p",
       statements: [{ effect: "Allow", actions: ["a"], resources: ["r"] }],
     });
-    expect(result).toBeNull();
+    expect(result).toBe(false);
     expect(replaced).toEqual(["http://localhost:8888/console/policies"]);
     expect(calls.some((u) => u.includes("/policy/create"))).toBe(false);
   });
@@ -399,21 +399,21 @@ describe("写前守卫（Hard Rule 不绕过）", () => {
 });
 
 describe("create / update / remove（写前守卫放行路径）", () => {
-  it("create：createPolicy + 回第一页刷新", async () => {
+  it("create：createPolicy + 回第一页刷新（eiam 不回传 id → 布尔成功口径）", async () => {
     stubLocation("http://localhost:8888/console/policies");
     const { store, calls } = await freshStore(
       () => ({ status: 200, body: listEnvelope([]) }),
       {
-        create: () => ({ status: 200, body: { code: 0, msg: "", data: 42 } }),
+        create: () => ({ status: 200, body: { code: 0, msg: "创建成功", data: null } }),
       },
     );
     store.setPage(3);
-    const id = await store.create({
+    const ok = await store.create({
       name: "新策略",
       code: "new_p",
       statements: [{ effect: "Allow", actions: ["a"], resources: ["r"] }],
     });
-    expect(id).toBe(42);
+    expect(ok).toBe(true);
     expect(store.page).toBe(1);
     expect(calls.some((u) => u.includes("/policy/create"))).toBe(true);
   });

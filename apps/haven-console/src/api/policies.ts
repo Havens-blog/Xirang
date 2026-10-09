@@ -231,13 +231,14 @@ export interface CreatePolicyPayload {
 /**
  * 创建策略（POST /api/iam/policy/create，C 档）。
  * 载荷 eiam {name, code, desc, type, statement[]}（type=2 CustomPolicy；statement 成员单数键）。
- * @returns 新策略 id
+ * eiam 成功响应不回传 id（eiam/internal/web/policy/handler.go:201 实核：
+ * ginx.Result{Msg:"创建成功"} 无 Data 字段）—— 以信封 code==0 为成功口径（unwrapEnvelope<null>）。
  */
 export async function createPolicy(
   payload: CreatePolicyPayload,
-): Promise<number> {
-  const id = await unwrapEnvelope<number>(
-    eiamAxios.post<Envelope<number>>("/api/iam/policy/create", {
+): Promise<void> {
+  await unwrapEnvelope<null>(
+    eiamAxios.post<Envelope<null>>("/api/iam/policy/create", {
       name: payload.name,
       code: payload.code,
       desc: payload.desc,
@@ -245,7 +246,6 @@ export async function createPolicy(
       statement: payload.statements.map(toEiamStatement),
     }),
   );
-  return id;
 }
 
 /** 更新策略载荷（code 原值只读回传；eiam update 无 type 字段） */

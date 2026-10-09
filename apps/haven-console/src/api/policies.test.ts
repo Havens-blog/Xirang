@@ -8,7 +8,8 @@
  * - mapEiamPolicy：snake_case → camelCase；单数 statement → 复数 statements；
  *   assignment_count → assignmentCount；缺 code → null；
  * - listPoliciesPage：{total, policies} → Page<PolicyWithMeta>，过滤 null；
- * - createPolicy：载荷 {name, code, desc, type:2, statement[]}（单数成员键）→ 新 id；
+ * - createPolicy：载荷 {name, code, desc, type:2, statement[]}（单数成员键）→ void
+ *   （eiam 成功不回传 id，handler.go:201 无 Data，信封 code==0 即成功）；
  * - updatePolicy：载荷 {name, code, desc, statement[]}（无 type）；
  * - deletePolicy：DELETE /policy/delete/:code（按 code 删除，非 id）；
  * - parseStatementsJson：前端 JSON 语法 + 结构校验（effect 枚举 / actions/resources 非空数组 /
@@ -254,16 +255,16 @@ describe("listPoliciesPage（C 档：{total, policies} → Page<PolicyWithMeta>�
 });
 
 describe("createPolicy（C 档：type=2 CustomPolicy + statement 单数成员键）", () => {
-  it("载荷映射 {name,code,desc,type:2,statement[]} + 返回新 id", async () => {
+  it("载荷映射 {name,code,desc,type:2,statement[]}；成功不回传 id（handler.go:201 无 Data）→ void", async () => {
     const capture: InternalAxiosRequestConfig[] = [];
     adapterFor(
       () => ({
         status: 200,
-        body: { code: 0, msg: "", data: 42 },
+        body: { code: 0, msg: "创建成功", data: null },
       }),
       capture,
     );
-    const id = await createPolicy({
+    const result = await createPolicy({
       name: "证书只读",
       code: "cert-readonly",
       desc: "描述",
@@ -275,7 +276,7 @@ describe("createPolicy（C 档：type=2 CustomPolicy + statement 单数成员键
         },
       ],
     });
-    expect(id).toBe(42);
+    expect(result).toBeUndefined();
     const body = JSON.parse(String(capture[0]?.data));
     expect(body.name).toBe("证书只读");
     expect(body.code).toBe("cert-readonly");

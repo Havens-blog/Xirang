@@ -21,8 +21,9 @@
  * 删除被拒（AC-4，E11）：策略已绑定角色 → delete.blocked_policy 契约文案（{n} = assignmentCount）。
  *
  * Hard Rules：策略定义仅平台管理员可增删改（route meta.requiresAdmin；菜单 + 守卫双重口径，
- * 租户管理员与只读/审计入口不渲染）—— /policies 路由 meta.requiresAdmin 已在 router 2.6 落地，
- * 守卫 ③ 越权 → /forbidden。本页内不二次裁剪入口（守卫已挡）。
+ * 租户管理员与只读/审计入口不渲染）—— /policies 路由 meta.requiresAdmin + meta.permissions
+ * 已在 router 2.6·P0 落地，守卫 ③ 越权 → /forbidden。本页按 P0 三层裁剪再叠加按钮级权限码
+ * （iam:policy:add/edit/delete）：adminOnly 挡角色，权限码挡更细的授权粒度。
  */
 import { computed, onMounted, ref } from "vue";
 import { usePolicyListStore } from "@/stores/policyList";
@@ -36,8 +37,14 @@ import {
 import { ApiError, type PolicyStatement } from "@/api/types";
 import { contractText, formatContractText } from "@/utils/copyContract";
 import CopyContractText from "@/components/CopyContractText.vue";
+import PolicyStatementsEditor from "@/components/policies/PolicyStatementsEditor.vue";
+import { useCan } from "@/composables/useCan";
+import { IAM_POLICY } from "@/config/permission-codes";
 
 const store = usePolicyListStore();
+
+// P0 权限码按钮裁剪（词表 permission-codes.ts / parity §5；与菜单 & 路由守卫同口径）
+const { can } = useCan();
 
 // ---- 搜索（切过滤重置 page=1，E7）----
 const keywordInput = ref("");
@@ -180,8 +187,8 @@ async function submitEdit(): Promise<void> {
         desc: editDesc.value || undefined,
         statements,
       };
-      const id = await store.create(payload);
-      if (id === null) {
+      const ok = await store.create(payload);
+      if (!ok) {
         // store 已归位 error（含写前守卫阻断 / eiam schema 校验失败）
         editError.value = store.error ?? "新增策略失败";
         // eiam validation kind → 标红对应字段（schema 校验失败，AC-3 第二层）
@@ -319,7 +326,12 @@ const isEmpty = computed(
   <section class="page-policy-list" :aria-busy="store.loading">
     <header class="page-head">
       <h2 class="page-title">策略管理</h2>
-      <button type="button" class="btn btn--primary" @click="openCreate">
+      <button
+        v-if="can(IAM_POLICY.ADD)"
+        type="button"
+        class="btn btn--primary"
+        @click="openCreate"
+      >
         新增策略
       </button>
     </header>
@@ -370,6 +382,7 @@ const isEmpty = computed(
             </td>
             <td>
               <button
+                v-if="can(IAM_POLICY.EDIT)"
                 type="button"
                 class="btn btn--text"
                 data-testid="edit-policy"
@@ -378,6 +391,7 @@ const isEmpty = computed(
                 编辑
               </button>
               <button
+                v-if="can(IAM_POLICY.DELETE)"
                 type="button"
                 class="btn btn--text btn--danger"
                 data-testid="delete-policy"
@@ -512,36 +526,12 @@ const isEmpty = computed(
               rows="2"
             />
           </label>
-          <label class="field">
-            <span class="field__label"
-              >Statement（JSON）<span class="required">*</span></span
-            >
-            <textarea
-              v-model="editStatements"
-              class="input input--code"
-              rows="12"
-              spellcheck="false"
-              data-testid="edit-policy-statements"
-              :aria-describedby="
-                editFieldErrors.statements
-                  ? 'edit-statements-error'
-                  : 'edit-statements-hint'
-              "
-              :aria-invalid="!!editFieldErrors.statements"
-            />
-            <span id="edit-statements-hint" class="muted"
-              >JSON 数组，每条含 effect（"Allow"|"Deny"）、actions 与 resources
-              非空字符串数组、可选 condition 数组；前端语法 + eiam schema
-              双校验，任一失败标红</span
-            >
-            <span
-              v-if="editFieldErrors.statements"
-              id="edit-statements-error"
-              class="field__error"
-              role="alert"
-              >{{ editFieldErrors.statements }}</span
-            >
-          </label>
+          <!-- Statement 编辑器（task 6.2）：图形化编排 / JSON 双模式双向同步，
+               单一事实源仍为 editStatements JSON 文本（submitEdit 校验口径不变） -->
+          <PolicyStatementsEditor
+            v-model="editStatements"
+            :error="editFieldErrors.statements"
+          />
           <div class="dialog__actions">
             <button type="button" class="btn btn--ghost" @click="closeEdit">
               取消
