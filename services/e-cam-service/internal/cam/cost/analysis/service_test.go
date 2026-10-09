@@ -2,6 +2,8 @@ package analysis
 
 import (
 	"context"
+	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -147,12 +149,14 @@ func TestGetCostSummary_LastMonthZero(t *testing.T) {
 }
 
 func TestGetCostSummary_Cache(t *testing.T) {
-	callCount := 0
+	// 计数用原子量：GetCostSummary 以 3 个并发 goroutine 调用 SumAmount，
+	// 普通 ++ 会被竞态检测器标记（镜像 CI -race 实证）
+	var callCount atomic.Int32
 	now := time.Now()
 	currentMonthStart := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, now.Location()).Format("2006-01-02")
 	dao := &mockBillDAO{
 		sumAmountFn: func(_ context.Context, f repository.UnifiedBillFilter) (float64, error) {
-			callCount++
+			callCount.Add(1)
 			// GetCostSummary issues SumAmount via concurrent goroutines; route
 			// by StartDate so the current-month query is deterministic.
 			if f.StartDate == currentMonthStart {
@@ -173,7 +177,7 @@ func TestGetCostSummary_Cache(t *testing.T) {
 	s2, err := svc.GetCostSummary(ctx, filter)
 	require.NoError(t, err)
 	assert.Equal(t, 100.0, s2.CurrentMonthAmount)
-	assert.Equal(t, 3, callCount)
+	assert.Equal(t, int32(3), callCount.Load())
 }
 
 func TestGetCostTrend_Daily(t *testing.T) {
@@ -408,10 +412,17 @@ func TestAggregateWeekly_SundayBelongsToPreviousWeek(t *testing.T) {
 }
 
 func TestGetCostSummary_DateRanges(t *testing.T) {
-	var capturedFilters []repository.UnifiedBillFilter
+	// 三个并发 goroutine 同时 append 共享切片会被竞态检测器标记，
+	// 用互斥锁串行化写入；断言前在锁下取副本
+	var (
+		mu              sync.Mutex
+		capturedFilters []repository.UnifiedBillFilter
+	)
 	dao := &mockBillDAO{
 		sumAmountFn: func(_ context.Context, filter repository.UnifiedBillFilter) (float64, error) {
+			mu.Lock()
 			capturedFilters = append(capturedFilters, filter)
+			mu.Unlock()
 			return 100.0, nil
 		},
 	}
@@ -419,7 +430,11 @@ func TestGetCostSummary_DateRanges(t *testing.T) {
 
 	_, err := svc.GetCostSummary(context.Background(), CostFilter{TenantID: 1})
 	require.NoError(t, err)
-	require.Len(t, capturedFilters, 3) // 当月、上月整月、上月同期
+
+	mu.Lock()
+	gotFilters := append([]repository.UnifiedBillFilter(nil), capturedFilters...)
+	mu.Unlock()
+	require.Len(t, gotFilters, 3) // 当月、上月整月、上月同期
 
 	now := time.Now()
 	expectedCurrentStart := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, now.Location()).Format("2006-01-02")
@@ -429,7 +444,7 @@ func TestGetCostSummary_DateRanges(t *testing.T) {
 	// goroutines, so the capture order is non-deterministic. Assert on the
 	// multiset of queried start dates instead of positional indices.
 	queriedStarts := make(map[string]int)
-	for _, f := range capturedFilters {
+	for _, f := range gotFilters {
 		queriedStarts[f.StartDate]++
 	}
 	assert.Equal(t, 1, queriedStarts[expectedCurrentStart],

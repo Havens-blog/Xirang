@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"math"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -354,10 +355,12 @@ func TestProperty14_FilterCorrectness(t *testing.T) {
 		filteredRatio := rapid.Float64Range(0, 1).Draw(rt, "filteredRatio")
 		filteredAmount := unfilteredAmount * filteredRatio
 
-		callCount := 0
+		// 计数用原子量：GetCostSummary 以 3 个并发 goroutine 调用 SumAmount，
+		// 普通 ++ 会被竞态检测器标记（镜像 CI -race 实证）
+		var callCount atomic.Int64
 		dao := &propertyMockBillDAO{
 			sumAmountFn: func(_ context.Context, f repository.UnifiedBillFilter) (float64, error) {
-				callCount++
+				callCount.Add(1)
 				if f.Provider != "" || f.ServiceType != "" || f.Region != "" {
 					return filteredAmount, nil
 				}
