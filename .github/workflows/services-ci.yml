@@ -120,6 +120,17 @@ jobs:
     defaults:
       run:
         working-directory: services/opsagent
+    services:
+      # 无鉴权容器：opsagent DAO 测试默认连 mongodb://localhost:27017（无凭据，见 alert_test.go）
+      mongodb:
+        image: mongo:7.0
+        ports:
+          - 27017:27017
+        options: >-
+          --health-cmd "mongosh --eval 'db.adminCommand(\"ping\")'"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     steps:
       - uses: actions/checkout@v4
 
@@ -136,6 +147,8 @@ jobs:
       - name: go vet
         run: go vet ./...
 
+      # DAO 集成测试采取硬门控（缺 Mongo 报错而非跳过，见 opsagent 7fe9 系列提交），
+      # 因此本 job 提供 mongodb 服务容器，真实跑 alert/citation/compensation 等 DAO 覆盖
       - name: go test
         run: go test ./...
 
