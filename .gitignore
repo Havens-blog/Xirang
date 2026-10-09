@@ -27,3 +27,8 @@ test-results/
 playwright-report/
 blob-report/
 playwright/.cache/
+
+# 诊断/Agent 残留（不入库）
+diag-*.png
+e2e/_diag_*.spec.ts
+.claude/
