@@ -68,6 +68,14 @@ func (a *OSSAdapter) ListBuckets(ctx context.Context, region string) ([]types.OS
 				continue
 			}
 
+			// N+1 回填标签:ListBuckets 响应不含标签,需逐桶 GetBucketTagging。
+			// 请求数随桶数线性增长(标签为审计要求字段,故接受该成本;
+			// 阿里云 SDK 默认开启 301 跨区重定向,任意 region 端点均可读桶标签);
+			// 无标签返回空 TagSet,失败(无权限/桶已删除)静默降级为空,不打断列表。
+			if tagResult, err := client.GetBucketTagging(bucket.Name); err == nil {
+				ossBucket.Tags = a.mapAliyunTags(tagResult.Tags)
+			}
+
 			// 获取 bucket 统计信息（存储大小和对象数量）
 			stats, err := a.GetBucketStats(ctx, bucket.Name)
 			if err == nil && stats != nil {
@@ -112,6 +120,13 @@ func (a *OSSAdapter) GetBucket(ctx context.Context, bucketName string) (*types.O
 	if err == nil && stats != nil {
 		bucket.ObjectCount = stats.ObjectCount
 		bucket.StorageSize = stats.StorageSize
+	}
+
+	// 获取桶标签:GetBucketInfo 响应不含标签,需单独 GetBucketTagging,
+	// 与列表口径一致(无标签返回空 TagSet,失败静默留空)。
+	tagResult, err := client.GetBucketTagging(bucketName)
+	if err == nil {
+		bucket.Tags = a.mapAliyunTags(tagResult.Tags)
 	}
 
 	return &bucket, nil
@@ -172,6 +187,12 @@ func (a *OSSAdapter) ListBucketsWithFilter(ctx context.Context, region string, f
 				continue
 			}
 
+			// N+1 回填标签:与 ListBuckets 同口径(成本与降级策略见其注释);
+			// 失败或无标签静默留空。
+			if tagResult, err := client.GetBucketTagging(bucket.Name); err == nil {
+				ossBucket.Tags = a.mapAliyunTags(tagResult.Tags)
+			}
+
 			buckets = append(buckets, ossBucket)
 		}
 
@@ -193,10 +214,12 @@ func (a *OSSAdapter) convertToOSSBucket(bucket oss.BucketProperties) types.OSSBu
 	}
 
 	return types.OSSBucket{
-		BucketName:       bucket.Name,
-		Region:           region,
-		Location:         bucket.Location,
-		CreationTime:     bucket.CreationDate,
+		BucketName:   bucket.Name,
+		Region:       region,
+		Location:     bucket.Location,
+		CreationTime: bucket.CreationDate,
+		// StorageClass 直接透传列表接口真实值(阿里云 ListBuckets 响应携带桶存储类型),
+		// 不硬编码默认值:响应缺失时保持空,由前端显示 '-'。
 		StorageClass:     bucket.StorageClass,
 		ExtranetEndpoint: fmt.Sprintf("%s.oss-%s.aliyuncs.com", bucket.Name, region),
 		IntranetEndpoint: fmt.Sprintf("%s.oss-%s-internal.aliyuncs.com", bucket.Name, region),
@@ -235,4 +258,20 @@ func (a *OSSAdapter) convertBucketInfoToOSSBucket(info oss.BucketInfo) types.OSS
 	bucket.TransferAcceleration = info.TransferAcceleration == "Enabled"
 
 	return bucket
+}
+
+// mapAliyunTags 将阿里云 GetBucketTagging 返回的 TagSet 规整为统一的标签 map。
+// 列表与详情共用,保证口径一致;空 Key 或无标签时返回 nil(即不填)。
+func (a *OSSAdapter) mapAliyunTags(tags []oss.Tag) map[string]string {
+	if len(tags) == 0 {
+		return nil
+	}
+	m := make(map[string]string, len(tags))
+	for _, t := range tags {
+		if t.Key == "" {
+			continue
+		}
+		m[t.Key] = t.Value
+	}
+	return m
 }

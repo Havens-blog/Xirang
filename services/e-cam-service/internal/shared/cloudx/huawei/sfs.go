@@ -198,7 +198,8 @@ func (a *SFSAdapter) convertToNASInstance(share *model.ShareInfo, region string)
 		instance.Description = *share.Name
 	}
 	if share.Status != nil {
-		instance.Status = a.convertStatus(*share.Status)
+		// 源状态为数字码或英文字符串, 统一由 types.NASStatus 标准化(含数字码映射)
+		instance.Status = types.NASStatus("huawei", *share.Status)
 	}
 	if share.AvailabilityZone != nil {
 		instance.Zone = *share.AvailabilityZone
@@ -319,7 +320,8 @@ func (a *SFSAdapter) convertDetailToNASInstance(response *model.ShowShareRespons
 		instance.Description = *response.Name
 	}
 	if response.Status != nil {
-		instance.Status = a.convertStatus(*response.Status)
+		// 状态统一走 types.NASStatus 标准化(含数字状态码), 避免各适配器值域漂移
+		instance.Status = types.NASStatus("huawei", *response.Status)
 	}
 	if response.AvailabilityZone != nil {
 		instance.Zone = *response.AvailabilityZone
@@ -420,25 +422,6 @@ func (a *SFSAdapter) convertDetailToNASInstance(response *model.ShowShareRespons
 	}
 
 	return instance
-}
-
-// convertStatus 转换状态
-func (a *SFSAdapter) convertStatus(status string) string {
-	statusMap := map[string]string{
-		"100":       "creating",
-		"200":       "running",
-		"300":       "deleting",
-		"303":       "error",
-		"400":       "deleted",
-		"available": "running",
-		"creating":  "creating",
-		"deleting":  "deleting",
-		"error":     "error",
-	}
-	if s, ok := statusMap[status]; ok {
-		return s
-	}
-	return status
 }
 
 // convertStorageType 将 ShareType 转换为存储类型显示名

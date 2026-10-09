@@ -185,7 +185,7 @@ func (a *EIPAdapter) convertToEIPInstance(eip vpc.EipAddress, region string) typ
 		AllocationID:       eip.AllocationId,
 		IPAddress:          eip.IpAddress,
 		Name:               eip.Name,
-		Status:             eip.Status,
+		Status:             types.NormalizeEIPStatus("aliyun", eip.Status),
 		Region:             region,
 		Description:        eip.Description,
 		Bandwidth:          bandwidth,

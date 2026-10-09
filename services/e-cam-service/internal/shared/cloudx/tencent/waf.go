@@ -255,6 +255,26 @@ func (a *WAFAdapter) convertWAFDomainToInstance(d *waf.DomainInfo, region string
 		cname = *d.Cname
 	}
 
+	// 创建时间:列表接口 DescribeDomains 的 DomainInfo.CreateTime 即创建时间(字符串原样
+	// 透传,与详情接口 DomainsPartInfo.CreateTime 同源;SaaS 详情回捞非空时会覆盖,见
+	// mergeSaaSSources)。腾讯云 SDK 该字段无时区信息,按厂商原值保留,不做归一化。
+	creationTime := ""
+	if d.CreateTime != nil {
+		creationTime = *d.CreateTime
+	}
+
+	// 标签:列表接口 DescribeDomains 的 DomainInfo.Labels 即 WAF 控制台「域名标签」,
+	// 为自由文本(无键值结构);以标签本身为键、空字符串为值归入通用 Tags map,
+	// 语义=仅标记标签存在性,不硬造值。列表层直接可用,无需 N+1。
+	tags := make(map[string]string)
+	if d.Labels != nil {
+		for _, l := range d.Labels {
+			if l != nil && *l != "" {
+				tags[*l] = ""
+			}
+		}
+	}
+
 	return types.WAFInstance{
 		InstanceID:     domainID,
 		InstanceName:   domain,
@@ -267,8 +287,9 @@ func (a *WAFAdapter) convertWAFDomainToInstance(d *waf.DomainInfo, region string
 		Cname:          cname,
 		WAFEnabled:     wafEnabled,
 		Provider:       "tencent",
+		CreationTime:   creationTime,
 		Description:    "WAF防护域名",
-		Tags:           make(map[string]string),
+		Tags:           tags,
 	}
 }
 
@@ -490,6 +511,27 @@ func (a *WAFAdapter) convertEOZoneToInstance(zone *teo.Zone) types.WAFInstance {
 		modifiedOn = *zone.ModifiedOn
 	}
 
+	// 标签:EO 站点列表 DescribeZones 的 Zone.Tags([]*Tag{TagKey,TagValue}) 直接给出
+	// 键值标签,列表层即可取到,归一为通用 Tags map,无需 N+1。
+	tags := make(map[string]string)
+	if zone.Tags != nil {
+		for _, t := range zone.Tags {
+			if t == nil {
+				continue
+			}
+			k, v := "", ""
+			if t.TagKey != nil {
+				k = *t.TagKey
+			}
+			if t.TagValue != nil {
+				v = *t.TagValue
+			}
+			if k != "" {
+				tags[k] = v
+			}
+		}
+	}
+
 	return types.WAFInstance{
 		InstanceID:     zoneID,
 		InstanceName:   zoneName,
@@ -501,6 +543,6 @@ func (a *WAFAdapter) convertEOZoneToInstance(zone *teo.Zone) types.WAFInstance {
 		Provider:       "tencent",
 		CreationTime:   createdOn,
 		Description:    fmt.Sprintf("EdgeOne站点 type=%s area=%s modified=%s", zoneType, area, modifiedOn),
-		Tags:           make(map[string]string),
+		Tags:           tags,
 	}
 }

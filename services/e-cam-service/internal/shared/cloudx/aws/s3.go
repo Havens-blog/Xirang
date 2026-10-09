@@ -69,11 +69,26 @@ func (a *S3Adapter) ListBuckets(ctx context.Context, region string) ([]types.OSS
 		return nil, fmt.Errorf("获取S3存储桶列表失败: %w", err)
 	}
 
+	// 列表 N+1 回填(标签)需要桶所在 region 的客户端;
+	// 按 region 惰性创建并复用,避免每桶重复加载 AWS 配置放大成本。
+	regionClients := map[string]*s3.Client{}
+	getRegionClient := func(r string) *s3.Client {
+		if c, ok := regionClients[r]; ok {
+			return c
+		}
+		c, err := a.createClient(ctx, r)
+		if err != nil {
+			return nil
+		}
+		regionClients[r] = c
+		return c
+	}
+
 	var buckets []types.OSSBucket
 	for _, bucket := range output.Buckets {
 		ossBucket := a.convertToOSSBucket(&bucket)
 
-		// 获取 bucket 的 region
+		// 获取 bucket 的 region(列表 N+1,与 GetBucket 详情同源,口径一致)
 		bucketRegion, err := a.getBucketRegion(ctx, client, *bucket.Name)
 		if err == nil {
 			ossBucket.Region = bucketRegion
@@ -83,6 +98,21 @@ func (a *S3Adapter) ListBuckets(ctx context.Context, region string) ([]types.OSS
 		// 如果指定了 region，只返回该 region 的 bucket
 		if region != "" && ossBucket.Region != region {
 			continue
+		}
+
+		// N+1 回填标签:S3 列表接口不返回标签,GetBucketTagging 必须使用
+		// 桶所在 region 的端点(否则 SDK 返回 PermanentRedirect)。
+		// 每桶 1 次额外 GET,请求数随桶数线性增长;无标签桶返回
+		// NoSuchTagSet(404)属正常,所有失败均静默降级为空,不打断列表。
+		if ossBucket.Region != "" {
+			if rc := getRegionClient(ossBucket.Region); rc != nil {
+				tagOutput, err := rc.GetBucketTagging(ctx, &s3.GetBucketTaggingInput{
+					Bucket: aws.String(*bucket.Name),
+				})
+				if err == nil {
+					ossBucket.Tags = a.mapS3Tags(tagOutput.TagSet)
+				}
+			}
 		}
 
 		// 获取 bucket 统计信息（存储大小和对象数量）
@@ -102,7 +132,8 @@ func (a *S3Adapter) ListBuckets(ctx context.Context, region string) ([]types.OSS
 	return buckets, nil
 }
 
-// getBucketRegion 获取 bucket 所在的 region
+// getBucketRegion 获取 bucket 所在的 region。
+// 列表(ListBuckets)与详情(GetBucket)共用本函数,保证 Region/Location 口径一致。
 func (a *S3Adapter) getBucketRegion(ctx context.Context, client *s3.Client, bucketName string) (string, error) {
 	output, err := client.GetBucketLocation(ctx, &s3.GetBucketLocationInput{
 		Bucket: aws.String(bucketName),
@@ -110,12 +141,18 @@ func (a *S3Adapter) getBucketRegion(ctx context.Context, client *s3.Client, buck
 	if err != nil {
 		return "", err
 	}
+	return a.locationConstraintToRegion(output.LocationConstraint), nil
+}
 
-	// 空字符串表示 us-east-1
-	if output.LocationConstraint == "" {
-		return "us-east-1", nil
+// locationConstraintToRegion 将 GetBucketLocation 返回的 LocationConstraint
+// 映射为 region 名。S3 对 us-east-1 桶返回空 LocationConstraint
+// (响应体为空,SDK 解析为零值 "",并无 nil 指针),因此空值统一映射为 us-east-1;
+// 其余值原样透传(如 ap-guangzhou、cn-north-1)。
+func (a *S3Adapter) locationConstraintToRegion(lc s3types.BucketLocationConstraint) string {
+	if lc == "" {
+		return "us-east-1"
 	}
-	return string(output.LocationConstraint), nil
+	return string(lc)
 }
 
 // GetBucket 获取单个存储桶详情
@@ -142,6 +179,8 @@ func (a *S3Adapter) GetBucket(ctx context.Context, bucketName string) (*types.OS
 		Region:     bucketRegion,
 		Location:   bucketRegion,
 		Provider:   string(domain.CloudProviderAWS),
+		// StorageClass 不填:S3 详情接口同样拿不到桶级存储类型,
+		// 与列表口径一致(取舍理由见 convertToOSSBucket 注释)。
 	}
 
 	// 获取 ACL
@@ -173,6 +212,15 @@ func (a *S3Adapter) GetBucket(ctx context.Context, bucketName string) (*types.OS
 				}
 			}
 		}
+	}
+
+	// 获取桶标签(与列表口径一致:失败或无标签桶返回 NoSuchTagSet
+	// 均静默留空,不视为错误)
+	tagOutput, err := regionClient.GetBucketTagging(ctx, &s3.GetBucketTaggingInput{
+		Bucket: aws.String(bucketName),
+	})
+	if err == nil {
+		bucket.Tags = a.mapS3Tags(tagOutput.TagSet)
 	}
 
 	// 设置 endpoint
@@ -252,11 +300,17 @@ func (a *S3Adapter) ListBucketsWithFilter(ctx context.Context, region string, fi
 	return filtered, nil
 }
 
-// convertToOSSBucket 转换为统一的 OSS 存储桶结构
+// convertToOSSBucket 转换为统一的 OSS 存储桶结构。
+// 注意:Region/Location 不在此处填写,由 ListBuckets/GetBucket 的
+// GetBucketLocation N+1 回填(见 getBucketRegion),避免转换函数伪造地域。
 func (a *S3Adapter) convertToOSSBucket(bucket *s3types.Bucket) types.OSSBucket {
 	ossBucket := types.OSSBucket{
-		Provider:     string(domain.CloudProviderAWS),
-		StorageClass: "STANDARD", // S3 默认存储类型
+		Provider: string(domain.CloudProviderAWS),
+		// StorageClass 不填:S3 列表与详情接口(GetBucketLocation/GetBucketTagging
+		// 等)均不提供桶级存储类型;若强行取值需 ListObjectsV2 取首个对象的
+		// StorageClass,那是对象级类型、不代表桶级事实,且为逐桶额外请求,
+		// 成本高,故放弃回填。硬编码 "STANDARD" 是错误值,删去后置空,
+		// 由前端显示 '-'。
 	}
 
 	if bucket.Name != nil {
@@ -267,4 +321,20 @@ func (a *S3Adapter) convertToOSSBucket(bucket *s3types.Bucket) types.OSSBucket {
 	}
 
 	return ossBucket
+}
+
+// mapS3Tags 将 S3 GetBucketTagging 返回的 TagSet 规整为统一的标签 map。
+// 列表与详情共用,保证口径一致;空 Key 或无标签时返回 nil(即不填)。
+func (a *S3Adapter) mapS3Tags(tagSet []s3types.Tag) map[string]string {
+	if len(tagSet) == 0 {
+		return nil
+	}
+	tags := make(map[string]string, len(tagSet))
+	for _, t := range tagSet {
+		if t.Key == nil || *t.Key == "" {
+			continue
+		}
+		tags[*t.Key] = aws.ToString(t.Value)
+	}
+	return tags
 }

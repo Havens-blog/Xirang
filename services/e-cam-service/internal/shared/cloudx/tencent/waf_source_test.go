@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/Havens-blog/e-cam-service/internal/shared/cloudx/types"
+	teo "github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/teo/v20220901"
 	waf "github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/waf/v20180125"
 )
 
@@ -17,6 +18,8 @@ func TestConvertWAFDomainToInstanceUpstreamDomainList(t *testing.T) {
 		SrcList:            []*string{strPtr("1.2.3.4")},
 		UpstreamDomainList: []*string{strPtr("origin.example.com")},
 		Cname:              strPtr("example.com.cname"),
+		CreateTime:         strPtr("2024-06-18 10:00:00"),
+		Labels:             []*string{strPtr("生产"), strPtr("电商")},
 	}
 
 	a := &WAFAdapter{}
@@ -30,6 +33,52 @@ func TestConvertWAFDomainToInstanceUpstreamDomainList(t *testing.T) {
 	}
 	if inst.InstanceID != "waf-123" {
 		t.Fatalf("InstanceID 错误: %s", inst.InstanceID)
+	}
+	// 新增字段断言:创建时间来自列表接口 DomainInfo.CreateTime(厂商原值透传)
+	if inst.CreationTime != "2024-06-18 10:00:00" {
+		t.Fatalf("CreationTime 未填充: %s", inst.CreationTime)
+	}
+	// 域名标签(Labels,自由文本)以标签为键、空值为值归入 Tags
+	if len(inst.Tags) != 2 || inst.Tags["生产"] != "" || inst.Tags["电商"] != "" {
+		t.Fatalf("Tags 应含 2 个标签(non-nil 空值),实际 %v", inst.Tags)
+	}
+}
+
+func TestConvertEOZoneToInstanceTagsAndCreationTime(t *testing.T) {
+	// EO 站点:描述/创建时间/标签均来自 DescribeZones 列表字段
+	zone := &teo.Zone{
+		ZoneId:     strPtr("zone-1"),
+		ZoneName:   strPtr("site.example.com"),
+		Status:     strPtr("active"),
+		Area:       strPtr("mainland"),
+		Type:       strPtr("partial"),
+		CreatedOn:  strPtr("2024-03-01T08:00:00Z"),
+		ModifiedOn: strPtr("2024-06-01T08:00:00Z"),
+		Tags: []*teo.Tag{
+			{TagKey: strPtr("env"), TagValue: strPtr("prod")},
+			{TagKey: strPtr("owner"), TagValue: strPtr("team-a")},
+			{TagKey: strPtr("novalue"), TagValue: nil},
+			nil,
+		},
+	}
+
+	a := &WAFAdapter{}
+	inst := a.convertEOZoneToInstance(zone)
+
+	if inst.CreationTime != "2024-03-01T08:00:00Z" {
+		t.Fatalf("CreationTime 错误: %q", inst.CreationTime)
+	}
+	if inst.Tags["env"] != "prod" {
+		t.Fatalf("Tags env 错误: %v", inst.Tags)
+	}
+	if inst.Tags["owner"] != "team-a" {
+		t.Fatalf("Tags owner 错误: %v", inst.Tags)
+	}
+	if v, ok := inst.Tags["novalue"]; !ok || v != "" {
+		t.Fatalf("TagValue=nil 应保留键且值为空: got %q, ok=%v", v, ok)
+	}
+	if len(inst.Tags) != 3 {
+		t.Fatalf("Tags 应归一 3 项(nil 项跳过),实际 %d: %v", len(inst.Tags), inst.Tags)
 	}
 }
 

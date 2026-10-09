@@ -276,6 +276,11 @@ func (a *WAFAdapter) convertHostToInstance(item wafmodel.CloudWafHostItem, regio
 		ResourceGroupID: enterpriseProjectID,
 		Description:     fmt.Sprintf("%s access=%s web_tag=%s policy=%s", description, accessStatus, webTag, policyID),
 		Provider:        "huawei",
-		Tags:            make(map[string]string),
+		// Tags:已核实 SDK struct(huaweicloud-sdk-go-v3 waf v1)——CloudWafHostItem(ListHost
+		// 列表项)与 ShowHost(详情)均无标签字段,仅 WebTag 网站名称(已并入 Description);
+		// WAF v1 的 ListInstanceTags 虽可取标签,但 resourceid 要求「引擎 id」(云模式引擎/独享
+		// 引擎),防护域名列表不返回引擎 id,且引擎级标签语义 ≠ 域名级标签。为避免语义错配与
+		// 逐域名 N+1 的失控开销,不做回捞,留空 map,不硬造值。
+		Tags: make(map[string]string),
 	}
 }

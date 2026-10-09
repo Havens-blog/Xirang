@@ -39,9 +39,9 @@ func TestConvertToInstanceStatusAndTime(t *testing.T) {
 
 	t.Run("CreationTime 留空,UpdateTime 并入 Description", func(t *testing.T) {
 		d := &waf.DataForListDomainOutput{
-			Domain:     strPtrV("example.com"),
+			Domain:      strPtrV("example.com"),
 			DefenceMode: i32(1),
-			UpdateTime: strPtrV("2024-06-01 10:00:00"),
+			UpdateTime:  strPtrV("2024-06-01 10:00:00"),
 		}
 		a := &WAFAdapter{}
 		inst := a.convertToInstance(d, "cn-beijing")

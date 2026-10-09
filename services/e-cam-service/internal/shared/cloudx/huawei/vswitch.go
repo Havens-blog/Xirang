@@ -197,7 +197,7 @@ func (a *VSwitchAdapter) convertToVSwitchInstance(s model.Subnet, region string)
 	return types.VSwitchInstance{
 		VSwitchID:   s.Id,
 		VSwitchName: s.Name,
-		Status:      status,
+		Status:      types.NormalizeVSwitchStatus("huawei", status),
 		Region:      region,
 		Zone:        s.AvailabilityZone,
 		Description: s.Description,

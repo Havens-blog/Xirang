@@ -209,7 +209,7 @@ func (a *LBAdapter) convertToLBInstance(lb model.LoadBalancer, reg string, clien
 		LoadBalancerID:     lb.Id,
 		LoadBalancerName:   lb.Name,
 		LoadBalancerType:   lbType,
-		Status:             lb.ProvisioningStatus,
+		Status:             types.NormalizeLBStatus("huawei", lb.ProvisioningStatus),
 		Region:             reg,
 		Zone:               zone,
 		Address:            lb.VipAddress,

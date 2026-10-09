@@ -206,7 +206,10 @@ func (a *WAFAdapter) convertToInstance(d *waf.DataForListDomainOutput, region st
 	if d.UpdateTime != nil {
 		updateTime = *d.UpdateTime
 	}
-	// 列表接口仅提供 UpdateTime(无 CreateTime),创建时间不留空、最近更新时间并入 Description
+	// 列表接口 ListDomain 返回的 DataForListDomainOutput 仅有 UpdateTime,没有创建时间输出
+	// 字段(已核实 SDK:输入侧只有 SortByCreateTime 排序参数;GetDomainInfo 返回通用
+	// map[string]interface{} 且键未文档化,不解析)。故 CreationTime 留空不填,最近更新时间
+	// 并入 Description,不硬造值。
 	description := ""
 	if updateTime != "" {
 		description = fmt.Sprintf("updated=%s", updateTime)
@@ -236,6 +239,9 @@ func (a *WAFAdapter) convertToInstance(d *waf.DataForListDomainOutput, region st
 	}
 
 	// 使用域名作为实例ID（火山引擎WAF以域名为粒度）
+	// CreationTime:火山引擎 WAF SDK(ListDomain 输出)无创建时间字段,留空(理由见上方注释)。
+	// Tags:WAF 列表/详情接口均不返回标签;同包 tag.go 的 DescribeTags 走 ECS 服务
+	// (ResourceType 仅覆盖 ECS 资源),无法查询 WAF 域名标签,留空 map,不硬造值。
 	return types.WAFInstance{
 		InstanceID:     domain,
 		InstanceName:   domain,
@@ -250,6 +256,7 @@ func (a *WAFAdapter) convertToInstance(d *waf.DataForListDomainOutput, region st
 		AntiBotEnabled: antiBotEnabled,
 		ProtectionMode: protectionMode,
 		Provider:       "volcano",
+		CreationTime:   "",
 		Description:    description,
 		Tags:           make(map[string]string),
 	}

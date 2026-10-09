@@ -61,7 +61,7 @@ func TestConvertToLBInstance(t *testing.T) {
 				LoadBalancerID:   "lb-tc-001",
 				LoadBalancerName: "web-clb",
 				LoadBalancerType: "slb",
-				Status:           "Active",
+				Status:           "active",
 				Region:           "ap-guangzhou",
 				Zone:             "ap-guangzhou-3",
 				SlaveZone:        "ap-guangzhou-4",
@@ -88,7 +88,7 @@ func TestConvertToLBInstance(t *testing.T) {
 			expected: types.LBInstance{
 				LoadBalancerID:   "lb-creating",
 				LoadBalancerType: "slb",
-				Status:           "Creating",
+				Status:           "creating",
 				Region:           "ap-shanghai",
 				AddressType:      "intranet",
 				AddressIPVersion: "ipv4",
@@ -106,7 +106,7 @@ func TestConvertToLBInstance(t *testing.T) {
 			expected: types.LBInstance{
 				LoadBalancerID:   "lb-active",
 				LoadBalancerType: "slb",
-				Status:           "Active",
+				Status:           "active",
 				Region:           "ap-beijing",
 				AddressType:      "intranet",
 				AddressIPVersion: "ipv4",

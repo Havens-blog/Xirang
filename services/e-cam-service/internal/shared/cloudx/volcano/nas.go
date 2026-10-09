@@ -216,7 +216,8 @@ func (a *NASAdapter) convertToNASInstance(fs *filenas.FileSystemForDescribeFileS
 		instance.Description = *fs.Description
 	}
 	if fs.Status != nil {
-		instance.Status = normalizeVolcanoNASStatus(*fs.Status)
+		// 状态统一走 types.NASStatus 标准化(原本地 map 与 types/nas.go 的 volcano 分表一致)
+		instance.Status = types.NASStatus("volcano", *fs.Status)
 	}
 	if fs.ZoneId != nil {
 		instance.Zone = *fs.ZoneId
@@ -260,23 +261,4 @@ func (a *NASAdapter) convertToNASInstance(fs *filenas.FileSystemForDescribeFileS
 	}
 
 	return instance
-}
-
-// normalizeVolcanoNASStatus 标准化火山引擎NAS状态
-func normalizeVolcanoNASStatus(status string) string {
-	statusMap := map[string]string{
-		"Running":     "running",
-		"Creating":    "creating",
-		"Expanding":   "expanding",
-		"Deleting":    "deleting",
-		"Error":       "error",
-		"DeleteError": "error",
-		"Deleted":     "deleted",
-		"Stopped":     "stopped",
-		"Unknown":     "unknown",
-	}
-	if s, ok := statusMap[status]; ok {
-		return s
-	}
-	return status
 }

@@ -234,21 +234,28 @@ func (a *ENIAdapter) convertToENIInstance(port model.Port, region string) types.
 	// 提取安全组ID列表
 	securityGroupIDs := port.SecurityGroups
 
-	// 确定网卡类型
+	// 确定网卡类型: binding:vif_details.primary_interface 标识是否为虚拟机主网卡
+	// 华为云 V2 Port 响应不提供网卡序号(DeviceIndex), 只能区分主/辅助网卡
 	eniType := types.ENITypeSecondary
-	deviceOwner := port.DeviceOwner.Value()
-	_ = deviceOwner
+	if port.BindingvifDetails != nil && port.BindingvifDetails.PrimaryInterface != nil &&
+		*port.BindingvifDetails.PrimaryInterface {
+		eniType = types.ENITypePrimary
+	}
 
-	// 提取子网ID
+	// 提取子网ID: 优先取 fixed_ips[0].subnet_id, 为空时回退 network_id
+	// (华为云 VPC 中子网在 Neutron 语义下即 network)
 	subnetID := ""
 	if len(port.FixedIps) > 0 && port.FixedIps[0].SubnetId != nil {
 		subnetID = *port.FixedIps[0].SubnetId
+	}
+	if subnetID == "" {
+		subnetID = port.NetworkId
 	}
 
 	// 提取状态
 	status := port.Status.Value()
 
-	// 提取实例ID
+	// 提取实例ID (device_id 即绑定的 ECS 实例ID)
 	instanceID := port.DeviceId
 
 	// 提取名称
@@ -256,19 +263,37 @@ func (a *ENIAdapter) convertToENIInstance(port model.Port, region string) types.
 
 	macAddress := port.MacAddress
 
+	// 提取可用区 (port.zone_id)
+	zone := port.ZoneId
+
+	// 提取项目ID (tenant_id 即华为云项目ID)
+	projectID := port.TenantId
+
+	// 标签: V2 Port 接口不返回标签, 恒为空 map 以保持与其它厂商结构一致
+	tags := make(map[string]string)
+
+	// 以下字段无法从华为云 VPC V2 Port 响应获得, 统一保持零值(不硬造):
+	// - VPCID: Port 无 vpc_id 字段, 需另行调用子网/V3 ENI 接口反查
+	// - IPv6Addresses: Port 不返回 IPv6 地址列表(Ipv6BandwidthId 仅为其共享带宽ID)
+	// - DeviceIndex: Port 无网卡序号, 主网卡判定仅能依赖 binding:vif_details.primary_interface
+	// - PublicIP/EIPAddresses: Port 不包含公网 IP, 需按 port_id 调用 EIP 接口反查
+	// - ResourceGroupID: 华为云 Port 无资源组字段
+	// - Description/CreationTime: Port 响应无描述与创建时间字段
 	return types.ENIInstance{
 		ENIID:              port.Id,
 		ENIName:            name,
 		Status:             types.NormalizeENIStatus("huawei", status),
 		Type:               eniType,
 		Region:             region,
+		Zone:               zone,
 		SubnetID:           subnetID,
 		PrimaryPrivateIP:   primaryIP,
 		PrivateIPAddresses: privateIPs,
 		MacAddress:         macAddress,
 		InstanceID:         instanceID,
 		SecurityGroupIDs:   securityGroupIDs,
-		Tags:               make(map[string]string),
+		ProjectID:          projectID,
+		Tags:               tags,
 		Provider:           "huawei",
 	}
 }

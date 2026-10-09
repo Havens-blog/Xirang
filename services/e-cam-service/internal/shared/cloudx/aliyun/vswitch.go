@@ -179,7 +179,7 @@ func (a *VSwitchAdapter) convertToVSwitchInstance(vs vpc.VSwitch, region string)
 	return types.VSwitchInstance{
 		VSwitchID:        vs.VSwitchId,
 		VSwitchName:      vs.VSwitchName,
-		Status:           vs.Status,
+		Status:           types.NormalizeVSwitchStatus("aliyun", vs.Status),
 		Region:           region,
 		Zone:             vs.ZoneId,
 		Description:      vs.Description,

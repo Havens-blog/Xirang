@@ -363,7 +363,7 @@ func (a *EIPAdapter) convertToEIPInstance(e model.PublicipSingleShowResp, region
 		AllocationID:       allocationID,
 		IPAddress:          publicIP,
 		Name:               name,
-		Status:             status,
+		Status:             types.NormalizeEIPStatus("huawei", status),
 		Region:             region,
 		Description:        description,
 		Bandwidth:          bandwidth,

@@ -22,6 +22,7 @@ type LogSource struct {
 	ResourceID  string               `json:"resource_id"` // 域名 / LB 实例 ID / 分发 ID
 	Name        string               `json:"name"`        // 展示名
 	Enabled     bool                 `json:"enabled"`     // 投递是否开启(查询可用性)
+	Stale       bool                 `json:"stale"`       // 近 staleWindow 无新数据(可能停采;历史仍可查)
 	Note        string               `json:"note"`        // 未开启原因 / 延迟特征等引导信息
 }
 

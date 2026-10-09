@@ -233,7 +233,7 @@ func (a *VPCAdapter) convertToVPCInstance(v ec2types.Vpc, region string) types.V
 	return types.VPCInstance{
 		VPCID:          vpcID,
 		VPCName:        vpcName,
-		Status:         status,
+		Status:         types.NormalizeVPCStatus("aws", status),
 		Region:         region,
 		CidrBlock:      cidrBlock,
 		SecondaryCidrs: secondaryCidrs,

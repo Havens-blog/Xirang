@@ -1,6 +1,7 @@
 package logquery
 
 import (
+	"encoding/json"
 	"testing"
 )
 
@@ -31,6 +32,9 @@ func TestParseTimeMs(t *testing.T) {
 		{"nil", nil, 0},
 		{"garbage", "not-a-time", 0},
 		{"float string", "0.027", 27},
+		// 火山 TLS SearchLogs 用 UseNumber() 反序列化,数字以 json.Number 出现
+		{"json.Number ms", json.Number("1790229254000"), 1790229254000},
+		{"json.Number sec", json.Number("1787824584"), 1787824584000},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
@@ -91,6 +95,7 @@ func TestToInt64(t *testing.T) {
 		want int64
 	}{
 		{"403", 403}, {int(403), 403}, {float64(403), 403},
+		{json.Number("403"), 403}, // UseNumber() 数字(火山 TLS)
 		{"0.027", 0}, // 截断取整,毫秒换算由调用方乘
 		{"3.097, 3.072", 3},
 		{"", 0}, {nil, 0}, {"abc", 0},

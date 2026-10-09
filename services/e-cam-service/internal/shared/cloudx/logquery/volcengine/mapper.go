@@ -19,13 +19,25 @@ func mapAccessLog(m logquery.LogMeta, raw map[string]any) *logquery.SLBLogEntry 
 	return mapNginxAccess(m, raw)
 }
 
+// parseTimeField 取首个可解析的非零时间戳候选。__time__ 由 TLS 返回为 JSON
+// number(int64),Str() 只认字符串会把数字丢成空,故这里直接用 ParseTimeMs 逐个
+// 试(ParseTimeMs 本身按量级自适配 sec/ms,并容忍 string/int64/float64/nil)。
+func parseTimeField(vs ...any) int64 {
+	for _, v := range vs {
+		if ts := logquery.ParseTimeMs(v); ts > 0 {
+			return ts
+		}
+	}
+	return 0
+}
+
 // mapALBAccess 火山 ALB 访问日志(schema:loadbalancer_id/listener_id/servergroup_id/
 // vip/vport/request/request_id/upstream_status/ssl_protocol/ssl_cipher…)。
 func mapALBAccess(m logquery.LogMeta, raw map[string]any) *logquery.SLBLogEntry {
 	method, uri, proto := parseRequestLine(logquery.Str(raw["request"]))
 	e := &logquery.SLBLogEntry{
 		Meta:              m,
-		Timestamp:         logquery.ParseTimeMs(firstNonEmpty(raw["__time__"], raw["@timestamp"])),
+		Timestamp:         parseTimeField(raw["__time__"], raw["@timestamp"]),
 		ClientIP:          logquery.Str(raw["remote_addr"]),
 		ClientPort:        int(logquery.Int(raw["remote_port"])),
 		Host:              logquery.Str(raw["http_host"]),
@@ -79,7 +91,7 @@ func mapNginxAccess(m logquery.LogMeta, raw map[string]any) *logquery.SLBLogEntr
 	}
 	e := &logquery.SLBLogEntry{
 		Meta:              m,
-		Timestamp:         logquery.ParseTimeMs(firstNonEmpty(raw["__time__"], raw["@timestamp"])),
+		Timestamp:         parseTimeField(raw["__time__"], raw["@timestamp"]),
 		ClientIP:          clientIP(raw),
 		Host:              logquery.Str(raw["http_host"]),
 		Method:            logquery.Str(raw["method"]),

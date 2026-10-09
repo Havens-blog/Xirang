@@ -119,7 +119,7 @@ func TestConvertToLBInstance(t *testing.T) {
 				LoadBalancerID:   "arn:aws:elasticloadbalancing:us-east-1:123456789:loadbalancer/gwy/my-gwlb/ghi789",
 				LoadBalancerName: "my-gwlb",
 				LoadBalancerType: "slb",
-				Status:           "provisioning",
+				Status:           "creating",
 				Region:           "us-east-1",
 				AddressType:      "intranet",
 				AddressIPVersion: "ipv4",
@@ -214,10 +214,11 @@ func TestConvertToLBInstance_StatusMapping(t *testing.T) {
 		code     elbv2types.LoadBalancerStateEnum
 		expected string
 	}{
+		// 归一后 canonical（types.NormalizeLBStatus）：provisioning→creating、active_impaired/failed→error
 		{elbv2types.LoadBalancerStateEnumActive, "active"},
-		{elbv2types.LoadBalancerStateEnumProvisioning, "provisioning"},
-		{elbv2types.LoadBalancerStateEnumActiveImpaired, "active_impaired"},
-		{elbv2types.LoadBalancerStateEnumFailed, "failed"},
+		{elbv2types.LoadBalancerStateEnumProvisioning, "creating"},
+		{elbv2types.LoadBalancerStateEnumActiveImpaired, "error"},
+		{elbv2types.LoadBalancerStateEnumFailed, "error"},
 	}
 
 	for _, sc := range stateCodes {

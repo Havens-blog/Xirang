@@ -271,7 +271,12 @@ func (a *WAFAdapter) convertResourceToInstance(res defenseResource, region strin
 		CreationTime:   creationTime,
 		Provider:       "aliyun",
 		Description:    res.Description,
-		Tags:           make(map[string]string),
+		// Tags:阿里云 WAF 3.0 的 DescribeDefenseResources(列表)与 DescribeDomainDetail(详情)
+		// 响应均不含标签字段(实盘 probe 确认 Detail 仅 {"product","domain"} 等最小字段);
+		// WAF 3.0 标签仅挂在 WAF 实例层,与按防护对象(域名)同步的粒度不一致;同包 TagAdapter
+		// (tag.go)走 ECS DescribeTags,只能按 ECS 资源类型查询,无法查 WAF 域名标签。
+		// 为避免语义错配与失控 N+1 开销,留空 map,不硬造值。
+		Tags: make(map[string]string),
 	}
 }
 

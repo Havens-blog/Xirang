@@ -37,6 +37,25 @@ func TestConvertResourceToInstanceCreationTime(t *testing.T) {
 	})
 }
 
+func TestConvertResourceToInstanceTagsUnavailable(t *testing.T) {
+	// 阿里云 WAF 3.0 列表(DescribeDefenseResources)/详情(DescribeDomainDetail)均不含
+	// 域名级标签字段,转换层保持「非 nil 空 map」契约(理由见 waf.go convertResourceToInstance
+	// 处注释:标签只挂在 WAF 实例层,与按防护对象同步的粒度不一致,不做 N+1)。
+	res := defenseResource{
+		Resource: "example.com",
+		Detail:   []byte(`{"product":"waf","domain":"example.com"}`),
+	}
+	a := &WAFAdapter{}
+	inst := a.convertResourceToInstance(res, "cn-hangzhou")
+
+	if inst.Tags == nil {
+		t.Fatalf("Tags 应保持非 nil 空 map,实际 nil")
+	}
+	if len(inst.Tags) != 0 {
+		t.Fatalf("Tags 应保持空 map,实际 %v", inst.Tags)
+	}
+}
+
 func TestWafSite(t *testing.T) {
 	cases := []struct {
 		name   string

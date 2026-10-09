@@ -283,7 +283,7 @@ func (a *EIPAdapter) convertToEIPInstance(addr *vpc.Address, region string) type
 		AllocationID:       allocationID,
 		IPAddress:          eipAddress,
 		Name:               name,
-		Status:             status,
+		Status:             types.NormalizeEIPStatus("tencent", status),
 		Region:             region,
 		Bandwidth:          bandwidth,
 		InternetChargeType: chargeType,

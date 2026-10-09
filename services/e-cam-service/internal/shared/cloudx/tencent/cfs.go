@@ -249,7 +249,8 @@ func (a *CFSAdapter) convertToNASInstance(fs *cfs.FileSystemInfo, region string)
 		instance.Description = *fs.FsName
 	}
 	if fs.LifeCycleState != nil {
-		instance.Status = a.convertStatus(*fs.LifeCycleState)
+		// 状态统一走 types.NASStatus 标准化(原本地映射表已并入 types/nas.go 的 tencent 分表)
+		instance.Status = types.NASStatus("tencent", *fs.LifeCycleState)
 	}
 	if fs.Zone != nil {
 		instance.Zone = *fs.Zone
@@ -302,21 +303,6 @@ func (a *CFSAdapter) convertToNASInstance(fs *cfs.FileSystemInfo, region string)
 	}
 
 	return instance
-}
-
-// convertStatus 转换状态
-func (a *CFSAdapter) convertStatus(status string) string {
-	statusMap := map[string]string{
-		"available":     "running",
-		"creating":      "creating",
-		"create_failed": "error",
-		"deleting":      "deleting",
-		"delete_failed": "error",
-	}
-	if s, ok := statusMap[status]; ok {
-		return s
-	}
-	return status
 }
 
 // parseInt64 安全转换字符串到 int64

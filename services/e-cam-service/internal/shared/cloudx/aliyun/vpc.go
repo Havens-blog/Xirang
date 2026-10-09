@@ -180,7 +180,7 @@ func (a *VPCAdapter) convertToVPCInstance(v vpc.Vpc, region string) types.VPCIns
 	return types.VPCInstance{
 		VPCID:           v.VpcId,
 		VPCName:         v.VpcName,
-		Status:          v.Status,
+		Status:          types.NormalizeVPCStatus("aliyun", v.Status),
 		Region:          region,
 		Description:     v.Description,
 		CidrBlock:       v.CidrBlock,

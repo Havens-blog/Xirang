@@ -268,7 +268,7 @@ func (a *VPCAdapter) convertToVPCInstance(v *vpc.VpcForDescribeVpcsOutput, regio
 	return types.VPCInstance{
 		VPCID:          vpcID,
 		VPCName:        vpcName,
-		Status:         status,
+		Status:         types.NormalizeVPCStatus("volcano", status),
 		Region:         region,
 		Description:    description,
 		CidrBlock:      cidrBlock,

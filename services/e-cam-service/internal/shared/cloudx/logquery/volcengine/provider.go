@@ -1,8 +1,10 @@
 // Package volcengine 火山引擎日志查询 provider。
 //
-// 火山云日志均投递到 TLS(火山日志服务):负载均衡(ALB `*_lb_access`,原生 schema
-// loadbalancer_id/listener_id)与自采 nginx/gateway 访问日志(`*_access`),映射到
-// SLB 类型。CDN 加速实时日志 / WAF 日志未投递(控台实时日志未开),暂不纳入。
+// 火山云日志均投递到 TLS(火山日志服务)。分两类注册:
+//   - SLB(`*_lb_access`,原生 schema loadbalancer_id/listener_id)= 火山 ALB 产品日志;
+//   - access(其余 *_access / *-nginx-access / *-gateway-access)= 自采实例 nginx/gateway。
+//
+// CDN 加速实时日志 / WAF 日志未投递(控台实时日志未开),暂不纳入。
 // 与阿里 SLS / 腾讯 CLS 同构:源枚举 = DescribeTopics + 名字分型(无采样),
 // Search = SearchLogs 分页拉取映射统一模型。
 package volcengine
@@ -45,6 +47,35 @@ type topicsEntry struct {
 
 var topicsCacheInst = &topicsCache{entries: make(map[string]topicsEntry)}
 
+// indexCache 进程级 DescribeIndex 探测缓存(topicID → 是否可查询)。索引存在性
+// 长期稳定,缓存 2h;探测走后台异步(不阻塞源列表),inflight 防重复调度。
+type indexCache struct {
+	mu       sync.Mutex
+	entries  map[string]indexEntry
+	inflight map[string]bool
+	dirty    bool // 有未落盘的新增探测结果(定时刷盘用)
+}
+
+type indexEntry struct {
+	enabled bool
+	stale   bool // 近 staleWindow 无新数据(可能停采)
+	expires time.Time
+}
+
+var indexCacheInst = &indexCache{entries: make(map[string]indexEntry), inflight: make(map[string]bool)}
+
+// indexTTL 索引探测结果缓存时长(索引存在性稳定,长 TTL 摊薄后台探测成本)。
+const indexTTL = 2 * time.Hour
+
+// staleWindow 判定「停采」的近无数据窗口(超过该窗 TotalCount=0 即视为停采)。
+const staleWindow = 7 * 24 * time.Hour
+
+// indexProbeConcurrency 后台 DescribeIndex 探测并发度(限制 QPS)。
+const indexProbeConcurrency = 24
+
+// indexProbeSem 全局限流信号量(跨 provider 实例共享),防全量 topic 同时打 DescribeIndex。
+var indexProbeSem = make(chan struct{}, indexProbeConcurrency)
+
 // provider 火山云 TLS 日志 provider。
 type provider struct {
 	logType logquery.LogType
@@ -53,9 +84,15 @@ type provider struct {
 }
 
 func init() {
-	// 仅 SLB(负载均衡访问日志):火山 ALB 访问日志(`*_lb_access`)与自采 nginx/
-	// gateway 访问日志(`*_access`)映射到 SLB。CDN/WAF 托管产品日志未投递 TLS。
+	// 两类注册:SLB = 火山 ALB(`*_lb_access`),access = 自采 nginx/gateway。
+	// CDN/WAF 托管产品日志未投递 TLS。
+	// volcano/volcengine 双键注册:与 billing/iam/资产注册表口径一致(火山账号
+	// 两个 provider 别名均存在,federation 按 acc.Provider 直查,单键会导致
+	// provider=volcano 的账号在日志域查不到源)。
 	logquery.RegisterProvider(domain.CloudProviderVolcengine, logquery.LogTypeSLB, newProvider(logquery.LogTypeSLB))
+	logquery.RegisterProvider(domain.CloudProviderVolcengine, logquery.LogTypeAccess, newProvider(logquery.LogTypeAccess))
+	logquery.RegisterProvider(domain.CloudProviderVolcano, logquery.LogTypeSLB, newProvider(logquery.LogTypeSLB))
+	logquery.RegisterProvider(domain.CloudProviderVolcano, logquery.LogTypeAccess, newProvider(logquery.LogTypeAccess))
 }
 
 func newProvider(logType logquery.LogType) logquery.ProviderCreator {
@@ -112,7 +149,7 @@ func (p *provider) listTopicsCached(ctx context.Context, region string) []*tls.T
 	// DescribeTopics 每页固定延迟大(~4s),1130 topic 串行 12 页 ~50s 冷枚举。
 	// 首页拿 Total 后并发拉余页,冷枚举收敛到 ~单页 + 一批并发页。
 	first, err := client.DescribeTopics(&tls.DescribeTopicsRequest{
-		ProjectID: "",
+		ProjectID:  "",
 		PageNumber: 1,
 		PageSize:   pageSize,
 	})
@@ -165,11 +202,24 @@ func (p *provider) listTopicsCached(ctx context.Context, region string) []*tls.T
 
 // isAccessTopic 名字是否为访问日志形态:含 "access"(覆盖 *_access /
 // *-nginx-access / *-gateway-access / *_lb_access / *-cache-access),排除
-// *-tomcat-access(应用服务器访问,非边缘)。-business/-error 不含 "access" 自然
-// 排除。采集管道命名稳定,纯名字分型免去逐 topic 采样(采样曾是冷枚举 ~73s 主因)。
+// *-tomcat-access(应用服务器访问,非边缘)与 *-business 结尾(应用业务日志——
+// Java message 型,method 是类名非 HTTP 方法,照 aliyun filterCatalogStores 先例
+// 排除)。用后缀匹配而非子串:*-business 结尾是业务日志,而 dev-ai-app-business_...
+// _https_access 里 business 只是域名段(中缀),仍是边缘访问日志。采集管道命名
+// 稳定,纯名字分型免去逐 topic 采样(采样曾是冷枚举 ~73s 主因)。
 func isAccessTopic(topicName string) bool {
 	name := strings.ToLower(topicName)
-	return strings.Contains(name, "access") && !strings.Contains(name, "tomcat-access")
+	return strings.Contains(name, "access") &&
+		!strings.Contains(name, "tomcat-access") &&
+		!strings.HasSuffix(name, "-business")
+}
+
+// isALBAccessTopic 是否为火山 ALB 产品访问日志(`*_lb_access`,含 limited 限流
+// 变体)。ALB 归 SLB;其余 *_access / *-nginx-access / *-gateway-access 为自采
+// 实例 nginx/gateway 访问日志,归 access 类型——两者不能混装,否则负载均衡趋势
+// 会夹带源站实例流量(语义错位)。
+func isALBAccessTopic(topicName string) bool {
+	return strings.Contains(strings.ToLower(topicName), "_lb_access")
 }
 
 // topicRef 定位一个 TLS 访问日志 topic。
@@ -179,13 +229,21 @@ type topicRef struct {
 	topicName string
 }
 
-// accessTopics 列出全部访问日志 topic(纯名字过滤,不采样)。want 非空时按
-// 名字或 ID 收敛(源清单 ResourceID=名字,历史裸 ID 亦兼容)。
+// accessTopics 列出本 provider 类型对应的访问日志 topic(纯名字过滤,不采样)。
+// 按 logType 分域:SLB 只取 ALB(`*_lb_access`),access 只取自采 nginx/gateway
+// 访问日志。want 非空时按名字或 ID 收敛(源清单 ResourceID=名字,历史裸 ID 亦兼容)。
 func (p *provider) accessTopics(ctx context.Context, want map[string]bool) []topicRef {
 	var out []topicRef
 	for _, region := range p.enumRegions() {
 		for _, t := range p.listTopicsCached(ctx, region) {
 			if t == nil || t.TopicID == "" || !isAccessTopic(t.TopicName) {
+				continue
+			}
+			if p.logType == logquery.LogTypeSLB {
+				if !isALBAccessTopic(t.TopicName) {
+					continue
+				}
+			} else if isALBAccessTopic(t.TopicName) {
 				continue
 			}
 			if len(want) > 0 && !want[t.TopicName] && !want[t.TopicID] {
@@ -198,8 +256,115 @@ func (p *provider) accessTopics(ctx context.Context, want map[string]bool) []top
 	return out
 }
 
+// isIndexNotExists 判断 DescribeIndex 错误是否为「无索引」(IndexNotExists),
+// 而非网络/权限/限流等瞬时错误——后者不可误判为无索引(否则会把有索引源标 false)。
+func isIndexNotExists(err error) bool {
+	s := err.Error()
+	return strings.Contains(s, "IndexNotExists") || strings.Contains(s, "Index does not exist")
+}
+
+// indexInfo 源列表展示用:缓存命中返回真实 (enabled, stale);未缓存返回乐观
+// (true, false),由后台 indexProbeAsync 补正(不阻塞源列表,54s 冷探测由此消解)。
+func (p *provider) indexInfo(ref topicRef) (enabled, stale bool) {
+	ensureIndexPersist()
+	indexCacheInst.mu.Lock()
+	defer indexCacheInst.mu.Unlock()
+	if e, ok := indexCacheInst.entries[ref.topicID]; ok && time.Now().Before(e.expires) {
+		return e.enabled, e.stale
+	}
+	return true, false
+}
+
+// recentDataCount topic 近 window 的日志总量(DescribeHistogramV1)。用于判定
+// 「停采」:仍有索引但近期无新数据。仅对有索引 topic 调用(无索引已判 disabled)。
+func (p *provider) recentDataCount(ref topicRef, window time.Duration) (int64, error) {
+	client := p.tlsClient(ref.region)
+	now := time.Now()
+	resp, err := client.DescribeHistogramV1(&tls.DescribeHistogramV1Request{
+		TopicID:   ref.topicID,
+		Query:     "*",
+		StartTime: now.Add(-window).Unix(), // Unix 秒(同 SearchLogs)
+		EndTime:   now.Unix(),
+	})
+	if err != nil {
+		return 0, err
+	}
+	if resp == nil {
+		return 0, nil
+	}
+	return resp.TotalCount, nil
+}
+
+// indexProbeAsync 后台异步探测 topic 索引与停采状态(不阻塞;未缓存且未在探才
+// 调度)。用 context.Background——索引/停采缓存是进程级预热,独立于单次请求生命周期。
+func (p *provider) indexProbeAsync(ref topicRef) {
+	ensureIndexPersist()
+	indexCacheInst.mu.Lock()
+	if _, ok := indexCacheInst.entries[ref.topicID]; ok {
+		indexCacheInst.mu.Unlock()
+		return
+	}
+	if indexCacheInst.inflight[ref.topicID] {
+		indexCacheInst.mu.Unlock()
+		return
+	}
+	indexCacheInst.inflight[ref.topicID] = true
+	indexCacheInst.mu.Unlock()
+
+	go func() {
+		indexProbeSem <- struct{}{}
+		defer func() { <-indexProbeSem }()
+		client := p.tlsClient(ref.region)
+		_, err := client.DescribeIndex(&tls.DescribeIndexRequest{TopicID: ref.topicID})
+		enabled := true
+		if err != nil && isIndexNotExists(err) {
+			enabled = false
+		}
+		stale := false
+		if enabled {
+			if total, err := p.recentDataCount(ref, staleWindow); err == nil && total == 0 {
+				stale = true
+			}
+		}
+		indexCacheInst.mu.Lock()
+		indexCacheInst.entries[ref.topicID] = indexEntry{enabled: enabled, stale: stale, expires: time.Now().Add(indexTTL)}
+		delete(indexCacheInst.inflight, ref.topicID)
+		indexCacheInst.dirty = true
+		indexCacheInst.mu.Unlock()
+	}()
+}
+
+// indexKnownDisabled 仅当缓存已确认该 topic 无索引时返回 true(不含冷探测,以免
+// 搜索/聚合冷路径被 DescribeIndex 拖慢;未知态返回 false 照常查询,由 IndexNotExists 隔离)。
+func (p *provider) indexKnownDisabled(ref topicRef) bool {
+	ensureIndexPersist()
+	indexCacheInst.mu.Lock()
+	defer indexCacheInst.mu.Unlock()
+	if e, ok := indexCacheInst.entries[ref.topicID]; ok && !e.enabled && time.Now().Before(e.expires) {
+		return true
+	}
+	return false
+}
+
+// sourceLabel 按 topic 名给源分型标签:火山 ALB 访问日志(`*_lb_access`)标 ALB,
+// 其余自采访问日志(*_https/http_access、*-nginx-access、*-gateway-access)是实例
+// nginx/gateway,不能混标 CLB——它们不是火山 CLB 产品日志。
+func sourceLabel(topicName string) string {
+	n := strings.ToLower(topicName)
+	switch {
+	case strings.Contains(n, "_lb_access"):
+		return "ALB"
+	case strings.Contains(n, "gateway"):
+		return "Gateway"
+	default:
+		return "Nginx"
+	}
+}
+
 // ListLogSources 枚举日志源:纯名字分型 + 按名去重(同名多 topic = 同一逻辑源
-// 分片/重建)。ResourceID=名字,搜索按名收敛到全部同道 topic。
+// 分片/重建)+ 检索索引标 Enabled(无索引源 Enabled=false,前端可灰度置灰)。
+// 索引探测走后台异步(indexProbeAsync):源列表即时返回(54s 冷探测由此消解),
+// 首次加载未缓存源乐观标 enabled,后台预热完成后刷新即看到真实的 false。
 func (p *provider) ListLogSources(ctx context.Context, account *domain.CloudAccount) ([]logquery.LogSource, error) {
 	refs := p.accessTopics(ctx, nil)
 	seen := make(map[string]bool, len(refs))
@@ -213,6 +378,14 @@ func (p *provider) ListLogSources(ctx context.Context, account *domain.CloudAcco
 			continue
 		}
 		seen[name] = true
+		p.indexProbeAsync(ref) // 后台预热(去重 + 限流),不阻塞返回
+		enabled, stale := p.indexInfo(ref)
+		note := "火山 TLS 访问日志"
+		if !enabled {
+			note = "该 topic 未开启检索索引,查询/聚合不可用"
+		} else if stale {
+			note = "近 7 天无新数据,可能已停采(历史可查)"
+		}
 		out = append(out, logquery.LogSource{
 			Cloud:       domain.CloudProviderVolcengine,
 			AccountID:   fmt.Sprintf("%d", p.account.ID),
@@ -220,9 +393,10 @@ func (p *provider) ListLogSources(ctx context.Context, account *domain.CloudAcco
 			Region:      ref.region,
 			LogType:     p.logType,
 			ResourceID:  name,
-			Name:        "CLB / " + name,
-			Enabled:     true,
-			Note:        "火山 TLS 访问日志(ALB/nginx/gateway)",
+			Name:        sourceLabel(name) + " / " + name,
+			Enabled:     enabled,
+			Stale:       stale,
+			Note:        note,
 		})
 	}
 	return out, nil
@@ -255,6 +429,9 @@ func (p *provider) Search(ctx context.Context, account *domain.CloudAccount, par
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
+			if p.indexKnownDisabled(tgt) {
+				return // 源清单已确认无索引:跳过,不打空请求(未知态照常查,由 IndexNotExists 隔离)
+			}
 			meta := logquery.LogMeta{
 				Cloud:       domain.CloudProviderVolcengine,
 				AccountID:   fmt.Sprintf("%d", p.account.ID),
@@ -295,6 +472,9 @@ func (p *provider) Search(ctx context.Context, account *domain.CloudAccount, par
 }
 
 // searchLogs 单 topic SearchLogs 分页拉取映射(降序,凑满 limit 即停)。
+// 注意:火山 TLS SearchLogs 的 StartTime/EndTime 单位为 Unix 秒(非毫秒,
+// SDK TestSearchLogsV2Normally 以 time.Now().Unix() 传参并断言条数可证),
+// 入参 startMs/endMs 为毫秒,须除 1000 否则窗口错位导致查询落空。
 func (p *provider) searchLogs(ctx context.Context, region, topicID string, startMs, endMs int64, query string, limit int, meta logquery.LogMeta) ([]logquery.LogEntry, error) {
 	client := p.tlsClient(region)
 	var out []logquery.LogEntry
@@ -304,8 +484,8 @@ func (p *provider) searchLogs(ctx context.Context, region, topicID string, start
 		resp, err := client.SearchLogs(&tls.SearchLogsRequest{
 			TopicID:   topicID,
 			Query:     query,
-			StartTime: startMs,
-			EndTime:   endMs,
+			StartTime: startMs / 1000,
+			EndTime:   endMs / 1000,
 			Limit:     pageSize,
 			Sort:      "desc",
 			Offset:    &offset,

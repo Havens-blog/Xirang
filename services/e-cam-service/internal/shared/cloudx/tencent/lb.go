@@ -280,7 +280,7 @@ func (a *LBAdapter) convertToLBInstance(lb *clb.LoadBalancer, region string) typ
 		LoadBalancerID:   lbID,
 		LoadBalancerName: lbName,
 		LoadBalancerType: lbType,
-		Status:           status,
+		Status:           types.NormalizeLBStatus("tencent", status),
 		Region:           region,
 		Zone:             zone,
 		SlaveZone:        slaveZone,

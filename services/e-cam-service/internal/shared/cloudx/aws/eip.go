@@ -226,7 +226,7 @@ func (a *EIPAdapter) convertToEIPInstance(addr ec2types.Address, region string) 
 		AllocationID:     allocationID,
 		IPAddress:        publicIP,
 		Name:             name,
-		Status:           status,
+		Status:           types.NormalizeEIPStatus("aws", status),
 		Region:           region,
 		Netmode:          "public",
 		InstanceID:       instanceID,

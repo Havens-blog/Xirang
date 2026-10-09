@@ -225,7 +225,13 @@ func (a *WAFAdapter) listWebACLs(ctx context.Context, client *wafv2.Client, scop
 				ProtectionMode: protectionMode,
 				WAFEnabled:     true,
 				Provider:       "aws",
-				Tags:           tags,
+				// CreationTime:AWS WAFv2 各相关接口(ListWebACLs/GetWebACL/ListTagsForResource)
+				// 均不返回 WebACL 创建时间,SDK(aws-sdk-go-v2 wafv2)亦无对应输出字段,
+				// 故留空不填;如需精确创建时间只能经 Config/CloudTrail 追溯,当前不引入额外请求。
+				CreationTime: "",
+				// Tags 来源:GetWebACL 详情不携带标签,按 ARN 调 ListTagsForResource N+1 回填
+				// (每条 WebACL 一次,成本=实例数;失败静默保持空映射),见上方 tagResp 处理。
+				Tags: tags,
 			})
 		}
 

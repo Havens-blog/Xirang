@@ -10,6 +10,7 @@
 package logquery
 
 import (
+	"encoding/json"
 	"math"
 	"slices"
 	"strconv"
@@ -19,7 +20,7 @@ import (
 	"github.com/Havens-blog/e-cam-service/internal/shared/domain"
 )
 
-// LogType 日志类型(三域分治,ADR D2)。
+// LogType 日志类型(四域分治,ADR D2)。
 type LogType string
 
 const (
@@ -27,12 +28,15 @@ const (
 	LogTypeCDN LogType = "cdn"
 	// LogTypeWAF WAF 攻击/拦截/访问日志。
 	LogTypeWAF LogType = "waf"
-	// LogTypeSLB 负载均衡访问日志。
+	// LogTypeSLB 负载均衡访问日志(ALB/ELB 产品日志)。
 	LogTypeSLB LogType = "slb"
+	// LogTypeAccess 源站访问日志(自采 nginx/gateway 实例访问日志,非负载均衡
+	// 产品日志;火山类映射复用 SLBLogEntry schema)。
+	LogTypeAccess LogType = "access"
 )
 
 // AllLogTypes 全部日志类型(注册/校验用)。
-var AllLogTypes = []LogType{LogTypeCDN, LogTypeWAF, LogTypeSLB}
+var AllLogTypes = []LogType{LogTypeCDN, LogTypeWAF, LogTypeSLB, LogTypeAccess}
 
 // IsValidLogType 校验日志类型合法值。
 func IsValidLogType(t LogType) bool {
@@ -158,6 +162,8 @@ func ParseTimeMs(v any) int64 {
 		return scaleUnixToMs(t)
 	case int:
 		return scaleUnixToMs(int64(t))
+	case json.Number: // 火山 TLS 等 SDK 用 UseNumber() 反序列化,数字以 json.Number 形态出现
+		return ParseTimeMs(t.String())
 	case float64:
 		sec := int64(t)
 		// 浮点尾数取整用四舍五入:0.800*1000 浮点表示为 799.99…,截断会丢 1ms
@@ -296,6 +302,8 @@ func toInt64(v any) int64 {
 		return int64(t)
 	case float64:
 		return int64(t)
+	case json.Number: // UseNumber() 反序列化出的数字(见 ParseTimeMs 注释)
+		return toInt64(t.String())
 	case string:
 		// "0.027" / "1,234" / "403" 等字符串数值
 		s := strings.TrimSpace(t)
@@ -312,10 +320,13 @@ func toInt64(v any) int64 {
 }
 
 // Str 宽松取字符串(数值/nil -> "";供映射层从 map[string]any 取值)。
+// json.Number 为 UseNumber() 反序列化出的数字字符串,直接还原本体。
 func Str(v any) string {
 	switch t := v.(type) {
 	case string:
 		return t
+	case json.Number:
+		return t.String()
 	case nil:
 		return ""
 	default:

@@ -85,6 +85,15 @@ func (a *COSAdapter) ListBuckets(ctx context.Context, region string) ([]types.OS
 			continue
 		}
 
+		// N+1 回填标签:Service.Get 列表响应不含标签,需逐桶 GET Bucket ?tagging。
+		// 请求数随桶数线性增长(标签为审计要求字段,故接受该成本;
+		// 客户端按桶创建、仅构造 URL 无网络开销);
+		// 无标签桶返回 404 NoSuchTagSet 属正常,失败均静默降级为空,不打断列表。
+		bucketClient := a.createBucketClient(bucket.Name, ossBucket.Region)
+		if tagResult, _, err := bucketClient.Bucket.GetTagging(ctx); err == nil {
+			ossBucket.Tags = a.mapCOSTags(tagResult.TagSet)
+		}
+
 		// 获取 bucket 统计信息（存储大小和对象数量）
 		stats, err := a.GetBucketStats(ctx, bucket.Name)
 		if err == nil && stats != nil {
@@ -146,6 +155,13 @@ func (a *COSAdapter) GetBucket(ctx context.Context, bucketName string) (*types.O
 	if err == nil && encryptResult != nil && encryptResult.Rule != nil {
 		bucket.ServerSideEncryption = encryptResult.Rule.SSEAlgorithm
 		bucket.KMSKeyID = encryptResult.Rule.KMSMasterKeyID
+	}
+
+	// 获取桶标签(与列表口径一致:无标签桶返回 404 NoSuchTagSet,
+	// 失败均静默留空,不视为错误)
+	tagResult, _, err := bucketClient.Bucket.GetTagging(ctx)
+	if err == nil {
+		bucket.Tags = a.mapCOSTags(tagResult.TagSet)
 	}
 
 	return &bucket, nil
@@ -235,9 +251,11 @@ func (a *COSAdapter) convertToOSSBucket(bucket *cos.Bucket) types.OSSBucket {
 		Region:           region,
 		Location:         region,
 		Provider:         string(domain.CloudProviderTencent),
-		StorageClass:     "STANDARD", // 默认存储类型
 		ExtranetEndpoint: fmt.Sprintf("%s.cos.%s.myqcloud.com", bucket.Name, region),
 		IntranetEndpoint: fmt.Sprintf("%s.cos.%s.myqcloud.com", bucket.Name, region),
+		// StorageClass 不填:COS 没有"桶级默认存储类型"概念(存储类型作用在
+		// 对象/生命周期规则上),列表接口(Service.Get)与详情接口均不返回该字段;
+		// 硬编码 "STANDARD" 是错误值,删去后置空,由前端显示 '-',列表与详情口径一致。
 	}
 
 	// CreationDate 是字符串类型，需要解析
@@ -248,6 +266,22 @@ func (a *COSAdapter) convertToOSSBucket(bucket *cos.Bucket) types.OSSBucket {
 	}
 
 	return ossBucket
+}
+
+// mapCOSTags 将 COS GetTagging 返回的 TagSet 规整为统一的标签 map。
+// 列表与详情共用,保证口径一致;空 Key 或无标签时返回 nil(即不填)。
+func (a *COSAdapter) mapCOSTags(tagSet []cos.BucketTaggingTag) map[string]string {
+	if len(tagSet) == 0 {
+		return nil
+	}
+	tags := make(map[string]string, len(tagSet))
+	for _, t := range tagSet {
+		if t.Key == "" {
+			continue
+		}
+		tags[t.Key] = t.Value
+	}
+	return tags
 }
 
 // 以下是为了兼容性保留的空实现

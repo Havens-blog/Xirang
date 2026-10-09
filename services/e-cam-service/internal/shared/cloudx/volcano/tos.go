@@ -62,6 +62,21 @@ func (a *TOSAdapter) ListBuckets(ctx context.Context, region string) ([]types.OS
 		return nil, fmt.Errorf("获取TOS存储桶列表失败: %w", err)
 	}
 
+	// 列表 N+1 回填(存储类型/标签)需要桶所在 region 的客户端;
+	// 按 region 惰性创建并复用,避免每桶新建客户端放大成本。
+	regionClients := map[string]*tos.ClientV2{}
+	getRegionClient := func(r string) *tos.ClientV2 {
+		if c, ok := regionClients[r]; ok {
+			return c
+		}
+		c, err := a.createClient(r)
+		if err != nil {
+			return nil
+		}
+		regionClients[r] = c
+		return c
+	}
+
 	var buckets []types.OSSBucket
 	for _, bucket := range output.Buckets {
 		ossBucket := a.convertToOSSBucket(bucket)
@@ -69,6 +84,21 @@ func (a *TOSAdapter) ListBuckets(ctx context.Context, region string) ([]types.OS
 		// 如果指定了region，只返回该region的bucket
 		if region != "" && ossBucket.Region != region {
 			continue
+		}
+
+		// N+1 回填存储类型与标签:ListBuckets 响应不含这两个字段,须逐桶调用
+		// 详情接口——HeadBucket 取存储类型、GetBucketTagging 取标签,与
+		// GetBucket 详情口径一致。每桶 2 次额外请求,请求数随桶数线性增长;
+		// 失败(无权限/未设置标签)静默降级为空,前端显示 '-',不打断列表。
+		if rc := getRegionClient(ossBucket.Region); rc != nil {
+			headOutput, err := rc.HeadBucket(ctx, &tos.HeadBucketInput{Bucket: bucket.Name})
+			if err == nil && headOutput != nil && headOutput.StorageClass != "" {
+				ossBucket.StorageClass = string(headOutput.StorageClass)
+			}
+			tagOutput, err := rc.GetBucketTagging(ctx, &tos.GetBucketTaggingInput{Bucket: bucket.Name})
+			if err == nil {
+				ossBucket.Tags = mapTOSTags(tagOutput.TagSet.Tags)
+			}
 		}
 
 		// 获取 bucket 统计信息（存储大小和对象数量）
@@ -134,6 +164,19 @@ func (a *TOSAdapter) GetBucket(ctx context.Context, bucketName string) (*types.O
 		versionOutput, err := regionClient.GetBucketVersioning(ctx, &tos.GetBucketVersioningInput{Bucket: bucketName})
 		if err == nil {
 			bucket.Versioning = string(versionOutput.Status)
+		}
+
+		// 获取存储类型(桶 HEAD 详情响应才携带 StorageClass;
+		// 与列表 N+1 同源,口径一致,拿不到保持空由前端显示 '-')
+		headOutput, err := regionClient.HeadBucket(ctx, &tos.HeadBucketInput{Bucket: bucketName})
+		if err == nil && headOutput != nil && headOutput.StorageClass != "" {
+			bucket.StorageClass = string(headOutput.StorageClass)
+		}
+
+		// 获取桶标签(与列表口径一致;未设置标签或失败均静默留空)
+		tagOutput, err := regionClient.GetBucketTagging(ctx, &tos.GetBucketTaggingInput{Bucket: bucketName})
+		if err == nil {
+			bucket.Tags = mapTOSTags(tagOutput.TagSet.Tags)
 		}
 	}
 
@@ -211,6 +254,9 @@ func (a *TOSAdapter) convertToOSSBucket(bucket tos.ListedBucket) types.OSSBucket
 		intranetEndpoint = fmt.Sprintf("%s.tos-%s.ivolces.com", bucket.Name, region)
 	}
 
+	// 返回统一结构。StorageClass 与 Tags 不在转换函数里伪造:
+	// ListBuckets 响应不含这两个字段,由 ListBuckets/GetBucket 的 N+1
+	// (HeadBucket/GetBucketTagging)同源回填,列表与详情口径一致。
 	return types.OSSBucket{
 		BucketName:       bucket.Name,
 		Region:           region,
@@ -220,6 +266,22 @@ func (a *TOSAdapter) convertToOSSBucket(bucket tos.ListedBucket) types.OSSBucket
 		IntranetEndpoint: intranetEndpoint,
 		Provider:         "volcano",
 	}
+}
+
+// mapTOSTags 将 TOS GetBucketTagging 返回的 TagSet 规整为统一的标签 map。
+// 列表与详情共用,保证口径一致;空 Key 或无标签时返回 nil(即不填)。
+func mapTOSTags(tags []tos.Tag) map[string]string {
+	if len(tags) == 0 {
+		return nil
+	}
+	m := make(map[string]string, len(tags))
+	for _, t := range tags {
+		if t.Key == "" {
+			continue
+		}
+		m[t.Key] = t.Value
+	}
+	return m
 }
 
 // convertGrantsToACL 将权限列表转换为ACL字符串

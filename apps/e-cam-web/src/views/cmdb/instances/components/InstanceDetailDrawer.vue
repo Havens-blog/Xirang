@@ -253,9 +253,10 @@
 import type { InstanceVO } from '@/api/types/cmdb';
 import IconFont from '@/components/IconFont/index.vue';
 import { getProviderLabel } from '@/utils/constants';
-import { CHARGE_TYPE_LABELS, labelOfLenient } from '@/utils/fieldLabels';
+import { CHARGE_TYPE_LABELS, ECS_STATUS_LABELS, labelOfLenient } from '@/utils/fieldLabels';
 import { ArrowDown, Close, Document, Refresh } from '@element-plus/icons-vue';
 import { ref } from 'vue';
+import { getProviderIcon } from '@/utils/icon-mapping'
 
 defineProps<{
   visible: boolean
@@ -295,37 +296,13 @@ const getStatusClass = (status: string | undefined) => {
   return map[s] || ''
 }
 
+/** 状态文案走 fieldLabels 单源 ECS_STATUS_LABELS（与主机页同口径：stopped→已关机），消除 cmdb 抽屉与主机列表文案漂移；词表已含大小写变体，未知值原样透出 */
 const getStatusText = (status: string | undefined) => {
   if (!status) return '-'
-  const s = status.toUpperCase()
-  const map: Record<string, string> = {
-    RUNNING: '运行中',
-    STOPPED: '已关机',
-    DELETED: '已删除',
-    PENDING: '创建中',
-  }
-  return map[s] || status
+  return labelOfLenient(ECS_STATUS_LABELS, status, status)
 }
 
-const getPlatformIconType = (provider: string | undefined): string => {
-  if (!provider) return 'Alibaba_Cloud'
-  const p = provider.toLowerCase()
-  if (p.includes('aliyun') || p.includes('alibaba')) return 'Alibaba_Cloud'
-  if (p.includes('tencent') || p.includes('qcloud')) return 'Tencent_Cloud'
-  if (p.includes('huawei')) return 'Huawei_Cloud'
-  if (p.includes('aws') || p.includes('amazon')) return 'AWS'
-  if (p.includes('azure') || p.includes('microsoft')) return 'Azure'
-  if (p.includes('google') || p.includes('gcp')) return 'Google_Cloud_Platform'
-  if (p.includes('volcengine') || p.includes('volc') || p.includes('bytedance') || p.includes('volcano')) return 'Bytecloud'
-  if (p.includes('ucloud')) return 'UCloud'
-  if (p.includes('jd') || p.includes('jdcloud')) return 'JDCloud'
-  if (p.includes('ecloud') || p.includes('ctyun')) return 'Ctyun'
-  if (p.includes('openstack')) return 'OpenStack'
-  if (p.includes('vmware') || p.includes('vsphere')) return 'caise-vmware'
-  if (p.includes('nutanix')) return 'Nutanix'
-  if (p.includes('zstack')) return 'ZStack'
-  return 'Alibaba_Cloud'
-}
+const getPlatformIconType = (provider?: string) => getProviderIcon(provider || '')
 
 /** 云厂商展示名统一走 utils/constants 单源（含 volcengine/bytedance 与扩展云归一） */
 const getProviderName = (provider: string | undefined): string => (provider ? getProviderLabel(provider) : '-')

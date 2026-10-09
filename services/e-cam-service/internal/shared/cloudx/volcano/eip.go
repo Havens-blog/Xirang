@@ -305,7 +305,7 @@ func (a *EIPAdapter) convertToEIPInstance(eip *vpc.EipAddressForDescribeEipAddre
 		AllocationID: allocationID,
 		IPAddress:    eipAddress,
 		Name:         name,
-		Status:       status,
+		Status:       types.NormalizeEIPStatus("volcano", status),
 		Region:       region,
 		Description:  description,
 		Bandwidth:    bandwidth,

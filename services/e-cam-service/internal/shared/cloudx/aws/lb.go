@@ -253,7 +253,7 @@ func (a *LBAdapter) convertToLBInstance(lb elbv2types.LoadBalancer, region strin
 		LoadBalancerID:   lbARN,
 		LoadBalancerName: lbName,
 		LoadBalancerType: lbType,
-		Status:           status,
+		Status:           types.NormalizeLBStatus("aws", status),
 		Region:           region,
 		Zone:             zone,
 		Address:          address,

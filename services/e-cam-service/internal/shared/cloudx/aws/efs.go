@@ -231,7 +231,8 @@ func (a *EFSAdapter) convertToNASInstance(fs *efstypes.FileSystemDescription, re
 		instance.Description = *fs.Name
 	}
 	if fs.LifeCycleState != "" {
-		instance.Status = a.convertStatus(string(fs.LifeCycleState))
+		// 状态统一走 types.NASStatus 标准化(原本地映射表已并入 types/nas.go 的 aws 分表)
+		instance.Status = types.NASStatus("aws", string(fs.LifeCycleState))
 	}
 	if fs.PerformanceMode != "" {
 		instance.FileSystemType = string(fs.PerformanceMode) // generalPurpose / maxIO
@@ -264,20 +265,4 @@ func (a *EFSAdapter) convertToNASInstance(fs *efstypes.FileSystemDescription, re
 	}
 
 	return instance
-}
-
-// convertStatus 转换状态
-func (a *EFSAdapter) convertStatus(status string) string {
-	statusMap := map[string]string{
-		"available": "running",
-		"creating":  "creating",
-		"deleting":  "deleting",
-		"deleted":   "deleted",
-		"updating":  "updating",
-		"error":     "error",
-	}
-	if s, ok := statusMap[status]; ok {
-		return s
-	}
-	return status
 }

@@ -1,4 +1,4 @@
-﻿package volcano
+package volcano
 
 import (
 "context"
@@ -170,14 +170,22 @@ func (a *KafkaAdapter) convertToKafkaInstance(inst *kafka.InstancesInfoForDescri
 instance := types.KafkaInstance{
 Region:   region,
 Provider: "volcano",
-Status:   "running",
 }
 
+// 状态走规范表 types.KafkaStatus("volcano", ...)（P0-3：原实现恒 "running"，创建/删除/异常态全部误报运行中）
+if inst.InstanceStatus != nil {
+instance.Status = types.KafkaStatus("volcano", *inst.InstanceStatus)
+} else {
+instance.Status = "unknown"
+}
 if inst.InstanceId != nil {
 instance.InstanceID = *inst.InstanceId
 }
 if inst.InstanceName != nil {
 instance.InstanceName = *inst.InstanceName
+}
+if inst.InstanceDescription != nil {
+instance.Description = *inst.InstanceDescription
 }
 if inst.Version != nil {
 instance.Version = *inst.Version
@@ -205,6 +213,26 @@ instance.CreationTime = t
 if inst.ZoneId != nil {
 instance.Zone = *inst.ZoneId
 }
+// 补充此前未映射的 SDK 已返回字段：存储类型/项目/标签/计费类型
+if inst.StorageType != nil {
+instance.DiskType = *inst.StorageType
+}
+if inst.ProjectName != nil {
+instance.ProjectName = *inst.ProjectName
+}
+if len(inst.Tags) > 0 {
+instance.Tags = volcKafkaTagsToStrings(inst.Tags)
+}
+if inst.ChargeDetail != nil {
+if inst.ChargeDetail.ChargeType != nil {
+instance.ChargeType = *inst.ChargeDetail.ChargeType
+}
+if inst.ChargeDetail.ChargeExpireTime != nil {
+if t, err := time.Parse("2006-01-02T15:04:05Z", *inst.ChargeDetail.ChargeExpireTime); err == nil {
+instance.ExpiredTime = t
+}
+}
+}
 
 return instance
 }
@@ -214,16 +242,24 @@ func (a *KafkaAdapter) convertDetailToKafkaInstance(output *kafka.DescribeInstan
 instance := types.KafkaInstance{
 Region:   region,
 Provider: "volcano",
-Status:   "running",
 }
 
 if output.BasicInstanceInfo != nil {
 info := output.BasicInstanceInfo
+// 状态走规范表 types.KafkaStatus("volcano", ...)（P0-3：原实现恒 "running"）
+if info.InstanceStatus != nil {
+instance.Status = types.KafkaStatus("volcano", *info.InstanceStatus)
+} else {
+instance.Status = "unknown"
+}
 if info.InstanceId != nil {
 instance.InstanceID = *info.InstanceId
 }
 if info.InstanceName != nil {
 instance.InstanceName = *info.InstanceName
+}
+if info.InstanceDescription != nil {
+instance.Description = *info.InstanceDescription
 }
 if info.Version != nil {
 instance.Version = *info.Version
@@ -251,7 +287,40 @@ instance.CreationTime = t
 if info.ZoneId != nil {
 instance.Zone = *info.ZoneId
 }
+// 补充此前未映射的 SDK 已返回字段：存储类型/项目/标签
+if info.StorageType != nil {
+instance.DiskType = *info.StorageType
+}
+if info.ProjectName != nil {
+instance.ProjectName = *info.ProjectName
+}
+if len(info.Tags) > 0 {
+instance.Tags = volcKafkaTagsToStrings(info.Tags)
+}
+}
+
+// 计费信息来自顶层 ChargeDetail：计费类型 + 过期时间
+if output.ChargeDetail != nil {
+if output.ChargeDetail.ChargeType != nil {
+instance.ChargeType = *output.ChargeDetail.ChargeType
+}
+if output.ChargeDetail.ChargeExpireTime != nil {
+if t, err := time.Parse("2006-01-02T15:04:05Z", *output.ChargeDetail.ChargeExpireTime); err == nil {
+instance.ExpiredTime = t
+}
+}
 }
 
 return instance
+}
+
+// volcKafkaTagsToStrings 火山 Kafka SDK 标签 map[string]*string → 统一 map[string]string
+func volcKafkaTagsToStrings(src map[string]*string) map[string]string {
+tags := make(map[string]string, len(src))
+for k, v := range src {
+if v != nil {
+tags[k] = *v
+}
+}
+return tags
 }

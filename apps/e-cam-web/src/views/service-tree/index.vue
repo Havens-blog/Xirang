@@ -577,6 +577,7 @@ import {
     Search
 } from '@element-plus/icons-vue'
 import { getProviderLabel } from '@/utils/constants'
+import { SERVICE_NODE_STATUS_LABELS, labelOfLenient } from '@/utils/fieldLabels'
 import type { ElTree } from 'element-plus'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { computed, nextTick, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
@@ -637,18 +638,10 @@ const getStatusType = (status?: string): 'success' | 'info' | 'warning' | 'dange
   return map[status] || 'info'
 }
 
-// 获取状态文本
+// 获取状态文本（词表走 fieldLabels 单源 SERVICE_NODE_STATUS_LABELS，与 BindResourceDialog 同源防漂移）
 const getStatusText = (status?: string): string => {
   if (!status) return '-'
-  const map: Record<string, string> = {
-    running: '运行中',
-    active: '活跃',
-    stopped: '已停止',
-    inactive: '未激活',
-    error: '错误',
-    terminated: '已终止'
-  }
-  return map[status] || status
+  return labelOfLenient(SERVICE_NODE_STATUS_LABELS, status, status)
 }
 
 // 选中的节点

@@ -65,6 +65,7 @@ type NASInstanceFilter struct {
 }
 
 // NASStatus NAS 状态标准化
+// 各厂商分表为大小写敏感映射(匹配厂商原始状态串), 调用方不得提前 ToLower/ToUpper
 func NASStatus(provider, status string) string {
 	statusMap := map[string]map[string]string{
 		"aliyun": {
@@ -74,16 +75,35 @@ func NASStatus(provider, status string) string {
 			"Stopped":  "stopped",
 			"Deleting": "deleting",
 		},
+		// AWS EFS LifeCycleState 原始枚举值(大小写敏感, 全部小写)
+		"aws": {
+			"available": "running",
+			"creating":  "creating",
+			"deleting":  "deleting",
+			"deleted":   "deleted",
+			"updating":  "updating",
+			"error":     "error",
+		},
 		"huawei": {
+			// 数字状态码为 SFS Turbo 接口返回形态, 与英文状态并存;
+			// 来源于 internal/shared/cloudx/huawei/sfs.go 迁移前的本地映射表
+			"100":       "creating",
+			"200":       "running",
+			"300":       "deleting",
+			"303":       "error",
+			"400":       "deleted",
 			"available": "running",
 			"creating":  "creating",
 			"deleting":  "deleting",
 			"error":     "error",
 		},
 		"tencent": {
+			// deleting/delete_failed 来源于 internal/shared/cloudx/tencent/cfs.go 迁移前的本地映射表
 			"available":     "running",
 			"creating":      "creating",
 			"create_failed": "error",
+			"deleting":      "deleting",
+			"delete_failed": "error",
 		},
 		"volcano": {
 			"Running":     "running",

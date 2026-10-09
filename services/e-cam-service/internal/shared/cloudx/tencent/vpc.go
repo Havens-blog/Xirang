@@ -252,7 +252,7 @@ func (a *VPCAdapter) convertToVPCInstance(v *vpc.Vpc, region string) types.VPCIn
 	return types.VPCInstance{
 		VPCID:          vpcID,
 		VPCName:        vpcName,
-		Status:         "Available",
+		Status:         types.NormalizeVPCStatus("tencent", "Available"), // 腾讯云 VPC 无状态字段，保持存在性语义 available
 		Region:         region,
 		CidrBlock:      cidrBlock,
 		SecondaryCidrs: secondaryCidrs,

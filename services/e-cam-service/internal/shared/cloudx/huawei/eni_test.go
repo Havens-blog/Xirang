@@ -31,6 +31,8 @@ func TestConvertToENIInstance_BasicFields(t *testing.T) {
 		Status:     model.GetPortStatusEnum().ACTIVE,
 		MacAddress: "fa:16:3e:12:34:56",
 		DeviceId:   "server-001",
+		ZoneId:     "cn-north-4a",
+		TenantId:   "tenant-001",
 		FixedIps: []model.FixedIp{
 			{IpAddress: &ipAddr, SubnetId: &subnetID},
 		},
@@ -42,7 +44,10 @@ func TestConvertToENIInstance_BasicFields(t *testing.T) {
 	assert.Equal(t, "port-test-001", result.ENIID)
 	assert.Equal(t, "web-port", result.ENIName)
 	assert.Equal(t, types.ENIStatusInUse, result.Status) // ACTIVE → in_use
+	assert.Equal(t, types.ENITypeSecondary, result.Type) // 无 binding:vif_details 时默认辅助网卡
 	assert.Equal(t, "cn-north-4", result.Region)
+	assert.Equal(t, "cn-north-4a", result.Zone)     // 可用区取自 port.zone_id
+	assert.Equal(t, "tenant-001", result.ProjectID) // 项目ID取自 tenant_id
 	assert.Equal(t, "subnet-001", result.SubnetID)
 	assert.Equal(t, "10.0.0.1", result.PrimaryPrivateIP)
 	assert.Equal(t, "fa:16:3e:12:34:56", result.MacAddress)
@@ -67,6 +72,8 @@ func TestConvertToENIInstance_EmptyFields(t *testing.T) {
 	assert.Empty(t, result.ENIName)
 	assert.Equal(t, types.ENIStatusAvailable, result.Status) // DOWN → available
 	assert.Equal(t, "cn-east-3", result.Region)
+	assert.Empty(t, result.Zone)
+	assert.Empty(t, result.ProjectID)
 	assert.Empty(t, result.PrimaryPrivateIP)
 	assert.Empty(t, result.SubnetID)
 	assert.Empty(t, result.InstanceID)
@@ -184,17 +191,21 @@ func TestConvertToENIInstance_FullPopulation(t *testing.T) {
 	ip1 := "10.1.0.1"
 	ip2 := "10.1.0.2"
 	subnet := "subnet-full"
+	primaryTrue := true
 	port := model.Port{
 		Id:         "port-full-001",
 		Name:       "full-port",
 		Status:     model.GetPortStatusEnum().ACTIVE,
 		MacAddress: "fa:16:3e:ff:ff:ff",
 		DeviceId:   "server-full",
+		ZoneId:     "cn-north-4b",
+		TenantId:   "tenant-full",
 		FixedIps: []model.FixedIp{
 			{IpAddress: &ip1, SubnetId: &subnet},
 			{IpAddress: &ip2, SubnetId: &subnet},
 		},
-		SecurityGroups: []string{"sg-full-001", "sg-full-002"},
+		SecurityGroups:    []string{"sg-full-001", "sg-full-002"},
+		BindingvifDetails: &model.BindingVifDetails{PrimaryInterface: &primaryTrue},
 	}
 
 	result := adapter.convertToENIInstance(port, "cn-north-4")
@@ -202,7 +213,10 @@ func TestConvertToENIInstance_FullPopulation(t *testing.T) {
 	assert.Equal(t, "port-full-001", result.ENIID)
 	assert.Equal(t, "full-port", result.ENIName)
 	assert.Equal(t, types.ENIStatusInUse, result.Status)
+	assert.Equal(t, types.ENITypePrimary, result.Type) // primary_interface=true → 主网卡
 	assert.Equal(t, "cn-north-4", result.Region)
+	assert.Equal(t, "cn-north-4b", result.Zone)
+	assert.Equal(t, "tenant-full", result.ProjectID)
 	assert.Equal(t, "subnet-full", result.SubnetID)
 	assert.Equal(t, "10.1.0.1", result.PrimaryPrivateIP)
 	assert.Len(t, result.PrivateIPAddresses, 2)
@@ -211,4 +225,33 @@ func TestConvertToENIInstance_FullPopulation(t *testing.T) {
 	assert.Len(t, result.SecurityGroupIDs, 2)
 	assert.NotNil(t, result.Tags)
 	assert.Equal(t, "huawei", result.Provider)
+}
+
+func TestConvertToENIInstance_NetworkIDSubnetFallback(t *testing.T) {
+	adapter := newTestENIAdapter()
+
+	// fixed_ips 为空时, 子网ID回退使用 port.network_id(华为云中子网即 network)
+	port := model.Port{
+		Id:        "port-network-fallback",
+		NetworkId: "network-001",
+	}
+
+	result := adapter.convertToENIInstance(port, "cn-north-4")
+
+	assert.Equal(t, "network-001", result.SubnetID)
+}
+
+func TestConvertToENIInstance_PrimaryInterfaceFalse(t *testing.T) {
+	adapter := newTestENIAdapter()
+
+	primaryFalse := false
+	port := model.Port{
+		Id:                "port-secondary",
+		BindingvifDetails: &model.BindingVifDetails{PrimaryInterface: &primaryFalse},
+	}
+
+	result := adapter.convertToENIInstance(port, "cn-north-4")
+
+	// primary_interface=false 明确为辅助网卡
+	assert.Equal(t, types.ENITypeSecondary, result.Type)
 }

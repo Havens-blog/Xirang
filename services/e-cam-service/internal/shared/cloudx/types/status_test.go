@@ -440,16 +440,31 @@ func TestNASStatus(t *testing.T) {
 		{"aliyun_stopped", "aliyun", "Stopped", "stopped"},
 		{"aliyun_deleting", "aliyun", "Deleting", "deleting"},
 
-		// 华为云
+		// AWS (EFS LifeCycleState, 原 aws/efs.go 本地 map 已并入)
+		{"aws_available", "aws", "available", "running"},
+		{"aws_creating", "aws", "creating", "creating"},
+		{"aws_deleting", "aws", "deleting", "deleting"},
+		{"aws_deleted", "aws", "deleted", "deleted"},
+		{"aws_updating", "aws", "updating", "updating"},
+		{"aws_error", "aws", "error", "error"},
+
+		// 华为云 (含 SFS Turbo 数字状态码, 原 huawei/sfs.go 本地 map 已并入)
 		{"huawei_available", "huawei", "available", "running"},
 		{"huawei_creating", "huawei", "creating", "creating"},
 		{"huawei_deleting", "huawei", "deleting", "deleting"},
 		{"huawei_error", "huawei", "error", "error"},
+		{"huawei_code_100", "huawei", "100", "creating"},
+		{"huawei_code_200", "huawei", "200", "running"},
+		{"huawei_code_300", "huawei", "300", "deleting"},
+		{"huawei_code_303", "huawei", "303", "error"},
+		{"huawei_code_400", "huawei", "400", "deleted"},
 
-		// 腾讯云
+		// 腾讯云 (deleting/delete_failed 原 tencent/cfs.go 本地 map 已并入)
 		{"tencent_available", "tencent", "available", "running"},
 		{"tencent_creating", "tencent", "creating", "creating"},
 		{"tencent_create_failed", "tencent", "create_failed", "error"},
+		{"tencent_deleting", "tencent", "deleting", "deleting"},
+		{"tencent_delete_failed", "tencent", "delete_failed", "error"},
 
 		// 火山引擎
 		{"volcano_running", "volcano", "Running", "running"},

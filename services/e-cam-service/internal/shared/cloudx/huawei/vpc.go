@@ -198,7 +198,7 @@ func (a *VPCAdapter) convertToVPCInstance(v model.Vpc, region string) types.VPCI
 	return types.VPCInstance{
 		VPCID:          v.Id,
 		VPCName:        v.Name,
-		Status:         status,
+		Status:         types.NormalizeVPCStatus("huawei", status),
 		Region:         region,
 		Description:    v.Description,
 		CidrBlock:      v.Cidr,

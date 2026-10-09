@@ -227,7 +227,7 @@ func (a *VSwitchAdapter) convertToVSwitchInstance(subnet ec2types.Subnet, region
 	return types.VSwitchInstance{
 		VSwitchID:        subnetID,
 		VSwitchName:      name,
-		Status:           string(subnet.State),
+		Status:           types.NormalizeVSwitchStatus("aws", string(subnet.State)),
 		Region:           region,
 		Zone:             aws.ToString(subnet.AvailabilityZone),
 		CidrBlock:        aws.ToString(subnet.CidrBlock),

@@ -267,7 +267,7 @@ func (a *VSwitchAdapter) convertToVSwitchInstance(subnet *vpc.Subnet, region str
 	return types.VSwitchInstance{
 		VSwitchID:        subnetID,
 		VSwitchName:      name,
-		Status:           "Available",
+		Status:           types.NormalizeVSwitchStatus("tencent", "Available"), // 腾讯云子网无状态字段，保持存在性语义 available
 		Region:           region,
 		Zone:             zone,
 		CidrBlock:        cidrBlock,

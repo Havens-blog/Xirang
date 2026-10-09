@@ -278,7 +278,7 @@ func (a *VSwitchAdapter) convertToVSwitchInstance(subnet *vpc.SubnetForDescribeS
 	return types.VSwitchInstance{
 		VSwitchID:        subnetID,
 		VSwitchName:      subnetName,
-		Status:           status,
+		Status:           types.NormalizeVSwitchStatus("volcano", status),
 		Region:           region,
 		Zone:             zoneID,
 		CidrBlock:        cidrBlock,
