@@ -1,0 +1,102 @@
+/**
+ * 多云统一日志查询 API(联邦实时查询,不落库)
+ */
+
+import instance from './request/service';
+import type {
+    LogAggregateRequest,
+    LogAggregateResponse,
+    LogCacheAnalyzeRequest,
+    LogCacheAnalyzeResponse,
+    LogDiagnoseRequest,
+    LogDiagnoseResponse,
+    LogSearchRequest,
+    LogSearchResponse,
+    LogSource,
+    LogTypeMeta,
+} from './types/logs';
+
+const BASE = '/cam/logs';
+
+/**
+ * 主实例拦截器返回 ResponseData<T>({code,data,msg});统一在此解包,
+ * 视图层直接拿到业务载荷(兼容拦截器直返 T 的实现变化)。
+ */
+function unwrap<T>(res: unknown): T {
+    const envelope = res as { data?: T } | null
+    if (envelope && typeof envelope === 'object' && 'data' in envelope) {
+        return envelope.data as T
+    }
+    return res as T
+}
+
+/** 日志类型与字段字典(动态列驱动) */
+export async function getLogTypesApi(): Promise<LogTypeMeta[]> {
+    const res = await instance.get<LogTypeMeta[]>({
+        url: `${BASE}/types`,
+    })
+    return unwrap<LogTypeMeta[]>(res) ?? []
+}
+
+/**
+ * 日志源清单(按云账号 fan-out,含 Enabled 状态与未开启原因)
+ * clouds: 逗号分隔(aliyun,huawei,aws,tencent)
+ */
+export async function getLogSourcesApi(params: { log_type: string; clouds?: string }): Promise<LogSource[]> {
+    const res = await instance.get<LogSource[]>({
+        url: `${BASE}/sources`,
+        params,
+    })
+    return unwrap<LogSource[]>(res) ?? []
+}
+
+/** 联邦查询(单源失败隔离,per-source 状态随响应返回);signal 用于长查询取消 */
+export async function searchLogsApi(data: LogSearchRequest, opts?: { signal?: AbortSignal }): Promise<LogSearchResponse> {
+    const res = await instance.post<LogSearchResponse>({
+        url: `${BASE}/search`,
+        data,
+        signal: opts?.signal,
+    })
+    return unwrap<LogSearchResponse>(res)
+}
+
+/**
+ * 窗口内真实聚合(趋势/总数/TopN 下推云引擎,不受采样上限约束;
+ * 不支持的源显式标注)。聚合失败由调用方降级为采样视图;signal 同查询取消。
+ */
+export async function aggregateLogsApi(data: LogAggregateRequest, opts?: { signal?: AbortSignal }): Promise<LogAggregateResponse> {
+    const res = await instance.post<LogAggregateResponse>({
+        url: `${BASE}/aggregate`,
+        data,
+        signal: opts?.signal,
+    })
+    return unwrap<LogAggregateResponse>(res)
+}
+
+/**
+ * WAF 流量诊断(手动触发:当前窗 + 前一等长窗口规则判定;仅 waf 类型,
+ * SLB/CDN 返回明确错误)。前窗不可用/判据降级不报错,由响应内
+ * prev_error / result.degraded 标注,调用方据此降级展示。
+ */
+export async function diagnoseLogsApi(data: LogDiagnoseRequest): Promise<LogDiagnoseResponse> {
+    const res = await instance.post<LogDiagnoseResponse>({
+        url: `${BASE}/diagnose`,
+        data,
+    })
+    return unwrap<LogDiagnoseResponse>(res)
+}
+
+/**
+ * CDN 缓存分析(手动触发:当前窗 5 维度组 + 前一等长窗口 1 帧聚合,规则引擎
+ * 判定双命中率/域名排行/未命中 URI/状态码分布/优化项;仅 cdn 类型,SLB/WAF
+ * 返回明确错误)。窗口 > 6h 默认拦截(confirm=false),人工确认后以 confirm=true
+ * 放行;前窗不可用/判据降级不报错,由响应内 prev_error / result.notes /
+ * dimension_notes 标注,调用方据此降级展示。
+ */
+export async function cacheAnalyzeApi(data: LogCacheAnalyzeRequest): Promise<LogCacheAnalyzeResponse> {
+    const res = await instance.post<LogCacheAnalyzeResponse>({
+        url: `${BASE}/cache-analyze`,
+        data,
+    })
+    return unwrap<LogCacheAnalyzeResponse>(res)
+}

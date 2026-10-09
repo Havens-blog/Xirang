@@ -1,0 +1,15 @@
+import { createPinia } from 'pinia'
+import piniaPluginPersistedstate from 'pinia-plugin-persistedstate'
+
+const pinia = createPinia()
+pinia.use(piniaPluginPersistedstate)
+
+export default pinia
+
+// 导出所有 store
+export { useAccountStore } from './account'
+export { useAppStore } from './app'
+export { useAssetStore } from './asset'
+export { useRecentVisitsStore } from './recentVisits'
+export { useUserStore } from './user'
+

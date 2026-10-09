@@ -1,0 +1,177 @@
+// ============================================
+// 全局样式 - 支持深色/浅色主题切换
+// ============================================
+
+@import './variables.scss';
+@import './mixins.scss';
+@import './theme-variables.scss';
+@import './element-theme.scss';
+
+// ==================== 基础重置 ====================
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html,
+body {
+  width: 100%;
+  height: 100%;
+  font-family: $font-sans;
+  font-size: $font-size-base;
+  line-height: $line-height-base;
+  color: var(--text-primary);
+  background-color: var(--bg-base);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-feature-settings: 'cv01', 'ss03';
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+#app {
+  width: 100%;
+  height: 100%;
+}
+
+// ==================== 链接样式 ====================
+a {
+  color: var(--accent-blue);
+  text-decoration: none;
+  transition: color $transition-base;
+
+  &:hover {
+    color: #828fff;
+  }
+}
+
+// ==================== 列表样式 ====================
+ul, ol {
+  list-style: none;
+}
+
+// ==================== 图片样式 ====================
+img {
+  max-width: 100%;
+  height: auto;
+  vertical-align: middle;
+}
+
+// ==================== 表格样式 ====================
+table {
+  border-collapse: collapse;
+  border-spacing: 0;
+}
+
+// ==================== 按钮重置 ====================
+button {
+  border: none;
+  outline: none;
+  background: none;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+// ==================== 输入框重置 ====================
+input, textarea {
+  outline: none;
+  border: none;
+  font-family: inherit;
+}
+
+// ==================== 滚动条样式 ====================
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: var(--scrollbar-thumb);
+  border-radius: 9999px;
+  transition: background-color 0.2s ease;
+
+  &:hover {
+    background-color: var(--scrollbar-thumb-hover);
+  }
+}
+
+::-webkit-scrollbar-track {
+  background-color: var(--scrollbar-track);
+}
+
+// ==================== 工具类 ====================
+.text-center { text-align: center; }
+.text-left { text-align: left; }
+.text-right { text-align: right; }
+
+.flex-center { @include flex-center; }
+.flex-between { @include flex-between; }
+.flex-start { @include flex-start; }
+.flex-end { @include flex-end; }
+
+.ellipsis { @include ellipsis; }
+
+// ==================== 间距工具类 ====================
+@each $size in (xs, sm, md, lg, xl) {
+  .m-#{$size} { margin: var(--spacing-#{$size}); }
+  .mt-#{$size} { margin-top: var(--spacing-#{$size}); }
+  .mr-#{$size} { margin-right: var(--spacing-#{$size}); }
+  .mb-#{$size} { margin-bottom: var(--spacing-#{$size}); }
+  .ml-#{$size} { margin-left: var(--spacing-#{$size}); }
+  .p-#{$size} { padding: var(--spacing-#{$size}); }
+  .pt-#{$size} { padding-top: var(--spacing-#{$size}); }
+  .pr-#{$size} { padding-right: var(--spacing-#{$size}); }
+  .pb-#{$size} { padding-bottom: var(--spacing-#{$size}); }
+  .pl-#{$size} { padding-left: var(--spacing-#{$size}); }
+}
+
+// ==================== 页面容器 ====================
+.page-container {
+  padding: $spacing-lg;
+  min-height: 100%;
+}
+
+// ==================== 玻璃卡片容器 ====================
+.card-container {
+  background: var(--glass-bg);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--glass-border);
+  border-radius: 12px;
+  padding: $spacing-lg;
+  margin-bottom: $spacing-md;
+  transition: background-color 0.3s ease, border-color 0.3s ease;
+}
+
+// ==================== 加载状态 ====================
+.loading-container {
+  @include flex-center;
+  min-height: 200px;
+  color: var(--text-secondary);
+}
+
+// ==================== 空状态 ====================
+.empty-container {
+  @include flex-center;
+  flex-direction: column;
+  min-height: 300px;
+  color: var(--text-tertiary);
+}
+
+// ==================== 错误状态 ====================
+.error-container {
+  @include flex-center;
+  flex-direction: column;
+  min-height: 300px;
+  color: var(--accent-red);
+}
+
+// ==================== 响应式布局 ====================
+@include respond-to('mobile') {
+  .page-container {
+    padding: $spacing-md;
+  }
+}
+
+// 导入页面级主题样式
+@import './pages-dark.scss';

@@ -1,0 +1,738 @@
+import type { RouteRecordRaw } from 'vue-router'
+
+/**
+ * 路由配置
+ * 使用 base: '/cam/' 配置，所以路由路径不需要 /cam 前缀
+ * 使用懒加载优化首屏加载性能
+ */
+const routes: RouteRecordRaw[] = [
+    {
+        path: '/',
+        component: () => import('@/layouts/MainLayout.vue'),
+        redirect: '/dashboard',
+        children: [
+            {
+                path: '/dashboard',
+                name: 'Dashboard',
+                component: () => import('@/views/dashboard/index.vue'),
+                meta: {
+                    title: '多云概览',
+                    icon: 'monitor-dashboard',
+                },
+            },
+            {
+                path: '/topology',
+                name: 'Topology',
+                component: () => import('@/views/topology/index.vue'),
+                meta: {
+                    title: '资源拓扑',
+                    icon: 'Share',
+                },
+            },
+            {
+                path: '/accounts',
+                name: 'Accounts',
+                component: () => import('@/views/accounts/index.vue'),
+                meta: {
+                    title: '云账号管理',
+                    icon: 'ops-oneterm-asset-management',
+                },
+            },
+            // TODO(audit A-H1/A-H2): 移除 /accounts/create 与 /accounts/:id/edit 两条死路由。
+            // form.vue 模板根节点为裸 <el-form>，无提交/取消入口，也不读取 route.params.id，
+            // 独立路由页访问时既不能提交也不能取消，编辑路由会渲染成新建表单。
+            // 云账号的新增/编辑已统一由 accounts/index.vue 对话框承载（见 docs/features/
+            // ecam-web-ui-audit/reports/audit-accounts-topology-tasks.md 第六节 A-H2）。
+            // 若未来恢复独立页，需为 form.vue 补页面级操作栏并接入路由参数加载。
+            {
+                path: '/assets',
+                name: 'Assets',
+                component: () => import('@/views/assets/index.vue'),
+                meta: {
+                    title: '资产管理',
+                    icon: 'caise-public_cloud',
+                },
+            },
+            {
+                path: '/assets/instances/:uid',
+                name: 'AssetInstances',
+                component: () => import('@/views/cmdb/instances/index.vue'),
+                meta: {
+                    title: '资产实例',
+                    icon: 'Box',
+                    hideInMenu: true,
+                },
+            },
+            {
+                path: '/assets/:id',
+                name: 'AssetDetail',
+                component: () => import('@/views/assets/detail.vue'),
+                meta: {
+                    title: '资产详情',
+                    icon: 'Document',
+                    hideInMenu: true,
+                },
+            },
+            {
+                path: '/cost',
+                name: 'Cost',
+                component: () => import('@/views/cost/index.vue'),
+                meta: {
+                    title: '成本分析',
+                    icon: 'monitor-healing',
+                },
+            },
+            {
+                path: '/tasks',
+                name: 'Tasks',
+                component: () => import('@/views/tasks/index.vue'),
+                meta: {
+                    title: '任务管理',
+                    icon: 'quick_commands',
+                },
+            },
+            {
+                path: '/tasks/:id',
+                name: 'TaskDetail',
+                component: () => import('@/views/tasks/detail.vue'),
+                meta: {
+                    title: '任务详情',
+                    icon: 'Document',
+                    hideInMenu: true,
+                },
+            },
+            // ==================== IAM 管理路由 ====================
+            {
+                path: '/iam',
+                redirect: '/iam/users',
+            },
+            {
+                path: '/iam/users',
+                name: 'IAMUsers',
+                component: () => import('@/views/iam/users/index.vue'),
+                meta: {
+                    title: '用户管理',
+                    icon: 'ops-oneterm-authorization',
+                },
+            },
+            {
+                path: '/iam/users/:id',
+                name: 'IAMUserDetail',
+                component: () => import('@/views/iam/users/detail.vue'),
+                meta: {
+                    title: '用户详情',
+                    icon: 'Document',
+                    hideInMenu: true,
+                },
+            },
+            {
+                path: '/iam/groups',
+                name: 'IAMGroups',
+                component: () => import('@/views/iam/groups/index.vue'),
+                meta: {
+                    title: '用户组管理',
+                    icon: 'ops-oneterm-access_period',
+                },
+            },
+            {
+                path: '/iam/groups/:id',
+                name: 'IAMGroupDetail',
+                component: () => import('@/views/iam/groups/detail.vue'),
+                meta: {
+                    title: '用户组详情',
+                    icon: 'Document',
+                    hideInMenu: true,
+                },
+            },
+            {
+                path: '/iam/templates',
+                name: 'IAMTemplates',
+                component: () => import('@/views/iam/templates/index.vue'),
+                meta: {
+                    title: '策略模板管理',
+                    icon: 'file',
+                },
+            },
+            {
+                path: '/iam/templates/:id',
+                name: 'IAMTemplateDetail',
+                component: () => import('@/views/iam/templates/detail.vue'),
+                meta: {
+                    title: '模板详情',
+                    icon: 'Document',
+                    hideInMenu: true,
+                },
+            },
+            {
+                path: '/iam/audit',
+                name: 'IAMAudit',
+                component: () => import('@/views/iam/audit/index.vue'),
+                meta: {
+                    title: '审计日志',
+                    icon: 'ops-oneterm-file_log',
+                },
+            },
+            {
+                path: '/iam/sync',
+                name: 'IAMSync',
+                component: () => import('@/views/iam/sync/index.vue'),
+                meta: {
+                    title: '同步任务',
+                    icon: 'oneterm-batch_execution',
+                },
+            },
+            {
+                path: '/iam/sync/:id',
+                name: 'IAMSyncDetail',
+                component: () => import('@/views/iam/sync/detail.vue'),
+                meta: {
+                    title: '任务详情',
+                    icon: 'Document',
+                    hideInMenu: true,
+                },
+            },
+            {
+                path: '/iam/compare',
+                name: 'IAMCompare',
+                component: () => import('@/views/iam/compare/index.vue'),
+                meta: {
+                    title: 'IAM 对比',
+                    icon: 'DataAnalysis',
+                },
+            },
+            // ==================== CMDB 管理路由 ====================
+            {
+                path: '/cmdb',
+                redirect: '/cmdb/models',
+            },
+            {
+                path: '/cmdb/models',
+                name: 'CmdbModels',
+                component: () => import('@/views/cmdb/models/index.vue'),
+                meta: {
+                    title: '资源模型',
+                    icon: 'Grid',
+                },
+            },
+            {
+                path: '/cmdb/instances',
+                name: 'CmdbInstances',
+                component: () => import('@/views/cmdb/instances/index.vue'),
+                meta: {
+                    title: '资源实例',
+                    icon: 'Box',
+                },
+            },
+            {
+                path: '/cmdb/relations',
+                name: 'CmdbRelations',
+                component: () => import('@/views/cmdb/relations/index.vue'),
+                meta: {
+                    title: '模型关系',
+                    icon: 'Connection',
+                },
+            },
+            {
+                path: '/cmdb/topology',
+                name: 'CmdbTopology',
+                component: () => import('@/views/cmdb/topology/index.vue'),
+                meta: {
+                    title: '拓扑视图',
+                    icon: 'Share',
+                },
+            },
+            // ==================== 服务树路由 ====================
+            {
+                path: '/service-tree',
+                name: 'ServiceTree',
+                component: () => import('@/views/service-tree/index.vue'),
+                meta: {
+                    title: '服务树',
+                    icon: 'Connection',
+                },
+            },
+            {
+                path: '/service-tree/environments',
+                name: 'ServiceTreeEnvironments',
+                component: () => import('@/views/service-tree/environments/index.vue'),
+                meta: {
+                    title: '环境管理',
+                    icon: 'Setting',
+                },
+            },
+            {
+                path: '/service-tree/rules',
+                name: 'ServiceTreeRules',
+                component: () => import('@/views/service-tree/rules/index.vue'),
+                meta: {
+                    title: '绑定规则',
+                    icon: 'List',
+                },
+            },
+            // ==================== 数据库管理路由 ====================
+            {
+                path: '/databases',
+                redirect: '/databases/rds',
+            },
+            {
+                path: '/databases/rds',
+                name: 'DatabasesRDS',
+                component: () => import('@/views/databases/rds/index.vue'),
+                meta: {
+                    title: 'RDS 云数据库',
+                    icon: 'Coin',
+                },
+            },
+            {
+                path: '/databases/redis',
+                name: 'DatabasesRedis',
+                component: () => import('@/views/databases/redis/index.vue'),
+                meta: {
+                    title: 'Redis 云数据库',
+                    icon: 'Coin',
+                },
+            },
+            {
+                path: '/databases/mongodb',
+                name: 'DatabasesMongoDB',
+                component: () => import('@/views/databases/mongodb/index.vue'),
+                meta: {
+                    title: 'MongoDB 云数据库',
+                    icon: 'Coin',
+                },
+            },
+            // ==================== ECS 虚拟机路由 ====================
+
+            {
+                path: '/compute/ecs',
+                name: 'ComputeECS',
+                component: () => import('@/views/compute/ecs/index.vue'),
+                meta: {
+                    title: '虚拟机',
+                    icon: 'Monitor',
+                },
+            },
+            {
+                path: '/compute/disk',
+                name: 'ComputeDisk',
+                component: () => import('@/views/compute/disk/index.vue'),
+                meta: {
+                    title: '云盘',
+                    icon: 'Coin',
+                },
+            },
+            {
+                path: '/compute/snapshot',
+                name: 'ComputeSnapshot',
+                component: () => import('@/views/compute/snapshot/index.vue'),
+                meta: {
+                    title: '快照',
+                    icon: 'Camera',
+                },
+            },
+            {
+                path: '/compute/security-group',
+                name: 'ComputeSecurityGroup',
+                component: () => import('@/views/compute/security-group/index.vue'),
+                meta: {
+                    title: '安全组',
+                    icon: 'Lock',
+                },
+            },
+            // ==================== 镜像管理路由 ====================
+            {
+                path: '/compute/image',
+                name: 'ComputeImage',
+                component: () => import('@/views/compute/image/index.vue'),
+                meta: {
+                    title: '镜像管理',
+                    icon: 'Picture',
+                },
+            },
+            // ==================== 主机模板与创建路由 ====================
+            {
+                path: '/compute/template',
+                name: 'ComputeTemplate',
+                component: () => import('@/views/compute/template/index.vue'),
+                meta: {
+                    title: '主机模板',
+                    icon: 'DocumentCopy',
+                },
+            },
+            {
+                path: '/compute/template/create',
+                name: 'ComputeProvision',
+                component: () => import('@/views/compute/provision/index.vue'),
+                meta: {
+                    title: '直接创建云主机',
+                    icon: 'Monitor',
+                    hideInMenu: true,
+                },
+            },
+            // ==================== 告警中心路由 ====================
+            {
+                path: '/alert',
+                redirect: '/alert/events',
+            },
+            {
+                path: '/alert/events',
+                name: 'AlertEvents',
+                component: () => import('@/views/alert/events/index.vue'),
+                meta: {
+                    title: '告警事件',
+                    icon: 'Bell',
+                },
+            },
+            {
+                path: '/alert/rules',
+                name: 'AlertRules',
+                component: () => import('@/views/alert/rules/index.vue'),
+                meta: {
+                    title: '告警规则',
+                    icon: 'List',
+                },
+            },
+            {
+                path: '/alert/channels',
+                name: 'AlertChannels',
+                component: () => import('@/views/alert/channels/index.vue'),
+                meta: {
+                    title: '通知渠道',
+                    icon: 'ChatDotRound',
+                },
+            },
+            // ==================== 审计日志路由 ====================
+            {
+                path: '/audit',
+                redirect: '/audit/logs',
+            },
+            {
+                path: '/audit/logs',
+                name: 'AuditLogs',
+                component: () => import('@/views/audit/logs/index.vue'),
+                meta: {
+                    title: '审计日志',
+                    icon: 'Document',
+                },
+            },
+            {
+                path: '/audit/changes',
+                name: 'AuditChanges',
+                component: () => import('@/views/audit/changes/index.vue'),
+                meta: {
+                    title: '资产变更历史',
+                    icon: 'List',
+                },
+            },
+            // ==================== 数据字典路由 ====================
+            {
+                path: '/system/dictionary',
+                name: 'DataDictionary',
+                component: () => import('@/views/system/dictionary/index.vue'),
+                meta: {
+                    title: '数据字典',
+                    icon: 'List',
+                },
+            },
+            // ==================== 网络管理路由 ====================
+            {
+                path: '/network/vpc',
+                name: 'VPC',
+                component: () => import('@/views/network/vpc/index.vue'),
+                meta: {
+                    title: 'VPC',
+                    icon: 'Connection',
+                },
+            },
+            {
+                path: '/network/eip',
+                name: 'EIP',
+                component: () => import('@/views/network/eip/index.vue'),
+                meta: {
+                    title: '弹性公网IP',
+                    icon: 'Position',
+                },
+            },
+            {
+                path: '/network/vswitch',
+                name: 'VSwitch',
+                component: () => import('@/views/network/vswitch/index.vue'),
+                meta: {
+                    title: '交换机',
+                    icon: 'Share',
+                },
+            },
+            {
+                path: '/network/lb',
+                name: 'LoadBalancer',
+                component: () => import('@/views/network/lb/index.vue'),
+                meta: {
+                    title: '负载均衡',
+                    icon: 'SetUp',
+                },
+            },
+            {
+                path: '/network/cdn',
+                name: 'CDN',
+                component: () => import('@/views/network/cdn/index.vue'),
+                meta: {
+                    title: 'CDN 加速',
+                    icon: 'Promotion',
+                },
+            },
+            {
+                path: '/network/waf',
+                name: 'WAF',
+                component: () => import('@/views/network/waf/index.vue'),
+                meta: {
+                    title: 'WAF 防火墙',
+                    icon: 'Shield',
+                },
+            },
+            {
+                path: '/network/eni',
+                name: 'ENI',
+                component: () => import('@/views/network/eni/index.vue'),
+                meta: {
+                    title: '弹性网卡',
+                    icon: 'Connection',
+                },
+            },
+            {
+                path: '/network/dns',
+                name: 'DnsManagement',
+                component: () => import('@/views/network/dns/index.vue'),
+                meta: {
+                    title: 'DNS 管理',
+                    icon: 'Connection',
+                },
+            },
+            {
+                path: '/network/dns/:domain/records',
+                name: 'DnsRecords',
+                component: () => import('@/views/network/dns/records.vue'),
+                meta: {
+                    title: '解析记录',
+                    hideInMenu: true,
+                },
+            },
+            // ==================== 存储管理路由 ====================
+            {
+                path: '/storage/nas',
+                name: 'NAS',
+                component: () => import('@/views/storage/nas/index.vue'),
+                meta: {
+                    title: '文件存储 NAS',
+                    icon: 'FolderOpened',
+                },
+            },
+            {
+                path: '/storage/oss',
+                name: 'OSS',
+                component: () => import('@/views/storage/oss/index.vue'),
+                meta: {
+                    title: '对象存储 OSS',
+                    icon: 'Folder',
+                },
+            },
+            // ==================== 中间件管理路由 ====================
+            {
+                path: '/middleware/kafka',
+                name: 'Kafka',
+                component: () => import('@/views/middleware/kafka/index.vue'),
+                meta: {
+                    title: 'Kafka 消息队列',
+                    icon: 'Message',
+                },
+            },
+            {
+                path: '/middleware/elasticsearch',
+                name: 'Elasticsearch',
+                component: () => import('@/views/middleware/elasticsearch/index.vue'),
+                meta: {
+                    title: 'Elasticsearch',
+                    icon: 'Search',
+                },
+            },
+            // ==================== 标签管理路由 ====================
+            {
+                path: '/resource/tags',
+                name: 'ResourceTags',
+                component: () => import('@/views/resource/tag/index.vue'),
+                meta: {
+                    title: '标签管理',
+                    icon: 'PriceTag',
+                },
+            },
+            // ==================== FinOps 成本管理路由 ====================
+            {
+                path: '/finops',
+                redirect: '/finops/cost',
+            },
+            {
+                path: '/finops/cost',
+                name: 'FinOpsCost',
+                component: () => import('@/views/cam/cost/index.vue'),
+                meta: {
+                    title: 'FinOps 成本概览',
+                    icon: 'monitor-healing',
+                },
+            },
+            {
+                path: '/finops/budget',
+                name: 'FinOpsBudget',
+                component: () => import('@/views/cam/budget/index.vue'),
+                meta: {
+                    title: '预算管理',
+                    icon: 'monitor-healing',
+                },
+            },
+            {
+                path: '/finops/allocation',
+                name: 'FinOpsAllocation',
+                component: () => import('@/views/cam/allocation/index.vue'),
+                meta: {
+                    title: '成本分摊',
+                    icon: 'monitor-healing',
+                },
+            },
+            {
+                path: '/finops/anomaly',
+                name: 'FinOpsAnomaly',
+                component: () => import('@/views/cam/cost/anomaly.vue'),
+                meta: {
+                    title: '异常与优化',
+                    icon: 'monitor-healing',
+                },
+            },
+            {
+                path: '/finops/collect',
+                name: 'FinOpsCollect',
+                component: () => import('@/views/cam/collect/index.vue'),
+                meta: {
+                    title: '采集管理',
+                    icon: 'monitor-healing',
+                },
+            },
+            // ==================== 证书管理路由（任务 6.1 脚手架，页面为占位，6.2-6.6 填充）====================
+            // 只读角色可见性：/certs/dashboard 与 /certs/:id 开放；
+            // 台账/变更管理（含子路由）/配置标记 certManageOnly，由守卫拦截。
+            // 路由排序静态段在前（vue-router 4 评分静态段高于动态参数，此处仅为可读性）。
+            {
+                path: '/certs',
+                name: 'CertLedger',
+                component: () => import('@/views/cert/ledger/index.vue'),
+                meta: {
+                    title: '证书台账',
+                    icon: 'Lock',
+                    certManageOnly: true,
+                },
+            },
+            {
+                path: '/certs/dashboard',
+                name: 'CertDashboard',
+                component: () => import('@/views/cert/dashboard/index.vue'),
+                meta: {
+                    title: '到期看板',
+                    icon: 'Bell',
+                },
+            },
+            {
+                path: '/certs/probes',
+                name: 'CertProbes',
+                component: () => import('@/views/cert/probes/index.vue'),
+                meta: {
+                    title: '探测结果',
+                    icon: 'Aim',
+                },
+            },
+            {
+                path: '/certs/changes',
+                name: 'CertChanges',
+                component: () => import('@/views/cert/changes/index.vue'),
+                meta: {
+                    title: '变更管理',
+                    icon: 'Connection',
+                    certManageOnly: true,
+                },
+            },
+            {
+                path: '/certs/changes/new',
+                name: 'CertChangeWizard',
+                component: () => import('@/views/cert/changes/new/index.vue'),
+                meta: {
+                    title: '新建变更',
+                    icon: 'Edit',
+                    hideInMenu: true,
+                    certManageOnly: true,
+                },
+            },
+            {
+                path: '/certs/changes/:id',
+                name: 'CertChangeReport',
+                component: () => import('@/views/cert/changes/detail/index.vue'),
+                meta: {
+                    title: '变更报告',
+                    icon: 'Document',
+                    hideInMenu: true,
+                    certManageOnly: true,
+                },
+            },
+            {
+                path: '/certs/:id',
+                name: 'CertDetail',
+                component: () => import('@/views/cert/detail/index.vue'),
+                meta: {
+                    title: '证书详情',
+                    icon: 'Document',
+                    hideInMenu: true,
+                },
+            },
+            {
+                path: '/certs/settings',
+                name: 'CertSettings',
+                component: () => import('@/views/cert/settings/index.vue'),
+                meta: {
+                    title: '证书配置',
+                    icon: 'Setting',
+                    hideInMenu: true,
+                    certManageOnly: true,
+                },
+            },
+            // ==================== 多云统一日志查询(Phase 5)====================
+            // 只读特性:全角色可查,租户边界由后端 RequireTenant 承接。
+            {
+                path: '/logs',
+                name: 'CloudLogs',
+                component: () => import('@/views/logs/index.vue'),
+                meta: {
+                    title: '日志查询',
+                    icon: 'Document',
+                },
+            },
+            // ==================== 内部 UI Kit 组件示例（ui-unify-phase2-components 任务 8）====================
+            // 迁移样板 + 双主题验收靶场：不进侧栏菜单，直接输 URL 访问。
+            {
+                path: '/dev/ui-kit',
+                name: 'DevUiKit',
+                component: () => import('@/views/dev/ui-kit/index.vue'),
+                meta: {
+                    title: 'UI Kit 组件示例',
+                    icon: 'Grid',
+                    hideInMenu: true,
+                },
+            },
+        ],
+    },
+    {
+        path: '/:pathMatch(.*)*',
+        name: 'NotFound',
+        component: () => import('@/views/error/404.vue'),
+        meta: {
+            title: '页面不存在',
+            hideInMenu: true,
+        },
+    },
+]
+
+export default routes
