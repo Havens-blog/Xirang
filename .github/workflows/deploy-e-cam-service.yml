@@ -1,0 +1,79 @@
+name: Deploy e-cam-service
+
+# 迁自模块原 .github/workflows/deploy.yml（单仓化后嵌套工作流惰性，搬至根级按路径触发）
+# 触发：services/e-cam-service 有变更推 main，或手动派发。
+# 依赖 secrets（Xirang 仓库 Settings 配置，见 6.6/7.x 记录）：
+#   ALIYUN_REGISTRY_USER / ALIYUN_REGISTRY_PASSWORD（registry.cn-shenzhen.aliyuncs.com）
+#   DEPLOY_HOST / DEPLOY_USER / DEPLOY_SSH_KEY / DEPLOY_DIR(可选)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'services/e-cam-service/**'
+  workflow_dispatch:
+
+env:
+  REGISTRY: registry.cn-shenzhen.aliyuncs.com
+  IMAGE: registry.cn-shenzhen.aliyuncs.com/havenblog/e-cam
+
+concurrency:
+  group: deploy-e-cam-service-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-deploy:
+    name: Build & Deploy
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # 未配置 secrets 时优雅跳过（新仓首跑不至于全红），配置后同一流水线即生效
+      - name: Secrets 预检
+        id: precheck
+        shell: bash
+        run: |
+          if [ -n "${{ secrets.ALIYUN_REGISTRY_USER }}" ] && [ -n "${{ secrets.ALIYUN_REGISTRY_PASSWORD }}" ]; then
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::Xirang 尚未配置 ALIYUN_REGISTRY_USER/PASSWORD，本次跳过构建部署，配置后自动生效"
+          fi
+
+      - name: Login to Aliyun Registry
+        if: steps.precheck.outputs.ready == 'true'
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ secrets.ALIYUN_REGISTRY_USER }}
+          password: ${{ secrets.ALIYUN_REGISTRY_PASSWORD }}
+
+      - name: Set up Docker Buildx
+        if: steps.precheck.outputs.ready == 'true'
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and Push
+        if: steps.precheck.outputs.ready == 'true'
+        uses: docker/build-push-action@v5
+        with:
+          context: services/e-cam-service
+          file: services/e-cam-service/deploy/Dockerfile
+          push: true
+          tags: |
+            ${{ env.IMAGE }}:latest
+            ${{ env.IMAGE }}:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Deploy to Server
+        if: steps.precheck.outputs.ready == 'true'
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          script: |
+            docker pull ${{ env.IMAGE }}:latest
+            cd ${{ secrets.DEPLOY_DIR || '/opt/ecmdb/deploy' }}
+            docker compose up -d e-cam-service

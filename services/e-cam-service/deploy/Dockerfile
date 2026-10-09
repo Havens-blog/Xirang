@@ -2,7 +2,9 @@
 # 构建方式: docker build -f deploy/Dockerfile -t e-cam-service:1.0 .
 
 # 构建阶段
-FROM golang:1.24.1-alpine AS builder
+# 1.26.9 golang 与 eiam 最新行的 go/toolchain 档位一致，
+# 避免 1.24.1 遇到 go>=1.26 模块声明（e-iam v0.0.27）触发 GOTOOLCHAIN 自动下载链
+FROM golang:1.26.9-alpine AS builder
 
 # 安装必要工具
 RUN apk add --no-cache git make
