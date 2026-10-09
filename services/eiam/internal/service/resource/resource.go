@@ -1,0 +1,154 @@
+package resource
+
+import (
+	"context"
+
+	"github.com/Havens-blog/e-iam/internal/domain"
+	"github.com/Havens-blog/e-iam/internal/errs"
+	"github.com/Havens-blog/e-iam/internal/repository"
+	"github.com/Havens-blog/e-iam/pkg/sorter"
+	"github.com/samber/lo"
+)
+
+// IResourceService 物理资源管理服务
+// 负责维护系统中全量物理资产 (API, Menu) 的元数据底数
+//
+//go:generate mockgen -package=resourcemocks -destination=./mocks/resource.mock.go github.com/Havens-blog/e-iam/internal/service/resource IResourceService
+type IResourceService interface {
+	// --- 1. 资产发现与检索 (Assets Discovery) ---
+
+	// CreateAPI 注册一个新的物理接口资产
+	CreateAPI(ctx context.Context, a domain.API) (int64, error)
+	// FindAPIByPath 根据物理路径查找指定 API 资产
+	FindAPIByPath(ctx context.Context, service, method, path string) (domain.API, error)
+
+	// --- 2. 菜单层级管理 (Hierarchy Management) ---
+
+	// SyncMenus 高性能同步菜单树状资产 (通常用于启动初始化)
+	SyncMenus(ctx context.Context, menus domain.MenuTree) error
+	// ListAllMenus 获取系统中注册的所有全量菜单
+	ListAllMenus(ctx context.Context) ([]domain.Menu, error)
+	// ReorderMenu 菜单重排序：将 id 移动至 targetPid 下的 targetPosition 位置 (0-based)
+	ReorderMenu(ctx context.Context, id, targetPid, targetPosition int64) error
+
+	// --- 3. 服务目录管理 (Service Catalog) ---
+
+	// BatchRegisterServices 批量注册或更新服务元数据
+	BatchRegisterServices(ctx context.Context, services []domain.Service) error
+	// ListServices 获取所有已登记的服务
+	ListServices(ctx context.Context) ([]domain.Service, error)
+	// GetServiceByCode 获取特定服务详情
+	GetServiceByCode(ctx context.Context, code string) (domain.Service, error)
+}
+
+type resourceService struct {
+	repo    repository.IResourceRepository
+	svcRepo repository.IServiceRepository
+}
+
+func NewResourceService(repo repository.IResourceRepository, svcRepo repository.IServiceRepository) IResourceService {
+	return &resourceService{
+		repo:    repo,
+		svcRepo: svcRepo,
+	}
+}
+
+func (s *resourceService) CreateAPI(ctx context.Context, a domain.API) (int64, error) {
+	return s.repo.CreateAPI(ctx, a)
+}
+
+func (s *resourceService) FindAPIByPath(ctx context.Context, service, method, path string) (domain.API, error) {
+	return s.repo.FindAPIByPath(ctx, service, method, path)
+}
+
+func (s *resourceService) SyncMenus(ctx context.Context, menus domain.MenuTree) error {
+	return s.repo.SyncMenus(ctx, menus.Flatten())
+}
+
+func (s *resourceService) ListAllMenus(ctx context.Context) ([]domain.Menu, error) {
+	return s.repo.ListAllMenus(ctx)
+}
+
+// ReorderMenu 菜单重排序：实现跨节点拖拽与稀疏索引重新分配
+func (s *resourceService) ReorderMenu(ctx context.Context, id, targetPid, targetPosition int64) error {
+	// 0. 安全防线：禁止将自己设为自己的父节点
+	if id == targetPid {
+		return errs.ErrMenuSelfParent
+	}
+
+	// 1. 实体状态：获取被拖拽菜单的逻辑关系
+	draggedMenu, err := s.repo.GetMenu(ctx, id)
+	if err != nil {
+		return err
+	}
+
+	// 2. 拓扑防环：跨节点移动且目标父节点非根时，必须防止移入自身子孙节点导致形成死环
+	if targetPid > 0 && targetPid != draggedMenu.ParentID {
+		if err := s.checkCycle(ctx, id, targetPid); err != nil {
+			return err
+		}
+	}
+
+	// 3. 环境上下文：拉取目标组内所有现有菜单
+	targetMenus, err := s.repo.ListMenusByParentID(ctx, targetPid)
+	if err != nil {
+		return err
+	}
+
+	draggedMenu.ParentID = targetPid
+
+	// 4. 计算排程：利用全新无状态 sorter 引擎执行空间插值与重排计算
+	plan := sorter.Reorder(targetMenus, id, targetPosition)
+
+	// 5. 原地拖拽短路：若位置未发生改变且父节点未变，直接短路返回，0 次数据库写操作
+	if plan.Unchanged && targetPid == draggedMenu.ParentID {
+		return nil
+	}
+
+	// 6. 执行更新：基于计算出的计划选择最优落库策略
+	if plan.NeedRebalance {
+		updatedMenus := lo.Map(plan.Items, func(item sorter.Item, _ int) domain.Menu {
+			return domain.Menu{
+				ID:       item.ID,
+				ParentID: targetPid,
+				Sort:     item.SortKey,
+			}
+		})
+		return s.repo.BatchUpdateMenuSort(ctx, updatedMenus)
+	}
+
+	// 快速路径：原子级别更新父节点归属与排序分值
+	return s.repo.UpdateMenuSort(ctx, id, targetPid, plan.NewSortKey)
+}
+
+// checkCycle 向上回溯父节点链路，确保 targetPid 不是 id 自身或其后代节点
+func (s *resourceService) checkCycle(ctx context.Context, id, targetPid int64) error {
+	currentPid := targetPid
+	// 限制最大遍历深度，防止库中既有脏数据造成死循环
+	for depth := 0; depth < 100; depth++ {
+		if currentPid == 0 {
+			return nil
+		}
+		if currentPid == id {
+			return errs.ErrMenuCycleParent
+		}
+		parent, err := s.repo.GetMenu(ctx, currentPid)
+		if err != nil {
+			return err
+		}
+		currentPid = parent.ParentID
+	}
+	return errs.ErrMenuCycleParent
+}
+
+func (s *resourceService) BatchRegisterServices(ctx context.Context, services []domain.Service) error {
+	return s.svcRepo.BatchSave(ctx, services)
+}
+
+func (s *resourceService) ListServices(ctx context.Context) ([]domain.Service, error) {
+	return s.svcRepo.ListAll(ctx)
+}
+
+func (s *resourceService) GetServiceByCode(ctx context.Context, code string) (domain.Service, error) {
+	return s.svcRepo.GetByCode(ctx, code)
+}

@@ -1,0 +1,148 @@
+package policy
+
+import "github.com/Havens-blog/e-iam/pkg/pbac"
+
+type CreatePolicyReq struct {
+	Name      string      `json:"name"`
+	Code      string      `json:"code"`
+	Desc      string      `json:"desc"`
+	Type      uint8       `json:"type"`
+	Statement []Statement `json:"statement"`
+}
+
+type UpdatePolicyReq struct {
+	Name      string      `json:"name"`
+	Code      string      `json:"code"`
+	Desc      string      `json:"desc"`
+	Statement []Statement `json:"statement"`
+}
+
+type Policy struct {
+	ID              int64       `json:"id"`
+	Name            string      `json:"name"`
+	Code            string      `json:"code"`
+	Desc            string      `json:"desc"`
+	Type            uint8       `json:"type"`
+	Statement       []Statement `json:"statement"`
+	Ctime           int64       `json:"ctime"`
+	AssignmentCount int64       `json:"assignment_count"`
+}
+
+type Statement struct {
+	Effect      string       `json:"effect"`
+	Action      []string     `json:"action"`
+	Resource    []string     `json:"resource"`
+	Condition   *Condition   `json:"condition,omitempty"`
+	AccessScope *AccessScope `json:"access_scope,omitempty"`
+}
+
+type Condition = pbac.Condition
+type AccessScope = pbac.AccessScope
+
+type ListPolicyReq struct {
+	Offset  int64  `json:"offset"`
+	Limit   int64  `json:"limit"`
+	Keyword string `json:"keyword"`
+	Type    uint8  `json:"type"`
+}
+
+type ListUserPoliciesReq struct {
+	UserID  int64  `json:"user_id"`
+	Offset  int64  `json:"offset"`
+	Limit   int64  `json:"limit"`
+	Keyword string `json:"keyword"`
+	Type    uint8  `json:"type"`
+}
+
+type ListRolePoliciesReq struct {
+	RoleCode string `json:"role_code"`
+	Offset   int64  `json:"offset"`
+	Limit    int64  `json:"limit"`
+	Keyword  string `json:"keyword"`
+	Type     uint8  `json:"type"`
+}
+
+type ListGroupPoliciesReq struct {
+	GroupCode string `json:"group_code"`
+	Offset    int64  `json:"offset"`
+	Limit     int64  `json:"limit"`
+	Keyword   string `json:"keyword"`
+	Type      uint8  `json:"type"`
+}
+
+type ListPolicyRes struct {
+	Total    int64    `json:"total"`
+	Policies []Policy `json:"policies"`
+}
+
+type AttachPolicyReq struct {
+	SubType    string `json:"sub_type"`
+	SubCode    string `json:"sub_code"`
+	PolicyCode string `json:"policy_code"`
+}
+
+type SubjectItem struct {
+	// Type 主体类型: user、role 或 group
+	Type string `json:"type"`
+	// Code 主体标识（用户名或角色代码）
+	Code string `json:"code"`
+}
+
+// BatchAttachPolicyReq 批量绑定策略请求
+// 支持将多个策略同时绑定到多个主体（用户、角色和用户组可以混合）
+type BatchAttachPolicyReq struct {
+	// Subjects 主体列表，可同时包含 user、role 和 group
+	Subjects []SubjectItem `json:"subjects"`
+	// PolicyCodes 策略代码列表
+	PolicyCodes []string `json:"policy_codes"`
+}
+
+// BatchAttachPolicyRes 批量绑定结果
+type BatchAttachPolicyRes struct {
+	Total    int64 `json:"total"`
+	Inserted int64 `json:"inserted"`
+	Ignored  int64 `json:"ignored"`
+}
+
+type RetriePolicySummaryRes struct {
+	Policy   Policy           `json:"policy"`
+	Services []ServiceSummary `json:"services"`
+}
+
+type ServiceSummary struct {
+	ServiceCode   string         `json:"service_code"`
+	ServiceName   string         `json:"service_name"`
+	Effect        string         `json:"effect"`
+	Level         string         `json:"level"`
+	GrantedCount  int            `json:"granted_count"`
+	TotalCount    int            `json:"total_count"`
+	ResourceScope string         `json:"resource_scope"`
+	Condition     string         `json:"condition"`
+	Actions       []ActionDetail `json:"actions"`
+}
+
+type ActionDetail struct {
+	Code        string `json:"action"`
+	Name        string `json:"name"`
+	Group       string `json:"group"`
+	Resource    string `json:"resource"`  // 转换为易读格式的字符串
+	Condition   string `json:"condition"` // 转换为易读格式的字符串
+	AccessScope string `json:"access_scope"`
+}
+
+// Assignment 授权分配项
+type Assignment struct {
+	SubType    string `json:"sub_type"`
+	SubCode    string `json:"sub_code"`
+	PolicyCode string `json:"policy_code"`
+}
+
+// BatchDetachPolicyReq 批量解绑策略请求
+// 显式指定每一条需要解除的关联关系，避免笛卡尔积误删
+type BatchDetachPolicyReq struct {
+	Assignments []Assignment `json:"assignments"`
+}
+
+type BatchDeletePolicyReq struct {
+	Codes []string `json:"codes" binding:"required"`
+}

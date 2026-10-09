@@ -1,0 +1,74 @@
+package ioc
+
+import (
+	"context"
+
+	"github.com/Havens-blog/e-iam/internal/domain"
+	"github.com/Havens-blog/e-iam/internal/pkg/searcher"
+	"github.com/Havens-blog/e-iam/internal/service/group"
+	"github.com/Havens-blog/e-iam/internal/service/role"
+	"github.com/Havens-blog/e-iam/internal/service/user"
+	"github.com/Havens-blog/e-iam/pkg/ctxutil"
+)
+
+// InitSearchSubjectProviders 深度编排提供者
+func InitSearchSubjectProviders(
+	roleSvc role.IRoleService,
+	userSvc user.IUserService,
+	groupSvc group.IGroupService,
+) searcher.ISubjectRegistry {
+	// 1. 构造搜索注册中心
+	registry := searcher.NewSubjectRegistry()
+
+	// 2. 注册服务
+	registry.Register(NewRoleAdapter(roleSvc), NewUserAdapter(userSvc), NewGroupAdapter(groupSvc))
+
+	return registry
+}
+
+func NewRoleAdapter(roleSvc role.IRoleService) searcher.SubjectProvider {
+	return searcher.NewSubjectAdapter(
+		domain.SubjectTypeRole,
+		func(ctx context.Context, keyword string, offset, limit int64) ([]domain.Role, error) {
+			// 开启私有模式：在此 Context 下的查询将自动排除掉共享的系统角色 (type=1)
+			return roleSvc.Search(ctxutil.WithPrivateOnly(ctx), keyword, offset, limit)
+		},
+		func(ctx context.Context, keyword string) (int64, error) {
+			// 开启私有模式：在此 Context 下的查询将自动排除掉共享的系统角色 (type=1)
+			return roleSvc.CountByKeyword(ctxutil.WithPrivateOnly(ctx), keyword)
+		},
+		func(src domain.Role) searcher.Subject {
+			return searcher.Subject{Type: domain.SubjectTypeRole, ID: src.Code, Name: src.Name, Desc: src.Desc}
+		},
+	)
+}
+
+func NewUserAdapter(userSvc user.IUserService) searcher.SubjectProvider {
+	return searcher.NewSubjectAdapter(
+		domain.SubjectTypeUser,
+		func(ctx context.Context, keyword string, offset, limit int64) ([]domain.User, error) {
+			return userSvc.Search(ctx, keyword, offset, limit)
+		},
+		func(ctx context.Context, keyword string) (int64, error) {
+			return userSvc.CountSearch(ctx, keyword)
+		},
+		func(src domain.User) searcher.Subject {
+			return searcher.Subject{Type: domain.SubjectTypeUser, ID: src.Username, Name: src.Profile.Nickname}
+		},
+	)
+}
+
+func NewGroupAdapter(groupSvc group.IGroupService) searcher.SubjectProvider {
+	return searcher.NewSubjectAdapter(
+		domain.SubjectTypeGroup,
+		func(ctx context.Context, keyword string, offset, limit int64) ([]domain.Group, error) {
+			return groupSvc.Search(ctx, keyword, offset, limit)
+		},
+		func(ctx context.Context, keyword string) (int64, error) {
+			return groupSvc.CountSearch(ctx, keyword)
+		},
+		func(src domain.Group) searcher.Subject {
+			return searcher.Subject{Type: domain.SubjectTypeGroup, ID: src.Code, Name: src.Name, Desc: src.Desc}
+		},
+	)
+}

@@ -1,0 +1,438 @@
+package repository
+
+import (
+	"context"
+	"slices"
+
+	"github.com/Havens-blog/e-iam/internal/domain"
+	"github.com/Havens-blog/e-iam/internal/repository/cache"
+	"github.com/Havens-blog/e-iam/internal/repository/dao"
+	"github.com/Havens-blog/e-iam/pkg/ctxutil"
+	"github.com/ecodeclub/ekit/slice"
+	"github.com/samber/lo"
+)
+
+// IPermissionRepository 权限仓库：管理全局能力项及其绑定的物理资产
+//go:generate mockgen -package=repomocks -destination=./mocks/permission.mock.go github.com/Havens-blog/e-iam/internal/repository IPermissionRepository
+type IPermissionRepository interface {
+	// CreatePermission 录入一个新的全局逻辑能力 (如 iam:user:view)
+	CreatePermission(ctx context.Context, p domain.Permission) (int64, error)
+	// BatchCreatePermission 批量录入全局逻辑能力项
+	BatchCreatePermission(ctx context.Context, perms []domain.Permission) error
+	// DeletePermission 删除能力项并清理其下的资产绑定
+	DeletePermission(ctx context.Context, id int64) error
+	// GetByCode 获取能力项元数据
+	GetByCode(ctx context.Context, code string) (domain.Permission, error)
+	// ListAllPermissions 获取全量能力项清单
+	ListAllPermissions(ctx context.Context) ([]domain.Permission, error)
+
+	// BindResources 全局绑定接口：定义哪些物理标识属于这个功能码
+	BindResources(ctx context.Context, permId int64, permCode string, resURNs []string) error
+	// BatchBindResources 批量执行资源染色逻辑 (高性能模式)
+	BatchBindResources(ctx context.Context, bindings map[string][]string) error
+	// FindCodesByResource 反查中心：通过物理资源 URN 定位功能逻辑码
+	FindCodesByResource(ctx context.Context, resURN string) ([]string, error)
+	// FindBindingsByPerm 正查中心：查看一个功能码下聚合了哪些物理资源
+	FindBindingsByPerm(ctx context.Context, permId int64) ([]domain.ResourceBinding, error)
+	// FindCodesByResourceURNs 批量反向检索，返回 map[ResourceURN][]PermCode
+	FindCodesByResourceURNs(ctx context.Context, resURNs []string) (map[string][]string, error)
+	// GetMenuBindings 获取所有菜单类型的绑定关系 (PermCode -> MenuURNs)
+	GetMenuBindings(ctx context.Context) (map[string][]string, error)
+
+	// SyncResourceBindings 同步资源绑定关系 (Full-Sync 模式)
+	SyncResourceBindings(ctx context.Context, allURNs []string, mappings map[string][]string) error
+	// ListCasbinRules 直接查询 casbin_rule 表 (用于业务化列表展现)
+	ListCasbinRules(ctx context.Context, tid, offset, limit int64, v0Prefix, v1Prefix, keyword string) ([]dao.CasbinRule, int64, error)
+	// FindByActions 根据一组 Action 标识查询权限项，支持通配符 *
+	FindByActions(ctx context.Context, actions []string) ([]domain.Permission, error)
+	// FindParentsByNeeds 反向查找：哪些权限码依赖了传入的这些 codes
+	FindParentsByNeeds(ctx context.Context, codes []string) ([]string, error)
+	// CountByService 按服务分组统计权限点总数
+	CountByService(ctx context.Context) (map[string]int64, error)
+	// SyncPermissions 高性能同步逻辑权限点 (支持 Full-Sync)
+	SyncPermissions(ctx context.Context, service, source string, perms []domain.Permission) error
+	// MarkPermissionsAsOrphan 将不在给定列表中的权限标记为孤儿
+	MarkPermissionsAsOrphan(ctx context.Context, service, source string, codes []string) error
+	// DeletePermissionsByServiceAndCodes 删除指定服务下不在给定 codes 列表中的所有权限
+	DeletePermissionsByServiceAndCodes(ctx context.Context, service, source string, codes []string) error
+	// PhysicalClearService 物理清除该服务下的所有权限元数据及资源映射关系 (用于强一致同步)
+	PhysicalClearService(ctx context.Context, service, source string) error
+	// GetManifest 获取系统级或普通租户级的权限清单缓存
+	GetManifest(ctx context.Context, isSystem bool) (domain.PermissionManifest, error)
+	// SetManifest 缓存系统级或普通租户级的权限清单
+	SetManifest(ctx context.Context, isSystem bool, manifest domain.PermissionManifest) error
+	// ClearAllPermissionCaches 管道化原子清空权限拓扑、动作元数据及权限清单缓存
+	ClearAllPermissionCaches(ctx context.Context) error
+	// Transaction 开启事务支持
+	Transaction(ctx context.Context, fn func(ctx context.Context) error) error
+}
+
+type PermissionRepository struct {
+	dao   dao.IPermissionDAO
+	cache cache.IPermissionCache
+}
+
+func NewPermissionRepository(dao dao.IPermissionDAO, cache cache.IPermissionCache) IPermissionRepository {
+	return &PermissionRepository{
+		dao:   dao,
+		cache: cache,
+	}
+}
+
+func (r *PermissionRepository) CreatePermission(ctx context.Context, p domain.Permission) (int64, error) {
+	id, err := r.dao.Insert(ctx, dao.Permission{
+		Service:            p.Service,
+		Source:             p.Source,
+		Code:               p.Code,
+		Name:               p.Name,
+		Group:              p.Group,
+		Needs:              p.Needs,
+		Scope:              p.Scope,
+		Sort:               p.Sort,
+		AccessScopePresets: p.AccessScopePresets,
+	})
+	if err != nil {
+		return 0, err
+	}
+	_ = r.cache.ClearAllPermissionCaches(ctx)
+	return id, nil
+}
+
+func (r *PermissionRepository) BatchCreatePermission(ctx context.Context, perms []domain.Permission) error {
+	daoPerms := make([]dao.Permission, 0, len(perms))
+	for _, p := range perms {
+		daoPerms = append(daoPerms, dao.Permission{
+			Service:            p.Service,
+			Source:             p.Source,
+			Code:               p.Code,
+			Name:               p.Name,
+			Group:              p.Group,
+			Needs:              p.Needs,
+			Scope:              p.Scope,
+			Sort:               p.Sort,
+			AccessScopePresets: p.AccessScopePresets,
+		})
+	}
+
+	if err := r.dao.BatchInsert(ctx, daoPerms); err != nil {
+		return err
+	}
+	_ = r.cache.ClearAllPermissionCaches(ctx)
+	return nil
+}
+
+func (r *PermissionRepository) DeletePermission(ctx context.Context, id int64) error {
+	if err := r.dao.Delete(ctx, id); err != nil {
+		return err
+	}
+	_ = r.cache.ClearAllPermissionCaches(ctx)
+	return nil
+}
+
+func (r *PermissionRepository) GetByCode(ctx context.Context, code string) (domain.Permission, error) {
+	p, err := r.dao.GetByCode(ctx, code)
+	if err != nil {
+		return domain.Permission{}, err
+	}
+	return r.toDomain(p), nil
+}
+
+func (r *PermissionRepository) ListAllPermissions(ctx context.Context) ([]domain.Permission, error) {
+	perms, err := r.dao.ListAll(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	return slice.Map(perms, func(i int, src dao.Permission) domain.Permission {
+		return r.toDomain(src)
+	}), nil
+}
+
+func (r *PermissionRepository) toDomain(p dao.Permission) domain.Permission {
+	return domain.Permission{
+		ID:                 p.Id,
+		Service:            p.Service,
+		Source:             p.Source,
+		Code:               p.Code,
+		Name:               p.Name,
+		Group:              p.Group,
+		Needs:              p.Needs,
+		Scope:              p.Scope,
+		Sort:               p.Sort,
+		AccessScopePresets: p.AccessScopePresets,
+	}
+}
+
+func (r *PermissionRepository) BindResources(ctx context.Context, permId int64, permCode string, resURNs []string) error {
+	bindings := slice.Map(resURNs, func(idx int, src string) dao.PermissionBinding {
+		return dao.PermissionBinding{
+			PermId:      permId,
+			PermCode:    permCode,
+			ResourceURN: src,
+		}
+	})
+
+	if err := r.dao.BindResources(ctx, bindings); err != nil {
+		return err
+	}
+	_ = r.cache.DeleteCodesByResources(ctx, resURNs)
+	_ = r.cache.ClearAllPermissionCaches(ctx)
+	return nil
+}
+
+func (r *PermissionRepository) BatchBindResources(ctx context.Context, bindings map[string][]string) error {
+	// 预加载权限列表构建 Code -> ID 映射，避免循环中单条查询
+	all, err := r.ListAllPermissions(ctx)
+	if err != nil {
+		return err
+	}
+	permMap := make(map[string]int64, len(all))
+	for _, p := range all {
+		permMap[p.Code] = p.ID
+	}
+
+	daoBindings := make([]dao.PermissionBinding, 0)
+	for code, urns := range bindings {
+		id := permMap[code]
+		for _, urn := range urns {
+			daoBindings = append(daoBindings, dao.PermissionBinding{
+				PermId:      id,
+				PermCode:    code,
+				TenantId:    ctxutil.SystemTenantID, // 全局资产统一归属到租户 1
+				ResourceURN: urn,
+			})
+		}
+	}
+
+	if len(daoBindings) == 0 {
+		return nil
+	}
+
+	if err = r.dao.BindResources(ctx, daoBindings); err != nil {
+		return err
+	}
+	allURNs := lo.Flatten(lo.Values(bindings))
+	_ = r.cache.DeleteCodesByResources(ctx, allURNs)
+	_ = r.cache.ClearAllPermissionCaches(ctx)
+	return nil
+}
+
+func (r *PermissionRepository) FindCodesByResource(ctx context.Context, resURN string) ([]string, error) {
+	codes, err := r.cache.GetCodesByResource(ctx, resURN)
+	if err == nil {
+		return codes, nil
+	}
+
+	bindings, err := r.dao.GetBindingsByRes(ctx, resURN)
+	if err != nil {
+		return nil, err
+	}
+
+	codes = slice.Map(bindings, func(i int, src dao.PermissionBinding) string {
+		return src.PermCode
+	})
+
+	_ = r.cache.SetCodesByResource(ctx, resURN, codes)
+
+	return codes, nil
+}
+
+func (r *PermissionRepository) FindBindingsByPerm(ctx context.Context, permId int64) ([]domain.ResourceBinding, error) {
+	bindings, err := r.dao.ListBindingsByPerm(ctx, permId)
+
+	return slice.Map(bindings, func(i int, src dao.PermissionBinding) domain.ResourceBinding {
+		return domain.ResourceBinding{
+			TenantId:    src.TenantId,
+			ResourceURN: src.ResourceURN,
+		}
+	}), err
+}
+
+func (r *PermissionRepository) FindCodesByResourceURNs(ctx context.Context, resURNs []string) (map[string][]string, error) {
+	bindings, err := r.dao.ListBindingsByResURNs(ctx, resURNs)
+	if err != nil {
+		return nil, err
+	}
+
+	res := make(map[string][]string)
+	for _, b := range bindings {
+		res[b.ResourceURN] = append(res[b.ResourceURN], b.PermCode)
+	}
+	return res, nil
+}
+
+func (r *PermissionRepository) GetMenuBindings(ctx context.Context) (map[string][]string, error) {
+	bindings, err := r.dao.ListMenuBindings(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	res := make(map[string][]string)
+	for _, b := range bindings {
+		res[b.PermCode] = append(res[b.PermCode], b.ResourceURN)
+	}
+	return res, nil
+}
+
+func (r *PermissionRepository) SyncResourceBindings(ctx context.Context, allURNs []string, mappings map[string][]string) error {
+	// 1. 预加载权限索引，批量获取 PermID
+	all, err := r.ListAllPermissions(ctx)
+	if err != nil {
+		return err
+	}
+	permMap := make(map[string]int64, len(all))
+	for _, p := range all {
+		permMap[p.Code] = p.ID
+	}
+
+	// 2. 打平数据结构
+	daoBindings := make([]dao.PermissionBinding, 0)
+	for code, urns := range mappings {
+		id := permMap[code]
+		for _, urn := range urns {
+			daoBindings = append(daoBindings, dao.PermissionBinding{
+				PermId:      id,
+				PermCode:    code,
+				TenantId:    1, // 全局资产统一归属到租户 1
+				ResourceURN: urn,
+			})
+		}
+	}
+
+	if err = r.dao.SyncResourceBindings(ctx, allURNs, daoBindings); err != nil {
+		return err
+	}
+	_ = r.cache.DeleteCodesByResources(ctx, allURNs)
+	_ = r.cache.ClearAllPermissionCaches(ctx)
+	return nil
+}
+
+func (r *PermissionRepository) ListCasbinRules(ctx context.Context, tid, offset, limit int64, v0Prefix, v1Prefix, keyword string) ([]dao.CasbinRule, int64, error) {
+	return r.dao.ListCasbinRules(ctx, tid, offset, limit, v0Prefix, v1Prefix, keyword)
+}
+
+func (r *PermissionRepository) FindByActions(ctx context.Context, actions []string) ([]domain.Permission, error) {
+	if len(actions) == 0 {
+		return nil, nil
+	}
+
+	perms, err := r.cache.GetPermissionsByActions(ctx, actions)
+	if err == nil {
+		return perms, nil
+	}
+
+	daoPerms, err := r.dao.FindByActions(ctx, actions)
+	if err != nil {
+		return nil, err
+	}
+
+	res := slice.Map(daoPerms, func(i int, src dao.Permission) domain.Permission {
+		return r.toDomain(src)
+	})
+
+	_ = r.cache.SetPermissionsByActions(ctx, actions, res)
+	return res, nil
+}
+
+func (r *PermissionRepository) FindParentsByNeeds(ctx context.Context, codes []string) ([]string, error) {
+	if len(codes) == 0 {
+		return nil, nil
+	}
+
+	parents, err := r.cache.GetParentsByNeeds(ctx, codes)
+	if err == nil {
+		return parents, nil
+	}
+
+	parents, err = r.dao.FindParentsByNeeds(ctx, codes)
+	if err != nil {
+		return nil, err
+	}
+
+	_ = r.cache.SetParentsByNeeds(ctx, codes, parents)
+	return parents, nil
+}
+
+func (r *PermissionRepository) CountByService(ctx context.Context) (map[string]int64, error) {
+	counts, err := r.dao.CountByService(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	res := make(map[string]int64, len(counts))
+	for _, c := range counts {
+		res[c.Service] = c.Count
+	}
+	return res, nil
+}
+
+func (r *PermissionRepository) SyncPermissions(ctx context.Context, service, source string, perms []domain.Permission) error {
+	// 先根据传入权限点原生的 Sort 进行升序排序，确保保序
+	slices.SortFunc(perms, func(a, b domain.Permission) int {
+		return a.Sort - b.Sort
+	})
+
+	for i := range perms {
+		perms[i].Sort = i
+	}
+
+	codes := slice.Map(perms, func(_ int, p domain.Permission) string { return p.Code })
+
+	// 不在此处开启新事务。如果调用方（如 engine.Ingest）已开启外层事务，
+	// 则直接复用外层事务上下文以确保原子性；如果未开启，则各操作独立执行。
+	if err := r.BatchCreatePermission(ctx, perms); err != nil {
+		return err
+	}
+
+	return r.dao.MarkPermissionsAsOrphan(ctx, service, source, codes)
+}
+
+func (r *PermissionRepository) MarkPermissionsAsOrphan(ctx context.Context, service, source string, codes []string) error {
+	return r.dao.MarkPermissionsAsOrphan(ctx, service, source, codes)
+}
+
+func (r *PermissionRepository) DeletePermissionsByServiceAndCodes(ctx context.Context, service, source string, codes []string) error {
+	if err := r.dao.DeletePermissionsByServiceAndCodes(ctx, service, source, codes); err != nil {
+		return err
+	}
+	_ = r.cache.ClearAllPermissionCaches(ctx)
+	return nil
+}
+
+func (r *PermissionRepository) PhysicalClearService(ctx context.Context, service, source string) error {
+	// 不在此处开启新事务，调用方（engine.Ingest）负责管理外层事务边界。
+	all, err := r.dao.ListAll(ctx)
+	if err != nil {
+		return err
+	}
+
+	var codes []string
+	for _, p := range all {
+		if p.Service == service && p.Source == source {
+			codes = append(codes, p.Code)
+		}
+	}
+
+	if len(codes) > 0 {
+		if err := r.dao.DeleteBindingsByPermCodes(ctx, codes); err != nil {
+			return err
+		}
+	}
+	return r.dao.DeletePermissionsByServiceAndCodes(ctx, service, source, nil)
+}
+
+func (r *PermissionRepository) GetManifest(ctx context.Context, isSystem bool) (domain.PermissionManifest, error) {
+	return r.cache.GetManifest(ctx, isSystem)
+}
+
+func (r *PermissionRepository) SetManifest(ctx context.Context, isSystem bool, manifest domain.PermissionManifest) error {
+	return r.cache.SetManifest(ctx, isSystem, manifest)
+}
+
+func (r *PermissionRepository) ClearAllPermissionCaches(ctx context.Context) error {
+	return r.cache.ClearAllPermissionCaches(ctx)
+}
+
+func (r *PermissionRepository) Transaction(ctx context.Context, fn func(ctx context.Context) error) error {
+	return r.dao.Transaction(ctx, fn)
+}
