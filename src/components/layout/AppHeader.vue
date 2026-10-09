@@ -1,13 +1,13 @@
 <script setup lang="ts">
-// 顶部 header（task 2.8，UF-2）：折叠按钮 + 面包屑 + 主题切换 + 用户头像下拉（登出）。
+// 顶部 header（task 2.8，UF-2）：折叠按钮 + 面包屑 + 平台导航 + 主题切换 + 用户头像下拉（登出）。
 //
-// 左 = 折叠按钮 + 面包屑（首页 / 当前页，当前页取自侧边栏 active 项文案）
-// 右 = 租户选择器占位 + 应用切换器占位 + 主题切换（月/日）+ 用户头像（渐变）+ 用户名
+// 左 = 折叠按钮 + 面包屑（首页 / 当前页，当前页取自侧边栏 active 项文案）+ 平台导航触发
+//     器（邻接面包屑）右 = 租户选择器占位 + 主题切换（月/日）+ 用户头像（渐变）+ 用户名
 //
-// 占位说明（task 3.1）：应用切换器（新标签开 e-cam-web）与租户选择器为 3.1
-// TenantSelector / AppSwitcher 共享组件，**由 MainLayout 经 #header-actions slot 注入**
-// （MainLayout 挂载点）。零租户受限态由各组件自处理：TenantSelector 显示契约
-// tenant.none 禁用占位、AppSwitcher v-if 隐藏（UF-2 受限视图）。
+// 注入说明（task 3.1 / 6.1）：租户选择器（TenantSelector 共享组件）由 MainLayout 经
+// #header-actions slot 注入；平台导航（AppSwitcher v2 面板触发器）由 MainLayout 经
+// **#header-nav slot**（面包屑右侧）注入。零租户受限态由各组件自处理：TenantSelector
+// 显示契约 tenant.none 禁用占位、AppSwitcher v-if 隐藏（UF-2 受限视图）。
 import { computed } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { Expand, Fold, Moon, Sunny } from "@element-plus/icons-vue";
@@ -96,9 +96,12 @@ function onToggleCollapse(): void {
           </li>
         </ol>
       </nav>
+      <!-- 平台导航（AppSwitcher v2 面板触发器，MainLayout 经 #header-nav slot 注入，
+           置于面包屑旁，task 6.1 位置决策） -->
+      <slot name="header-nav" />
     </div>
 
-    <!-- 右：租户选择器 + 应用切换器（MainLayout 经 #header-actions slot 注入，task 3.1） + 主题切换 + 用户头像下拉 -->
+    <!-- 右：租户选择器（MainLayout 经 #header-actions slot 注入，task 3.1） + 主题切换 + 用户头像下拉 -->
     <div class="header-right">
       <div class="header-actions">
         <slot name="header-actions" />

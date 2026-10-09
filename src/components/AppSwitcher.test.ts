@@ -1,145 +1,309 @@
 // @vitest-environment happy-dom
 /**
- * AppSwitcher 应用切换器单测（task 3.1）。
+ * AppSwitcher 平台导航面板 v2 集成测试（task 6.1，参照 e-cam-web PlatformNav）。
  *
  * 覆盖 AC：
- * - v1 仅「云管」一项，穷举本地枚举（APPS const）
- * - 新标签打开 e-cam-web（window.open，noopener，共享 cookie SSO）
- * - 零租户受限态（!isAdmin && tenants.length===0）隐藏；平台管理员豁免可见
+ * - 零租户受限态门控（!isAdmin && tenants.length===0 隐藏；admin 豁免）
+ * - 触发开合面板；Esc 关闭；遮罩组结构
+ * - 面板分组：收藏列（默认 4 条）+ 控制台列 + 云管分区块
+ * - 收藏：☆→★ toggle、localStorage（haven-platform-nav-favorites）持久化、
+ *   收藏列点击导航、✕ 移除、空态
+ * - 权限码裁剪：控制台列入口按码过滤（策略/租户 requiresAdmin 同口径双闸）
+ * - 导航：控制台入口 router.push 站内跳转；云管深链 window.open 新标签（noopener）
+ *
+ * 手法：真实 pinia user store 注入 permissions/tenants/isAdmin；
+ * 内存 router 观测 push；Teleport 真实渲染至 document.body（happy-dom）供面板断言。
  */
 import { createPinia, setActivePinia } from "pinia";
 import piniaPluginPersistedstate from "pinia-plugin-persistedstate";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { createApp, defineComponent, h } from "vue";
+import { beforeEach, afterEach, describe, expect, it, vi } from "vitest";
+import { createApp } from "vue";
 import { mount } from "@vue/test-utils";
+import {
+  createMemoryHistory,
+  createRouter,
+  type Router,
+} from "vue-router";
 import AppSwitcher from "./AppSwitcher.vue";
 import { useUserStore } from "@/stores/user";
+import {
+  IAM_ALL_CODES,
+  IAM_POLICY,
+  IAM_TENANT,
+} from "@/config/permission-codes";
 
-// ElDropdown stub：捕获 command 事件 + 渲染 trigger + 内联渲染 #dropdown slot（便于断言枚举项）
-const ElDropdownStub = defineComponent({
-  name: "ElDropdown",
-  emits: ["command"],
-  setup(_, { slots, emit }) {
-    return () =>
-      h("div", { class: "el-dropdown-stub" }, [
-        h("button", {
-          class: "stub-trigger",
-          onClick: () => emit("command", slots.default?.()),
-        }),
-        h("div", { class: "stub-menu" }, slots.dropdown?.()),
-      ]);
-  },
-});
+const FAV_KEY = "haven-platform-nav-favorites";
 
-const ElDropdownMenuStub = defineComponent({
-  name: "ElDropdownMenu",
-  setup:
-    (_, { slots }) =>
-    () =>
-      h("div", { class: "stub-menu" }, slots.default?.()),
-});
+type TenantLike = { id: number; name: string; code: string; domain: string };
 
-const ElDropdownItemStub = defineComponent({
-  name: "ElDropdownItem",
-  props: { command: { type: [Object, String, Number], default: null } },
-  setup:
-    (_, { slots }) =>
-    () =>
-      h("div", { class: "stub-item" }, slots.default?.()),
-});
-
-// ElIcon stub（避免 @element-plus/icons-vue 渲染开销）
-const ElIconStub = defineComponent({
-  name: "ElIcon",
-  setup:
-    (_, { slots }) =>
-    () =>
-      h("span", { class: "stub-icon" }, slots.default?.()),
-});
-
-const freshPinia = () => {
+function freshPinia() {
   const pinia = createPinia();
   pinia.use(piniaPluginPersistedstate);
   createApp({ render: () => null }).use(pinia);
   setActivePinia(pinia);
-  return pinia;
-};
-
-function mountSwitcher() {
-  return mount(AppSwitcher, {
-    global: {
-      stubs: {
-        ElDropdown: ElDropdownStub,
-        ElDropdownMenu: ElDropdownMenuStub,
-        ElDropdownItem: ElDropdownItemStub,
-        ElIcon: ElIconStub,
-      },
-    },
-  });
 }
 
-beforeEach(() => {
-  localStorage.clear();
+function setupUser(opts: {
+  isAdmin?: boolean;
+  codes?: readonly string[];
+  tenants?: TenantLike[];
+}) {
   freshPinia();
-});
+  const userStore = useUserStore();
+  userStore.isAdmin = opts.isAdmin ?? false;
+  (
+    userStore as unknown as {
+      permissions: string[];
+    }
+  ).permissions = [...(opts.codes ?? [])];
+  (
+    userStore as unknown as { tenants: TenantLike[] }
+  ).tenants = [
+    ...(opts.tenants ?? [{ id: 1, name: "t1", code: "t1", domain: "" }]),
+  ];
+  return userStore;
+}
 
-afterEach(() => {
-  vi.restoreAllMocks();
-});
+async function makeRouter(): Promise<Router> {
+  const router = createRouter({
+    history: createMemoryHistory(),
+    routes: [
+      { path: "/workbench", component: { template: "<div />" } },
+      { path: "/users", component: { template: "<div />" } },
+      { path: "/policies", component: { template: "<div />" } },
+      { path: "/", component: { template: "<div />" } },
+    ],
+  });
+  await router.push("/workbench");
+  await router.isReady();
+  return router;
+}
 
-describe("AppSwitcher 零租户受限态门控（UF-2 受限视图）", () => {
-  it("非 admin + 无租户 → 隐藏（不渲染）", () => {
-    const userStore = useUserStore();
-    userStore.isAdmin = false;
-    (userStore as unknown as { tenants: unknown[] }).tenants = [];
-    const wrapper = mountSwitcher();
+type Wrapper = ReturnType<typeof mount<typeof AppSwitcher>>;
+
+/** 每个测试的挂载例（afterEach 统一卸载 + 清 body，防多实例 Teleport/监听叠加） */
+const mounted: Wrapper[] = [];
+
+function mountSwitcher(router: Router): Wrapper {
+  const wrapper = mount(AppSwitcher, { global: { plugins: [router] } });
+  mounted.push(wrapper);
+  return wrapper;
+}
+
+/** Teleport 面板根（真实渲染至 body） */
+function panelEl(): HTMLElement | null {
+  return document.body.querySelector<HTMLElement>(".pnav-panel");
+}
+
+/** 面板内入口节点（.pnav-it，收藏列 .pnav-fi 除外） */
+function navItems(): HTMLElement[] {
+  return [...document.body.querySelectorAll<HTMLElement>(".pnav-it")];
+}
+
+/** 收藏列条目（.pnav-fi） */
+function favItems(): HTMLElement[] {
+  return [
+    ...document.body.querySelectorAll<HTMLElement>('[data-testid="platform-nav-fav"]'),
+  ];
+}
+
+describe("AppSwitcher 零租户受限态门控（UF-2 受限视图，v2 口径不变）", () => {
+  beforeEach(() => {
+    document.body.innerHTML = "";
+    localStorage.clear();
+  });
+  afterEach(() => {
+    for (const w of mounted) w.unmount();
+    mounted.length = 0;
+    document.body.innerHTML = "";
+    vi.restoreAllMocks();
+  });
+
+  it("非 admin + 无租户 → 隐藏（不渲染）", async () => {
+    setupUser({ isAdmin: false, codes: IAM_ALL_CODES, tenants: [] });
+    const router = await makeRouter();
+    const wrapper = mountSwitcher(router);
     expect(wrapper.find(".app-switcher").exists()).toBe(false);
   });
 
-  it("平台管理员（零租户豁免）→ 可见", () => {
-    const userStore = useUserStore();
-    userStore.isAdmin = true;
-    (userStore as unknown as { tenants: unknown[] }).tenants = [];
-    const wrapper = mountSwitcher();
+  it("平台管理员（零租户豁免）→ 可见", async () => {
+    setupUser({ isAdmin: true, codes: IAM_ALL_CODES, tenants: [] });
+    const router = await makeRouter();
+    const wrapper = mountSwitcher(router);
     expect(wrapper.find(".app-switcher").exists()).toBe(true);
   });
 
-  it("非 admin + 有租户 → 可见", () => {
-    const userStore = useUserStore();
-    userStore.isAdmin = false;
-    (userStore as unknown as { tenants: unknown[] }).tenants = [
-      { id: 1, name: "t", code: "", domain: "" },
-    ];
-    const wrapper = mountSwitcher();
+  it("非 admin + 有租户 → 可见", async () => {
+    setupUser({ isAdmin: false, codes: IAM_ALL_CODES, tenants: [
+      { id: 1, name: "t", code: "t", domain: "" },
+    ] });
+    const router = await makeRouter();
+    const wrapper = mountSwitcher(router);
     expect(wrapper.find(".app-switcher").exists()).toBe(true);
   });
 });
 
-describe("AppSwitcher 穷举本地枚举 + 新标签打开", () => {
-  it("v1 渲染「云管」一项（穷举本地枚举）", () => {
-    const userStore = useUserStore();
-    userStore.isAdmin = true;
-    (userStore as unknown as { tenants: unknown[] }).tenants = [];
-    const wrapper = mountSwitcher();
-    expect(wrapper.findAll(".stub-item")).toHaveLength(1);
-    expect(wrapper.text()).toContain("云管");
+describe("AppSwitcher 平台导航面板（分组 + 收藏 + 导航）", () => {
+  beforeEach(() => {
+    document.body.innerHTML = "";
+    localStorage.clear();
+  });
+  afterEach(() => {
+    for (const w of mounted) w.unmount();
+    mounted.length = 0;
+    document.body.innerHTML = "";
+    vi.restoreAllMocks();
   });
 
-  it("trigger 点击 → window.open(e-cam-web base, _blank, noopener) SSO 共享 cookie", async () => {
-    const userStore = useUserStore();
-    userStore.isAdmin = true;
-    (userStore as unknown as { tenants: unknown[] }).tenants = [];
-    const openSpy = vi.spyOn(window, "open").mockReturnValue(null);
+  it("触发开合面板；结构 = 收藏列 + 控制台列 + 云管分区块", async () => {
+    setupUser({ isAdmin: true, codes: IAM_ALL_CODES });
+    const router = await makeRouter();
+    const wrapper = mountSwitcher(router);
 
-    const wrapper = mountSwitcher();
-    // el-dropdown command 经 stub trigger 点击派发——直接模拟 el-dropdown 派 command
-    // stub trigger onClick emit('command', slots.default?.()) → command = undefined（slot vnode）
-    // 故改为直接触发组件内 onOpen：通过 findComponent(ElDropdown).vm.$emit('command', app)
-    const dropdown = wrapper.findComponent(ElDropdownStub);
-    // 构造一个 AppEntry 等价载荷（与组件 APPS[0] 同形）
-    const appEntry = { key: "cam", label: "云管", url: "/cam/" };
-    dropdown.vm.$emit("command", appEntry);
-    await Promise.resolve();
-    expect(openSpy).toHaveBeenCalledWith("/cam/", "_blank", "noopener");
+    const trigger = wrapper.find('[data-testid="platform-nav-trigger"]');
+    expect(trigger.exists()).toBe(true);
+    expect(trigger.text()).toContain("平台导航");
+    expect(trigger.attributes("aria-haspopup")).toBe("dialog");
+
+    await trigger.trigger("click");
+    expect(panelEl()).toBeTruthy();
+    const text = panelEl()?.textContent ?? "";
+    expect(text).toContain("我的收藏");
+    expect(text).toContain("控制台 · 统一身份与访问");
+    expect(text).toContain("资源 · 主机");
+    expect(text).toContain("资源 · 网络");
+    expect(text).toContain("FINOPS");
+    expect(text).toContain("平台管理");
+
+    // 再点关闭
+    await trigger.trigger("click");
+    expect(panelEl()).toBeFalsy();
+  });
+
+  it("默认收藏 4 条（工作台/策略管理/虚拟机/成本概览）", async () => {
+    setupUser({ isAdmin: true, codes: IAM_ALL_CODES });
+    const router = await makeRouter();
+    const wrapper = mountSwitcher(router);
+    await wrapper.find('[data-testid="platform-nav-trigger"]').trigger("click");
+
+    const favs = favItems();
+    expect(favs).toHaveLength(4);
+    const titles = favs.map((el) => el.textContent ?? "").join("|");
+    expect(titles).toContain("工作台");
+    expect(titles).toContain("策略管理");
+    expect(titles).toContain("虚拟机");
+    expect(titles).toContain("成本概览");
+  });
+
+  it("☆ toggle → ★ + localStorage 持久化（key haven-platform-nav-favorites）", async () => {
+    setupUser({ isAdmin: true, codes: IAM_ALL_CODES });
+    const router = await makeRouter();
+    const wrapper = mountSwitcher(router);
+    await wrapper.find('[data-testid="platform-nav-trigger"]').trigger("click");
+
+    const star = document.body.querySelector<HTMLElement>(
+      '[data-testid="platform-nav-star-console-roles"]',
+    );
+    expect(star).toBeTruthy();
+    expect(star?.textContent).toBe("☆");
+
+    star?.click();
+    await wrapper.vm.$nextTick();
+
+    // 收藏列新增「角色管理」+ ★ 变
+    expect(favItems().some((el) => el.textContent?.includes("角色管理"))).toBe(true);
+    expect(star?.textContent).toBe("★");
+    const stored = JSON.parse(localStorage.getItem(FAV_KEY) ?? "[]") as Array<{
+      key: string;
+    }>;
+    expect(stored.some((f) => f.key === "console-roles")).toBe(true);
+
+    // 再点 → 取消收藏
+    star?.click();
+    await wrapper.vm.$nextTick();
+    expect(favItems().some((el) => el.textContent?.includes("角色管理"))).toBe(false);
+    const storedAfter = JSON.parse(
+      localStorage.getItem(FAV_KEY) ?? "[]",
+    ) as Array<{ key: string }>;
+    expect(storedAfter.some((f) => f.key === "console-roles")).toBe(false);
+  });
+
+  it("收藏列 ✕ 逐条移除 → 空态 + 存储清空", async () => {
+    setupUser({ isAdmin: true, codes: IAM_ALL_CODES });
+    const router = await makeRouter();
+    const wrapper = mountSwitcher(router);
+    await wrapper.find('[data-testid="platform-nav-trigger"]').trigger("click");
+
+    const removes = document.body.querySelectorAll<HTMLElement>(
+      '[data-testid="platform-nav-fav-remove"]',
+    );
+    expect(removes.length).toBe(4);
+    for (const b of [...removes]) {
+      b.click();
+      await wrapper.vm.$nextTick();
+    }
+    expect(favItems()).toHaveLength(0);
+    expect(
+      document.body.querySelector(".pnav-fi-empty")?.textContent,
+    ).toContain("收藏常用入口");
+    expect(JSON.parse(localStorage.getItem(FAV_KEY) ?? "[]")).toEqual([]);
+  });
+
+  it("控制台入口 → router.push 站内；云管深链 → window.open 新标签 noopener", async () => {
+    setupUser({ isAdmin: true, codes: IAM_ALL_CODES });
+    const router = await makeRouter();
+    const push = vi.spyOn(router, "push").mockResolvedValue();
+    const openStub = vi.fn();
+    vi.stubGlobal("open", openStub);
+    const wrapper = mountSwitcher(router);
+    await wrapper.find('[data-testid="platform-nav-trigger"]').trigger("click");
+
+    const usersItem = navItems().find((el) => el.textContent?.includes("用户管理"));
+    expect(usersItem).toBeTruthy();
+    usersItem?.click();
+    await wrapper.vm.$nextTick();
+    expect(push).toHaveBeenCalledWith("/users");
+    expect(panelEl()).toBeFalsy(); // 导航后面板关闭
+
+    // 云管入口
+    await wrapper.find('[data-testid="platform-nav-trigger"]').trigger("click");
+    const camItem = navItems().find((el) => el.textContent?.includes("虚拟机"));
+    expect(camItem).toBeTruthy();
+    camItem?.click();
+    expect(openStub).toHaveBeenCalledWith("/cam/compute/ecs", "_blank", "noopener");
+    vi.unstubAllGlobals();
+  });
+
+  it("权限码裁剪：无策略/租户码（非 admin）→ 控制台列不出策略/租户入口", async () => {
+    setupUser({
+      isAdmin: false,
+      codes: [...IAM_ALL_CODES].filter(
+        (c) => c !== IAM_POLICY.VIEW && c !== IAM_TENANT.VIEW,
+      ),
+    });
+    const router = await makeRouter();
+    const wrapper = mountSwitcher(router);
+    await wrapper.find('[data-testid="platform-nav-trigger"]').trigger("click");
+
+    const consoleTitles = navItems()
+      .map((el) => el.textContent ?? "")
+      .join("|");
+    expect(consoleTitles).toContain("用户管理");
+    expect(consoleTitles).toContain("工作台");
+    expect(consoleTitles).not.toContain("策略管理");
+    expect(consoleTitles).not.toContain("租户管理");
+    // 云管侧不受控制台码裁剪（跨应用，服务端校验兜底）
+    expect(consoleTitles).toContain("虚拟机");
+  });
+
+  it("Esc 关闭面板", async () => {
+    setupUser({ isAdmin: true, codes: IAM_ALL_CODES });
+    const router = await makeRouter();
+    const wrapper = mountSwitcher(router);
+    await wrapper.find('[data-testid="platform-nav-trigger"]').trigger("click");
+    expect(panelEl()).toBeTruthy();
+    document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" }));
+    await wrapper.vm.$nextTick();
+    expect(panelEl()).toBeFalsy();
   });
 });
