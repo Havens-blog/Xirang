@@ -55,6 +55,7 @@ function src(resourceId: string, enabled: boolean): LogSource {
         name: `域名 ${resourceId}`,
         enabled,
         note: '',
+        stale: false,
     }
 }
 
