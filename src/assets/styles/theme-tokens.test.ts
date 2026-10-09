@@ -92,7 +92,21 @@ describe('拷贝面保真 + shared-hashes.json 登记（漂移防线数据源）
       expect(entry, `shared-hashes.json 缺少 ${copy.path} 登记`).toBeDefined()
       expect(entry!.sha256).toMatch(/^[0-9a-f]{64}$/)
       expect(entry!.sourceCommit).toMatch(/^[0-9a-f]{40}$/)
-      expect(entry!.sha256).toBe(sha256(read(copy.path)))
+      // 行尾无关核对（与 drift-check.mjs 双形态口径对齐）：登记哈希按原始字节登记，
+      // 但 Windows(CRLF)/Linux(LF) checkout 行尾不同 —— 三形态任一命中即一致。
+      const raw = read(copy.path)
+      const asText = raw.toString('utf8')
+      const lfText = asText.replace(/\r\n/g, '\n')
+      const crlfText = lfText.replace(/\n/g, '\r\n')
+      const candidates = [
+        sha256(raw),
+        sha256(Buffer.from(lfText, 'utf8')),
+        sha256(Buffer.from(crlfText, 'utf8')),
+      ]
+      expect(
+        candidates,
+        `${copy.path} 实算哈希（LF/CRLF/原字节）应与登记一致`,
+      ).toContain(entry!.sha256)
     }
   })
 })
