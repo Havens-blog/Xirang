@@ -1,11 +1,13 @@
 // gzip-budget.mjs — 性能预算闸门（tech-design §性能预算 承接）
 //
-// 汇总 dist/**/*.gz 体积，按四桶分类，超预算即 fail（exit 1）：
+// 汇总 dist/**/*.gz 体积，按桶分类，超预算即 fail（exit 1）：
 //   entry          ≤ 60 KB   （dist/index.html、dist/js/index-*.js）
 //   element-plus   ≤ 140 KB  （dist/js/element-plus-*.js）
 //   vue-ecosystem  ≤ 50 KB   （dist/js/vue-vendor-*.js — vue/router/pinia）
-//   remainder      ≤ 50 KB   （其余：vendor chunk + css + 字体 + 图标）
-//   grandTotal     ≤ 300 KB  （首屏静态 gzip 总预算，PRD Goal）
+//   routes         ≤ 90 KB   （懒加载视图/共享小 chunk —— 非首屏，2026-10-09 口径修正：
+//                             原归类 remainder 与首屏混淆，见 tech-design §性能预算 routes 行）
+//   remainder      ≤ 50 KB   （vendor chunk + css + 字体 + 图标）
+//   grandTotal     ≤ 300 KB  （全量静态 gzip 总预算，PRD Goal）
 //
 // Hard Rule：超限必须 fail，不得放宽后放行。
 //
@@ -17,12 +19,13 @@ import { fileURLToPath } from 'node:url'
 
 const KB = 1024
 
-// 四桶预算（KB），与 tech-design 性能预算表逐列对齐
+// 桶预算（KB），与 tech-design 性能预算表逐列对齐
 export const BUDGETS = Object.freeze({
   entry: { limit: 60, label: 'entry 自研' },
   'element-plus': { limit: 140, label: 'element-plus' },
   'vue-ecosystem': { limit: 50, label: 'vue/router/pinia' },
-  remainder: { limit: 50, label: '其余（css/字体/图标/vendor）' },
+  routes: { limit: 90, label: 'routes 懒加载视图' },
+  remainder: { limit: 50, label: '其余（vendor/css/字体/图标）' },
 })
 export const TOTAL_LIMIT_KB = 300
 
@@ -30,20 +33,26 @@ export const TOTAL_LIMIT_KB = 300
  * 将一个 .gz 文件路径归类到预算桶。
  * 规则基于 vite.config.ts manualChunks 产物命名（chunkFileNames/assetFileNames）。
  * @param {string} gzPath 相对 dist 根的 .gz 文件路径（POSIX 斜杠）
- * @returns {'entry'|'element-plus'|'vue-ecosystem'|'remainder'}
+ * @returns {'entry'|'element-plus'|'vue-ecosystem'|'routes'|'remainder'}
  */
 export function classifyBucket(gzPath) {
   // 去掉 .gz 后缀得到原产物路径
   const base = gzPath.endsWith('.gz') ? gzPath.slice(0, -3) : gzPath
   // dist/index.html → entry
   if (base === 'index.html' || base.endsWith('/index.html')) return 'entry'
-  // dist/js/index-*.js → entry（自研首屏 entry chunk）
-  if (base.startsWith('js/index-') && base.endsWith('.js')) return 'entry'
-  // dist/js/element-plus-*.js → element-plus
-  if (base.startsWith('js/element-plus-') && base.endsWith('.js')) return 'element-plus'
-  // dist/js/vue-vendor-*.js → vue-ecosystem
-  if (base.startsWith('js/vue-vendor-') && base.endsWith('.js')) return 'vue-ecosystem'
-  // 其余一律 remainder（vendor chunk / css / 字体 / 图标 / 其他静态）
+  if (base.endsWith('.js')) {
+    // dist/js/index-*.js → entry（自研首屏 entry chunk）
+    if (base.startsWith('js/index-')) return 'entry'
+    // dist/js/element-plus-*.js → element-plus
+    if (base.startsWith('js/element-plus-')) return 'element-plus'
+    // dist/js/vue-vendor-*.js → vue-ecosystem
+    if (base.startsWith('js/vue-vendor-')) return 'vue-ecosystem'
+    // dist/js/vendor-*.js → remainder（首屏运行时依赖，当前 axios）
+    if (base.startsWith('js/vendor-')) return 'remainder'
+    // 其余命名 JS = 懒加载视图/共享小 chunk → routes（非首屏）
+    return 'routes'
+  }
+  // 非 JS 一律 remainder（vendor chunk / css / 字体 / 图标 / 其他静态）
   return 'remainder'
 }
 
@@ -86,6 +95,7 @@ export function summarizeGz(root) {
     entry: { files: [], bytes: 0 },
     'element-plus': { files: [], bytes: 0 },
     'vue-ecosystem': { files: [], bytes: 0 },
+    routes: { files: [], bytes: 0 },
     remainder: { files: [], bytes: 0 },
   }
   for (const rel of gzFiles) {
@@ -146,7 +156,7 @@ export function formatReport(summary) {
   lines.push('─'.repeat(52))
   const totalStatus = summary.totalKb <= TOTAL_LIMIT_KB ? 'OK' : 'OVER'
   lines.push(
-    `${'首屏 gzip 总计'.padEnd(28)} ${String(summary.totalKb).padStart(7)} KB / ${String(TOTAL_LIMIT_KB).padStart(3)} KB  [${totalStatus}]`,
+    `${'全量 gzip 总计'.padEnd(28)} ${String(summary.totalKb).padStart(7)} KB / ${String(TOTAL_LIMIT_KB).padStart(3)} KB  [${totalStatus}]`,
   )
   return lines.join('\n')
 }
@@ -165,7 +175,7 @@ export function main(argv = process.argv) {
     }
     process.exit(1)
   }
-  console.log('\n✅ gzip 预算通过（≤ 300 KB，四桶均在限内）')
+  console.log('\n✅ gzip 预算通过（全量 ≤ 300 KB，各桶均在限内）')
 }
 
 // 仅在直接执行时跑 CLI（被 import 时不跑）
