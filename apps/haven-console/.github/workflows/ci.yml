@@ -68,8 +68,34 @@ jobs:
       - name: Install deps
         run: pnpm install --frozen-lockfile
 
+      # 失败自动上报：vitest log 尾部进 STEP_SUMMARY（check-runs API 匿名可读），
+      # junit 解析成 ::error annotation（逐测试定位），报告作为 artifact 留存。
       - name: Vitest
-        run: pnpm test
+        shell: bash
+        run: |
+          set -o pipefail
+          pnpm test -- --reporter=default --reporter=junit --outputFile.junit=vitest-junit.xml 2>&1 | tee vitest.log
+          exit_code=${PIPESTATUS[0]}
+          {
+            echo '## Vitest 输出尾部（120 行）'
+            echo '```'
+            tail -n 120 vitest.log
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          if [ $exit_code -ne 0 ]; then
+            node scripts/report-vitest-failures.mjs vitest-junit.xml
+          fi
+          exit $exit_code
+
+      - name: Upload vitest report artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: vitest-report
+          path: |
+            vitest-junit.xml
+            vitest.log
+          retention-days: 7
 
   # ── AC2: gzip 预算闸门（≤ 300KB，四桶分解）────────────────────────────
   # 依赖 typecheck-build 产物（dist/**/*.gz）
