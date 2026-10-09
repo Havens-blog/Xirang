@@ -1,0 +1,76 @@
+{
+  "feature": "multicloud-field-label-consolidation",
+  "proposal": "docs/proposals/multicloud-field-label-consolidation/proposal.md",
+  "created": "2026-09-30",
+  "tasks": {
+    "1-network-a": {
+      "id": "1",
+      "title": "网络域 A(eip/eni/lb/vpc)状态+枚举单源收口",
+      "priority": "P1",
+      "estimatedTime": "2h",
+      "status": "completed",
+      "file": "1-network-a.md",
+      "record": "records/1-network-a.md",
+      "type": "coding.refactor",
+      "complexity": "high"
+    },
+    "2-network-b": {
+      "id": "2",
+      "title": "网络域 B(vswitch/waf/dns)状态+版本+枚举单源收口",
+      "priority": "P1",
+      "estimatedTime": "2h",
+      "status": "completed",
+      "file": "2-network-b.md",
+      "record": "records/2-network-b.md",
+      "type": "coding.refactor",
+      "complexity": "high"
+    },
+    "3-compute": {
+      "id": "3",
+      "title": "计算域(ecs/image/disk)状态+枚举单源收口",
+      "priority": "P1",
+      "estimatedTime": "1.5h",
+      "status": "completed",
+      "file": "3-compute.md",
+      "record": "records/3-compute.md",
+      "type": "coding.refactor",
+      "complexity": "medium"
+    },
+    "4-databases": {
+      "id": "4",
+      "title": "数据库域(rds/redis/mongodb)状态单源收口",
+      "priority": "P1",
+      "estimatedTime": "1.5h",
+      "status": "completed",
+      "file": "4-databases.md",
+      "record": "records/4-databases.md",
+      "type": "coding.refactor",
+      "complexity": "medium"
+    },
+    "5-middleware-storage": {
+      "id": "5",
+      "title": "中间件+存储域(es/kafka/nas)状态单源收口",
+      "priority": "P1",
+      "estimatedTime": "1.5h",
+      "status": "completed",
+      "file": "5-middleware-storage.md",
+      "record": "records/5-middleware-storage.md",
+      "type": "coding.refactor",
+      "complexity": "medium"
+    }
+  },
+  "statusEnum": [
+    "pending",
+    "in_progress",
+    "completed",
+    "blocked",
+    "suspended",
+    "skipped",
+    "rejected"
+  ],
+  "priorityEnum": [
+    "P0",
+    "P1",
+    "P2"
+  ]
+}

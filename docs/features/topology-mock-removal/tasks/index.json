@@ -1,0 +1,45 @@
+{
+  "feature": "topology-mock-removal",
+  "proposal": "docs/proposals/topology-mock-removal/proposal.md",
+  "created": "2026-09-19",
+  "tasks": {
+    "1-remove-mock-fallback": {
+      "id": "1",
+      "title": "拓扑页移除 mock 回退，改诚实错误态",
+      "priority": "P0",
+      "estimatedTime": "1h",
+      "status": "completed",
+      "file": "1-remove-mock-fallback.md",
+      "record": "records/1-remove-mock-fallback.md",
+      "type": "coding.fix",
+      "complexity": "high"
+    },
+    "quick-drift-detection": {
+      "id": "T-quick-doc-drift",
+      "title": "Detect Spec Drift",
+      "priority": "P2",
+      "estimatedTime": "15min",
+      "dependencies": [
+        "1"
+      ],
+      "status": "completed",
+      "file": "quick-drift-detection.md",
+      "record": "records/quick-drift-detection.md",
+      "type": "doc.drift"
+    }
+  },
+  "statusEnum": [
+    "pending",
+    "in_progress",
+    "completed",
+    "blocked",
+    "suspended",
+    "skipped",
+    "rejected"
+  ],
+  "priorityEnum": [
+    "P0",
+    "P1",
+    "P2"
+  ]
+}

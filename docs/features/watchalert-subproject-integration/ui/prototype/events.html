@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>故障中心 — WatchAlert 子项目并入</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <a class="skip-link" href="#main-content">跳到主内容</a>
+
+  <nav class="nav-bar" aria-label="主导航">
+    <span class="nav-brand"><span class="dot"></span>WatchAlert</span>
+    <div class="nav-links">
+      <a href="dashboard.html"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>告警看板</a>
+      <a href="rules.html"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/></svg>告警规则</a>
+      <a href="events.html" class="active" aria-current="page"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.25.25 0 0 1-.48 0L9.24 2.18a.25.25 0 0 0-.48 0l-2.35 8.36A2 2 0 0 1 4.49 12H2"/></svg>故障中心</a>
+    </div>
+    <button class="nav-toggle" aria-expanded="false" aria-label="打开导航">菜单</button>
+  </nav>
+
+  <aside class="banner-slot" id="banner-slot" role="alert" aria-live="assertive" hidden>
+    <div class="degraded-banner">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m21.73 18-8-14a2 2 0 0 0-3.46 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
+      <span class="banner-main">鉴权服务暂不可用，已切换宽限模式(只读)</span>
+      <span class="banner-sub">剩余 <span id="grace-h">1</span> 小时 <span id="grace-m">42</span> 分；此期间告警规则/通知等写操作不可用</span>
+      <span class="badge badge-amber" style="margin-left:auto;">只读</span>
+    </div>
+  </aside>
+
+  <aside class="readonly-notice" id="readonly-notice" role="status" aria-live="polite" hidden>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+    <span>鉴权服务不可用，当前为只读浏览。请等待恢复或联系管理员</span>
+  </aside>
+
+  <main id="main-content" class="container">
+
+    <section id="content-normal">
+      <div class="page-title">
+        <h3><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.25.25 0 0 1-.48 0L9.24 2.18a.25.25 0 0 0-.48 0l-2.35 8.36A2 2 0 0 1 4.49 12H2"/></svg>故障中心</h3>
+        <span style="margin-left:auto; display:flex; gap:8px;">
+          <button class="btn btn-outline btn-sm write-btn">批量关闭</button>
+          <button class="btn btn-primary btn-sm write-btn">确认故障</button>
+        </span>
+      </div>
+      <div class="card">
+        <ul class="timeline">
+          <li><span class="t-time">10-09 14:32:05</span><span class="t-body"><span class="badge badge-destructive">P0</span> 支付网关 5xx 率超过阈值（8.2%）</span></li>
+          <li><span class="t-time">10-09 14:30:11</span><span class="t-body"><span class="badge badge-amber">P1</span> 数据库连接池占用 85%</span></li>
+          <li><span class="t-time">10-09 13:58:40</span><span class="t-body"><span class="badge badge-amber">P1</span> 支付网关 5xx 率 4.1%（告警恢复）</span></li>
+          <li><span class="t-time">10-09 13:12:02</span><span class="t-body"><span class="badge badge-secondary">P2</span> 磁盘使用率 87%</span></li>
+        </ul>
+      </div>
+    </section>
+
+    <section id="content-readonly" hidden>
+      <div class="page-title">
+        <h3><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.25.25 0 0 1-.48 0L9.24 2.18a.25.25 0 0 0-.48 0l-2.35 8.36A2 2 0 0 1 4.49 12H2"/></svg>故障中心（只读）</h3>
+      </div>
+
+      <div id="ro-loading" role="status" aria-label="加载中">
+        <div class="card">
+          <div class="skeleton skeleton-row" style="width:30%;"></div>
+          <div class="skeleton skeleton-row"></div>
+          <div class="skeleton skeleton-row"></div>
+          <div class="skeleton skeleton-row"></div>
+        </div>
+      </div>
+
+      <div id="ro-populated" hidden>
+        <div class="card">
+          <ul class="timeline">
+            <li><span class="t-time">10-09 14:32:05</span><span class="t-body"><span class="badge badge-destructive">P0</span> 支付网关 5xx 率超过阈值（8.2%）</span></li>
+            <li><span class="t-time">10-09 14:30:11</span><span class="t-body"><span class="badge badge-amber">P1</span> 数据库连接池占用 85%</span></li>
+            <li><span class="t-time">10-09 13:58:40</span><span class="t-body"><span class="badge badge-amber">P1</span> 支付网关 5xx 率 4.1%（告警恢复）</span></li>
+            <li><span class="t-time">10-09 13:12:02</span><span class="t-body"><span class="badge badge-secondary">P2</span> 磁盘使用率 87%</span></li>
+          </ul>
+        </div>
+        <p class="muted-text" style="margin-top:16px; text-align:center;">等待鉴权服务恢复</p>
+      </div>
+
+      <div id="ro-empty" hidden>
+        <div class="state-placeholder">
+          <svg class="icon-muted" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg>
+          <div class="ph-text">暂无事件</div>
+          <div class="ph-sub">鉴权服务恢复后可查看事件历史</div>
+        </div>
+      </div>
+
+      <div id="ro-error" hidden>
+        <div class="state-placeholder" role="alert" aria-live="assertive">
+          <svg class="icon-destructive" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="m2 2 20 20"/><path d="M5.782 5.782A7 7 0 0 0 9 19h8.5a4.5 4.5 0 0 0 1.307-.193"/><path d="M21.532 16.5A4.5 4.5 0 0 0 17.5 10h-1.79A7.008 7.008 0 0 0 10 5.07"/></svg>
+          <div class="ph-text">数据加载失败</div>
+          <button class="btn btn-outline btn-sm">重试</button>
+        </div>
+      </div>
+    </section>
+
+    <section id="content-forbidden" hidden>
+      <div class="forbidden">
+        <div class="card" aria-live="polite" tabindex="-1">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m4.9 4.9 14.2 14.2"/></svg>
+          <h4 style="font-size:18px;font-weight:600;">无访问权限</h4>
+          <p class="muted-text">请使用平台账号登录后，联系管理员在告警平台分配角色</p>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <div class="demo-controls">
+    <span class="demo-label">故障中心状态：</span>
+    <button class="demo-btn" data-setview="normal">正常</button>
+    <button class="demo-btn" data-setview="degraded">宽限中</button>
+    <button class="demo-btn" data-setview="readonly-loading">只读·加载</button>
+    <button class="demo-btn" data-setview="readonly-populated">只读·有数据</button>
+    <button class="demo-btn" data-setview="readonly-empty">只读·空</button>
+    <button class="demo-btn" data-setview="readonly-error">只读·错误</button>
+    <button class="demo-btn" data-setview="forbidden">403 无权限</button>
+    <span class="demo-spacer"></span>
+    <a class="link-plain" href="index.html">返回导航</a>
+  </div>
+
+  <script src="app.js"></script>
+  <script>
+    var banner = document.getElementById('banner-slot');
+    var notice = document.getElementById('readonly-notice');
+    var normal = document.getElementById('content-normal');
+    var ro = document.getElementById('content-readonly');
+    var forbidden = document.getElementById('content-forbidden');
+    var roLoading = document.getElementById('ro-loading');
+    var roPopulated = document.getElementById('ro-populated');
+    var roEmpty = document.getElementById('ro-empty');
+    var roError = document.getElementById('ro-error');
+
+    function setWriteDisabled(disabled) {
+      document.querySelectorAll('.write-btn').forEach(function (b) {
+        b.setAttribute('aria-disabled', String(disabled));
+        b.classList.toggle('is-disabled', disabled);
+      });
+    }
+    document.querySelectorAll('.write-btn').forEach(function (b) {
+      b.addEventListener('click', function () {
+        if (b.getAttribute('aria-disabled') === 'true') HavenProto.toast('鉴权服务暂不可用，操作已被禁止');
+        else HavenProto.toast('操作成功（演示）');
+      });
+    });
+
+    function apply(key) {
+      banner.hidden = true; notice.hidden = true;
+      normal.hidden = true; ro.hidden = true; forbidden.hidden = true;
+      roLoading.hidden = true; roPopulated.hidden = true; roEmpty.hidden = true; roError.hidden = true;
+      setWriteDisabled(false);
+      if (key === 'normal') { normal.hidden = false; }
+      else if (key === 'degraded') { banner.hidden = false; normal.hidden = false; setWriteDisabled(true); }
+      else if (key.indexOf('readonly') === 0) {
+        notice.hidden = false; ro.hidden = false;
+        if (key === 'readonly-loading') roLoading.hidden = false;
+        else if (key === 'readonly-populated') roPopulated.hidden = false;
+        else if (key === 'readonly-empty') roEmpty.hidden = false;
+        else roError.hidden = false;
+      } else if (key === 'forbidden') { forbidden.hidden = false; forbidden.querySelector('.card').focus(); }
+    }
+
+    HavenProto.initNavToggle();
+    HavenProto.initDemoSwitcher(apply);
+  </script>
+</body>
+</html>

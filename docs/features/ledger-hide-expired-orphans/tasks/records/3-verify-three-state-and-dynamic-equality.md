@@ -1,0 +1,42 @@
+---
+status: "completed"
+started: "2026-09-21 12:41"
+completed: "2026-09-21 12:41"
+time_spent: ""
+---
+
+# Task Record: 3 联调验证：三态实测 + 看板/台账动态相等
+
+## Summary
+端到端联调验证完成（Playwright 自动登录 admin→租户 jlc→:8888/cam，只读，未改任何源码）。AC1 实测 *.jlc-robot.com (id=6a8e4d3264f01cc96fbc2484, daysLeft=-11, refCount=0) 的 referenceStatus=no_refs_scanned（非 blind_spot），GET /certs/:id 逐张详情实测，任务 1 判定与 proposal Evidence 无需回改。AC2 默认视图：工具栏提示「已隐藏 1 张无引用过期证书 · 查看全部」，分页共 93 条，jlc-robot 行不可见；点击展开后共 94 条、jlc-robot 行出现、提示变「再次点击隐藏无引用过期证书」；再点恢复 93 条。差值 94-93=1 与 API hiddenCount=1 一致；服务端双口径闭合 include-total 94 = visibleTotal 93 + hidden 1。AC3 探针 11 张过期证书全部详情实测：10 张 has_refs + 1 张 no_refs_scanned，当前数据无 blind_spot/未知引用过期证书，AC 判定 vacuous-N/A（附探针证据）；保守显示结构性佐证：仅 1 张 no_refs_scanned 被隐藏，10 张 has_refs 过期行全部保留在 93 行默认视图。AC4 动态相等：UI /certs?daysLeft=expired 渲染 11 行、分页共 11 条；API daysLeft=expired total=11（带/不带 includeExpiredNoRefs=true 均为 11，后端豁免确认）；看板「已过期」卡计数=11，三处相等且全部由运行时数据派生。验证基础设施异常及处置：vite dep 优化缓存过期（element-plus_es_components_progress_style_css.js 504 Outdated Optimize Dep）致台账路由动态导入失败页面空白；经 touch vite.config.ts 触发 vite 原地重启并预热依赖后恢复，非本次交付代码缺陷。
+
+## Changes
+
+### Files Created
+- browser-verify/verify-ledger-hide.js
+- browser-verify/diag-ledger-blank.js
+- browser-verify/diag-ledger-blank2.js
+
+### Files Modified
+无
+
+### Key Decisions
+- AC1/AC3 采用 GET /certs/:id 逐张详情探针（列表 DTO 不含 referenceStatus，仅详情返回）
+- vite 504 Outdated Optimize Dep 通过 touch vite.config.ts 触发原地重启+依赖预热修复，未杀提权孤儿 node 进程（PID 2944 无权限）、未动 nginx/后端
+- 验证脚本固化在 browser-verify/（D:\Haven 非 git 仓库，无提交），复用 verify-wizard-autologin 单次提交+轮询模式
+- 生产数据只读：未构造/修改任何证书行，AC3 以探针证据记 vacuous-N/A
+
+## Test Results
+- **Tests Executed**: Yes
+- **Passed**: 4
+- **Failed**: 0
+- **Coverage**: 0.0%
+
+## Acceptance Criteria
+- [x] 实测 *.jlc-robot.com 的 referenceStatus=no_refs_scanned（非 blind_spot），确认其为当前唯一可隐藏行
+- [x] 台账默认视图不含无引用过期行，分页 total 与可见行数一致；展开后行数与 hiddenCount 一致
+- [x] 任一 blind_spot / 引用状态未知的过期证书在默认视图可见（若有）——当前数据无此类证书，vacuous-N/A 附探针证据（11 张过期=10 has_refs + 1 no_refs_scanned，0 blind_spot）
+- [x] /certs?daysLeft=expired 筛选行数 = 看板「已过期」卡计数（动态相等）——UI 11 行 = API total 11 = 看板卡 11
+
+## Notes
+coverage 不适用：纯验证任务，未改任何产品源码，无新增可测代码（无测试运行器产出覆盖率）。异常记录：1) 会话中段 vite 缓存过期导致台账页空白（诊断脚本 diag-ledger-blank2.js 抓到 'Failed to fetch dynamically imported module: ledger/index.vue' + 504），已修复并复验通过；2) e-cam-web dev(5173) 存在提权孤儿 node 进程（PID 2944，命令行不可读、无权限终止），本次经 vite config touch 原地重启绕开，与 memory 中提权鬼进程问题同源，建议后续以 admin 清理；3) dashboard countsByLevel API 字段探针返回 undefined（响应结构另有所属），看板计数改由 UI 卡文本提取，AC4 不受影响。eval 残留 #6「过期新近度宽限窗口」本次不做，按任务文件观察噪音累积速率后另行评估。

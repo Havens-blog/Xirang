@@ -1,0 +1,13 @@
+{
+  "task_id": "5",
+  "key": "5-dictionary",
+  "title": "system/dictionary 字典管理等价重写（表单页样板 + 浏览器实测）",
+  "priority": "P1",
+  "estimatedTime": "1.5h",
+  "file": "5-dictionary.md",
+  "record": "records/5-dictionary.md",
+  "startedTime": "2026-09-21 20:03",
+  "surface-key": "e-cam-web",
+  "surface-type": "web",
+  "type": "coding.feature"
+}

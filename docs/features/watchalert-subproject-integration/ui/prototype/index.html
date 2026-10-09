@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>原型导航 — WatchAlert 子项目并入</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main id="main-content" class="container">
+    <div class="page-title">
+      <h3>WatchAlert 子项目并入 — 原型导航</h3>
+    </div>
+    <p class="muted-text" style="margin-bottom:24px;">
+      三个 UI 功能对既有前端页面的改造：eiam 统一登录（组件 1）、鉴权不可用宽限横幅（组件 2）、只读免登录视图（组件 3）与 403 占位（组件 4）。每页底部有「状态切换」控制条，可切换各状态。
+    </p>
+
+    <div class="grid grid-cols-3" style="margin-top:8px;">
+      <a href="login.html" class="card" style="display:block;">
+        <div style="width:40px;height:40px;border-radius:8px;background:var(--muted);display:flex;align-items:center;justify-content:center;margin-bottom:16px;">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" x2="3" y1="12" y2="12"/></svg>
+        </div>
+        <h4 style="font-size:16px;font-weight:600;margin-bottom:6px;">登录页</h4>
+        <p class="muted-text">组件 1：eiam 统一登录入口。移除本地账密，改为「使用平台账号登录」跳转。含 未登录 / 跳转中 / 登录失败 / 配置缺失 四态。</p>
+      </a>
+
+      <a href="dashboard.html" class="card" style="display:block;">
+        <div style="width:40px;height:40px;border-radius:8px;background:var(--muted);display:flex;align-items:center;justify-content:center;margin-bottom:16px;">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
+        </div>
+        <h4 style="font-size:16px;font-weight:600;margin-bottom:6px;">告警看板</h4>
+        <p class="muted-text">组件 2 + 3 + 4：正常 / 宽限（横幅+写禁用）/ 只读（加载·有数据·空·错误）/ 403 四态。</p>
+      </a>
+
+      <a href="rules.html" class="card" style="display:block;">
+        <div style="width:40px;height:40px;border-radius:8px;background:var(--muted);display:flex;align-items:center;justify-content:center;margin-bottom:16px;">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/></svg>
+        </div>
+        <h4 style="font-size:16px;font-weight:600;margin-bottom:6px;">告警规则</h4>
+        <p class="muted-text">组件 2 + 3 + 4：共享横幅 + 只读规则列表（敏感字段脱敏）。</p>
+      </a>
+
+      <a href="events.html" class="card" style="display:block; margin-top:16px;">
+        <div style="width:40px;height:40px;border-radius:8px;background:var(--muted);display:flex;align-items:center;justify-content:center;margin-bottom:16px;">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.25.25 0 0 1-.48 0L9.24 2.18a.25.25 0 0 0-.48 0l-2.35 8.36A2 2 0 0 1 4.49 12H2"/></svg>
+        </div>
+        <h4 style="font-size:16px;font-weight:600;margin-bottom:6px;">故障中心</h4>
+        <p class="muted-text">组件 2 + 3 + 4：共享横幅 + 只读事件时间线。</p>
+      </a>
+    </div>
+  </main>
+</body>
+</html>

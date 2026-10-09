@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>用户详情：zhangsan — 平台控制台</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="layout">
+    <aside class="sidebar">
+      <a class="sidebar-logo" href="workbench.html" aria-label="Platform 工作台">
+        <svg class="logo-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M12 2L2 7L12 12L22 7L12 2Z" fill="#5e6ad2"/><path d="M2 17L12 22L22 17" stroke="#7170ff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M2 12L12 17L22 12" stroke="#7170ff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span class="logo-text">Platform</span>
+      </a>
+      <nav class="sidebar-nav" id="sidebarNav" aria-label="主导航">
+        <div class="menu-group">
+          <div class="group-title">概览</div>
+          <a href="workbench.html" class="menu-item"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="2" width="5" height="5" rx="1"/><rect x="9" y="2" width="5" height="5" rx="1"/><rect x="2" y="9" width="5" height="5" rx="1"/><rect x="9" y="9" width="5" height="5" rx="1"/></svg><span class="menu-title">工作台</span></a>
+        </div>
+        <div class="menu-group">
+          <div class="group-title">身份治理</div>
+          <a href="users.html" class="menu-item active"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="5.5" r="2.5"/><path d="M3 13.5c.8-2.6 2.7-3.6 5-3.6s4.2 1 5 3.6"/></svg><span class="menu-title">用户管理</span></a>
+          <a href="organizations.html" class="menu-item"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="2" width="10" height="12" rx="1"/><path d="M6 5.5h1.5M8.5 5.5H10M6 8h1.5M8.5 8H10M6 10.5h4"/></svg><span class="menu-title">组织管理</span></a>
+          <a href="tenants.html" class="menu-item"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2.5" y="2.5" width="8" height="8" rx="1"/><rect x="5.5" y="5.5" width="8" height="8" rx="1"/></svg><span class="menu-title">租户管理</span></a>
+          <a href="identity-sources.html" class="menu-item"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="5" cy="8" r="2.5"/><path d="M7.5 8H14M11.5 8v2.5M9.5 8v1.5"/></svg><span class="menu-title">身份源管理</span></a>
+        </div>
+        <div class="menu-group">
+          <div class="group-title">权限管理</div>
+          <a href="roles.html" class="menu-item"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 1.5l5.5 2v4c0 3.5-2.3 5.9-5.5 7-3.2-1.1-5.5-3.5-5.5-7v-4z"/></svg><span class="menu-title">角色管理</span></a>
+          <a href="authorizations.html" class="menu-item"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 1.5l5.5 2v4c0 3.5-2.3 5.9-5.5 7-3.2-1.1-5.5-3.5-5.5-7v-4z"/><path d="M5.5 8l1.8 1.8L10.8 6.3"/></svg><span class="menu-title">授权管理</span></a>
+          <a href="policies.html" class="menu-item"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 1.5h5.5L13 5v9.5a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-12a1 1 0 0 1 1-1z"/><path d="M9.5 1.5V5H13M6 8.5h4M6 11.5h4"/></svg><span class="menu-title">策略管理</span></a>
+        </div>
+      </nav>
+    </aside>
+    <div class="main-area">
+      <header class="app-header">
+        <button type="button" class="toggle-btn" id="navToggle" aria-label="折叠或展开侧边栏" aria-expanded="true" aria-controls="sidebarNav"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="2.5" width="12" height="11" rx="2"/><path d="M6 2.5v11"/></svg></button>
+        <nav class="breadcrumb" aria-label="面包屑"><a href="workbench.html">首页</a><span class="crumb-sep" aria-hidden="true">/</span><span class="crumb-current" data-crumb-current></span></nav>
+        <div class="header-actions">
+          <div class="dropdown">
+            <button type="button" class="tenant-trigger" aria-haspopup="true" aria-expanded="false" title="切换租户：写入 session 后按新租户重新拉取数据">
+              <span class="dot" aria-hidden="true"></span><span class="label">生产租户</span><span aria-hidden="true">▾</span>
+            </button>
+            <div class="dropdown-menu" role="menu" aria-label="切换租户">
+              <div class="dropdown-header">我的所属租户</div>
+              <button type="button" class="dropdown-item is-selected" data-tenant="生产租户">生产租户</button>
+              <button type="button" class="dropdown-item" data-tenant="预发租户">预发租户</button>
+              <button type="button" class="dropdown-item" data-tenant="测试租户">测试租户</button>
+              <div class="dropdown-note">切换后丢弃未提交草稿并关闭弹窗，数据按新租户重新加载</div>
+            </div>
+          </div>
+          <a class="app-switcher" href="ecam-web.html" target="_blank" rel="noopener" title="打开云管 e-cam-web（新标签，共享会话）"><span class="grid-dot" aria-hidden="true"><i></i><i></i><i></i><i></i></span><span class="switcher-text">云管</span></a>
+          <button type="button" class="toggle-btn" data-action="toggle-theme" aria-label="切换深色 / 浅色主题" title="切换主题">
+            <svg class="icon-moon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13.5 9.8A5.8 5.8 0 0 1 6.2 2.5a5.8 5.8 0 1 0 7.3 7.3z"/></svg>
+            <svg class="icon-sun" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="8" r="3"/><path d="M8 1.2v1.3M8 13.5v1.3M14.8 8h-1.3M2.5 8H1.2M12.9 3.1l-.9.9M4 12l-.9.9M12.9 12.9l-.9-.9M4 4l-.9-.9"/></svg>
+          </button>
+          <div class="dropdown">
+            <button type="button" class="avatar-btn" aria-haspopup="true" aria-expanded="false" aria-label="用户菜单">张</button>
+            <div class="dropdown-menu" role="menu" aria-label="用户菜单">
+              <div class="dropdown-header">zhangsan · 张三</div>
+              <button type="button" class="dropdown-item" data-action="logout">登出</button>
+            </div>
+          </div>
+          <span class="user-name">张三</span>
+        </div>
+      </header>
+
+  <main class="container page">
+    <!-- 页头：返回 + 用户名 + 保存 -->
+    <section class="page-header">
+      <div class="row-16">
+        <a class="btn btn-ghost" href="users.html">← 返回用户列表</a>
+        <div class="page-title">
+          <h2 style="display: flex; align-items: center; gap: 12px;">zhangsan <span class="badge badge-status-enabled">启用</span></h2>
+          <p class="text-muted">用户详情 / 编辑 · ID: usr-8f3a21c0</p>
+        </div>
+      </div>
+      <button type="button" class="btn btn-default" id="saveBtn">保存</button>
+    </section>
+
+    <div class="org-layout" style="grid-template-columns: 3fr 2fr;">
+      <!-- 表单 -->
+      <section class="card stack-6" aria-busy="false" id="formCard">
+        <div id="formSkeleton" hidden>
+          <div class="skeleton skeleton-text w-60"></div>
+          <div class="skeleton skeleton-text w-80"></div>
+          <div class="skeleton skeleton-text w-40"></div>
+        </div>
+        <div id="formBody" style="display: flex; flex-direction: column; gap: 24px;">
+          <div class="row-16">
+            <div class="field" style="flex: 1;">
+              <label for="dUsername">用户名</label>
+              <input class="input mono" type="text" id="dUsername" value="zhangsan" readonly>
+              <span class="field-hint">用户名创建后不可修改</span>
+            </div>
+            <div class="field" style="width: 220px;">
+              <label for="dStatus" class="required">状态</label>
+              <select class="select" id="dStatus">
+                <option selected>启用</option><option>禁用</option>
+              </select>
+            </div>
+          </div>
+          <div class="row-16">
+            <div class="field" style="flex: 1;">
+              <label for="dMethod" class="required">登录方式</label>
+              <select class="select" id="dMethod">
+                <option selected>密码</option><option>Passkey</option><option>密码 + Passkey</option><option>LDAP</option>
+              </select>
+              <span class="field-hint">Passkey 为唯一登录方式且设备丢失时，须走管理员重置密码路径</span>
+            </div>
+            <div class="field" style="flex: 1;">
+              <label for="dTenant" class="required">所属租户</label>
+              <select class="select" id="dTenant">
+                <option selected>生产租户</option><option>预发租户</option><option>测试租户</option>
+              </select>
+            </div>
+          </div>
+          <div class="row-16">
+            <div class="field" style="flex: 1;">
+              <label for="dOrg">所属组织</label>
+              <select class="select" id="dOrg">
+                <option selected>研发中心 / 前端组</option><option>研发中心 / 后端组</option>
+                <option>研发中心 / 测试组</option><option>运营中心 / 市场部</option><option>运营中心 / 客服部</option>
+              </select>
+            </div>
+          </div>
+          <div class="field">
+            <span style="font-size: 14px; font-weight: 500;">角色绑定（多选）</span>
+            <div class="pick-list" id="dRoles">
+              <label class="checkbox-row"><input type="checkbox" value="运维管理员" checked>运维管理员</label>
+              <label class="checkbox-row"><input type="checkbox" value="租户管理员">租户管理员</label>
+              <label class="checkbox-row"><input type="checkbox" value="只读审计员">只读审计员</label>
+              <label class="checkbox-row"><input type="checkbox" value="普通用户">普通用户</label>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 初始密码（展示一次） -->
+      <section class="card stack-6">
+        <div class="card-header"><span class="card-title">初始密码</span><span class="badge badge-warning">仅展示一次</span></div>
+        <p class="text-sm text-muted">管理员设置或系统生成的初始密码，展示一次后不再可见；该用户首次登录将被强制要求修改密码。</p>
+        <div class="input-inline">
+          <input class="input mono" id="initPwd" value="Ecam-z8k2mQ4x" readonly aria-label="初始密码">
+          <button type="button" class="btn btn-secondary btn-sm" id="copyPwd">复制</button>
+        </div>
+        <div class="alert alert-neutral"><span aria-hidden="true">i</span><span>初始密码与租户「生产租户」的用户目录绑定，重置后旧密码立即失效</span></div>
+      </section>
+    </div>
+
+    <!-- passkey 注册引导区块 -->
+    <section class="card stack-6" id="passkeyCard">
+      <div class="card-header">
+        <div>
+          <span class="card-title">Passkey 注册引导</span>
+          <p class="text-sm text-muted" style="margin-top: 4px;">向目标用户发起一次性注册会话（15 分钟、单次有效）；过期未完成即作废，须重新引导</p>
+        </div>
+        <div class="row-16" style="gap: 8px;">
+          <button type="button" class="btn btn-secondary" id="revokeBtn" disabled>撤销重绑</button>
+          <button type="button" class="btn btn-default" id="startPasskeyBtn">发起注册引导</button>
+        </div>
+      </div>
+      <div class="row-16" style="gap: 24px;">
+        <div><div class="text-xs text-muted">绑定状态</div><div style="margin-top: 4px;"><span class="badge badge-secondary" id="passkeyStatus">未绑定</span></div></div>
+        <div><div class="text-xs text-muted">注册会话</div><div class="mono text-sm" style="margin-top: 4px;" id="sessionId">—</div></div>
+        <div><div class="text-xs text-muted">有效期剩余</div><div class="mono text-sm" style="margin-top: 4px;" id="sessionRemain" aria-live="polite">—</div></div>
+        <div><div class="text-xs text-muted">会话状态</div><div style="margin-top: 4px;"><span class="badge badge-outline" id="sessionState">未发起</span></div></div>
+      </div>
+      <div class="alert alert-neutral" id="passkeyHint" hidden>
+        <span aria-hidden="true">i</span>
+        <span id="passkeyHintText"></span>
+      </div>
+    </section>
+  </main>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+  <script>
+    (function () {
+      'use strict';
+      var $ = function (id) { return document.getElementById(id); };
+      var SESSION_TTL = 15 * 60;  /* 15 分钟、单次有效 */
+      var timer = null;
+      var remain = 0;
+      var sessionActive = false;
+
+      /* ---------- 初始密码复制 ---------- */
+      $('copyPwd').addEventListener('click', function () {
+        App.toast('初始密码已复制到剪贴板（原型演示）', 'success');
+      });
+
+      /* ---------- 保存：成功后返回 /users（列表 ≤2s 刷新） ---------- */
+      $('saveBtn').addEventListener('click', function () {
+        var btn = $('saveBtn');
+        btn.classList.add('btn-loading');
+        setTimeout(function () {
+          btn.classList.remove('btn-loading');
+          App.toast('用户「zhangsan」已保存，正在返回用户列表', 'success');
+          setTimeout(function () { location.href = 'users.html'; }, 900);
+        }, 600);
+      });
+
+      /* ---------- passkey 注册会话 ---------- */
+      function fmt(sec) {
+        var m = Math.floor(sec / 60);
+        var s = sec % 60;
+        return m + ' 分 ' + (s < 10 ? '0' : '') + s + ' 秒';
+      }
+      function setSessionState(text, badgeClass) {
+        var el = $('sessionState');
+        el.textContent = text;
+        el.className = 'badge ' + badgeClass;
+      }
+      $('startPasskeyBtn').addEventListener('click', function () {
+        clearInterval(timer);
+        sessionActive = true;
+        remain = SESSION_TTL;
+        $('sessionId').textContent = 'pkr-' + Math.random().toString(16).slice(2, 10);
+        $('sessionRemain').textContent = fmt(remain);
+        $('sessionRemain').setAttribute('aria-live', 'polite');
+        setSessionState('待注册', 'badge-warning');
+        $('passkeyStatus').textContent = '未绑定';
+        $('passkeyStatus').className = 'badge badge-secondary';
+        $('revokeBtn').disabled = false;
+        $('startPasskeyBtn').disabled = true;
+        $('passkeyHint').hidden = false;
+        $('passkeyHintText').textContent = '注册会话已创建：请引导该用户在其设备上完成 WebAuthn 注册；重绑前该用户凭密码 / LDAP 登录不受影响';
+        App.toast('已发起 passkey 注册引导（15 分钟、单次有效）', 'success');
+        timer = setInterval(function () {
+          remain -= 1;
+          if (remain <= 0) {
+            clearInterval(timer);
+            sessionActive = false;
+            $('sessionRemain').textContent = '—';
+            setSessionState('已过期', 'badge-destructive');
+            $('revokeBtn').disabled = true;
+            $('startPasskeyBtn').disabled = false;
+            $('passkeyHintText').textContent = '注册会话已过期作废，请重新发起引导';
+            App.toast('passkey 注册会话已过期', 'warning');
+            return;
+          }
+          $('sessionRemain').textContent = fmt(remain);
+        }, 1000);
+      });
+      /* 撤销重绑：设备丢失场景 */
+      $('revokeBtn').addEventListener('click', function () {
+        clearInterval(timer);
+        sessionActive = false;
+        $('sessionId').textContent = '—';
+        $('sessionRemain').textContent = '—';
+        setSessionState('已撤销', 'badge-secondary');
+        $('revokeBtn').disabled = true;
+        $('startPasskeyBtn').disabled = false;
+        $('passkeyHint').hidden = false;
+        $('passkeyHintText').textContent = '原 passkey 绑定已撤销，可重新发起同一引导完成重绑';
+        App.toast('已撤销原 passkey 绑定', 'warning');
+      });
+      /* 演示：用户在其设备完成注册 → 完成态 */
+      $('passkeyCard').addEventListener('dblclick', function () {
+        if (!sessionActive) return;
+        clearInterval(timer);
+        sessionActive = false;
+        $('sessionRemain').textContent = '—';
+        setSessionState('已完成', 'badge-success');
+        $('passkeyStatus').textContent = '已绑定 passkey';
+        $('passkeyStatus').className = 'badge badge-success';
+        $('revokeBtn').disabled = false;
+        $('startPasskeyBtn').disabled = false;
+        $('passkeyHintText').textContent = '用户已完成 WebAuthn 注册，登录方式已标记为「已绑定 passkey」';
+        App.toast('passkey 注册完成', 'success');
+      });
+
+      App.initDemo(function (state) {
+        if (state === 'loading') {
+          $('formBody').hidden = true;
+          $('formSkeleton').hidden = false;
+          $('formCard').setAttribute('aria-busy', 'true');
+          return;
+        }
+        $('formBody').hidden = false;
+        $('formSkeleton').hidden = true;
+        $('formCard').setAttribute('aria-busy', 'false');
+        if (state === 'error') {
+          App.toast('身份服务暂不可用，请稍后重试', 'error');
+          return;
+        }
+        if (state === 'empty') {
+          App.toast('该用户已被删除，返回用户列表', 'warning');
+          setTimeout(function () { location.href = 'users.html'; }, 900);
+        }
+      });
+    })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,66 @@
+{
+  "feature": "eiam-localize-cryptox",
+  "proposal": "docs/proposals/eiam-localize-cryptox/proposal.md",
+  "created": "2026-10-09",
+  "tasks": {
+    "1-port-cryptox": {
+      "id": "1",
+      "title": "内联移植 cryptox 到 eiam/internal/cryptox（含 round-trip 单测）",
+      "priority": "P0",
+      "estimatedTime": "1h",
+      "status": "completed",
+      "file": "1-port-cryptox.md",
+      "record": "records/1-port-cryptox.md",
+      "surface-key": "eiam",
+      "surface-type": "api",
+      "type": "coding.refactor",
+      "complexity": "medium"
+    },
+    "2-kat-compat": {
+      "id": "2",
+      "title": "用原库生成 KAT 已知密文向量并固化字节兼容测试",
+      "priority": "P0",
+      "estimatedTime": "0.5h",
+      "dependencies": [
+        "1"
+      ],
+      "status": "completed",
+      "file": "2-kat-compat.md",
+      "record": "records/2-kat-compat.md",
+      "surface-key": "eiam",
+      "surface-type": "api",
+      "type": "coding.refactor",
+      "complexity": "medium"
+    },
+    "3-swap-drop-verify": {
+      "id": "3",
+      "title": "切换 5 件 import、删除 go.mod ecmdb 依赖并全量验证",
+      "priority": "P1",
+      "estimatedTime": "0.5h",
+      "dependencies": [
+        "2"
+      ],
+      "status": "completed",
+      "file": "3-swap-drop-verify.md",
+      "record": "records/3-swap-drop-verify.md",
+      "surface-key": "eiam",
+      "surface-type": "api",
+      "type": "coding.refactor",
+      "complexity": "medium"
+    }
+  },
+  "statusEnum": [
+    "pending",
+    "in_progress",
+    "completed",
+    "blocked",
+    "suspended",
+    "skipped",
+    "rejected"
+  ],
+  "priorityEnum": [
+    "P0",
+    "P1",
+    "P2"
+  ]
+}

@@ -1,0 +1,73 @@
+{
+  "feature": "bounded-bill-query",
+  "proposal": "docs/proposals/bounded-bill-query/proposal.md",
+  "created": "2026-09-17",
+  "tasks": {
+    "1-paginate-helper": {
+      "id": "1",
+      "title": "cost/repository 新增共享分页 helper",
+      "priority": "P0",
+      "estimatedTime": "1h",
+      "status": "completed",
+      "file": "1-paginate-helper.md",
+      "record": "records/1-paginate-helper.md",
+      "type": "coding.enhancement",
+      "complexity": "medium"
+    },
+    "2-allocatecosts-paginate": {
+      "id": "2",
+      "title": "AllocateCosts 账单获取改分页遍历",
+      "priority": "P0",
+      "estimatedTime": "1h",
+      "dependencies": [
+        "1"
+      ],
+      "status": "completed",
+      "file": "2-allocatecosts-paginate.md",
+      "record": "records/2-allocatecosts-paginate.md",
+      "type": "coding.enhancement",
+      "complexity": "medium"
+    },
+    "3-optimizer-paginate": {
+      "id": "3",
+      "title": "optimizer 四处账单获取改分页遍历",
+      "priority": "P1",
+      "estimatedTime": "1h",
+      "dependencies": [
+        "2"
+      ],
+      "status": "completed",
+      "file": "3-optimizer-paginate.md",
+      "record": "records/3-optimizer-paginate.md",
+      "type": "coding.enhancement",
+      "complexity": "medium"
+    },
+    "quick-drift-detection": {
+      "id": "T-quick-doc-drift",
+      "title": "Detect Spec Drift",
+      "priority": "P2",
+      "estimatedTime": "15min",
+      "dependencies": [
+        "2"
+      ],
+      "status": "completed",
+      "file": "quick-drift-detection.md",
+      "record": "records/quick-drift-detection.md",
+      "type": "doc.drift"
+    }
+  },
+  "statusEnum": [
+    "pending",
+    "in_progress",
+    "completed",
+    "blocked",
+    "suspended",
+    "skipped",
+    "rejected"
+  ],
+  "priorityEnum": [
+    "P0",
+    "P1",
+    "P2"
+  ]
+}

@@ -1,0 +1,79 @@
+{
+  "feature": "waf-flood-diagnosis",
+  "proposal": "docs/proposals/waf-flood-diagnosis/proposal.md",
+  "created": "2026-09-19",
+  "tasks": {
+    "1-rule-engine": {
+      "id": "1",
+      "title": "WAF 被刷判定规则引擎(风险分/等级/攻击类型/措施映射,纯函数+单测)",
+      "priority": "P0",
+      "estimatedTime": "2h",
+      "status": "completed",
+      "file": "1-rule-engine.md",
+      "record": "records/1-rule-engine.md",
+      "surface-key": "e-cam-service",
+      "surface-type": "api",
+      "type": "coding.feature",
+      "complexity": "medium"
+    },
+    "2-diagnose-api": {
+      "id": "2",
+      "title": "后端诊断接口 POST /logs/diagnose(当前窗+前窗聚合,调规则引擎,预留 summary)",
+      "priority": "P0",
+      "estimatedTime": "2h",
+      "dependencies": [
+        "1"
+      ],
+      "status": "completed",
+      "file": "2-diagnose-api.md",
+      "record": "records/2-diagnose-api.md",
+      "surface-key": "e-cam-service",
+      "surface-type": "api",
+      "type": "coding.feature",
+      "complexity": "medium"
+    },
+    "3-frontend-diagnose-card": {
+      "id": "3",
+      "title": "前端 WAF Tab 内嵌「流量诊断」卡(触发/展示/降级)",
+      "priority": "P0",
+      "estimatedTime": "2h",
+      "dependencies": [
+        "2"
+      ],
+      "status": "completed",
+      "file": "3-frontend-diagnose-card.md",
+      "record": "records/3-frontend-diagnose-card.md",
+      "surface-key": "e-cam-web",
+      "surface-type": "web",
+      "type": "coding.feature",
+      "complexity": "medium"
+    },
+    "quick-drift-detection": {
+      "id": "T-quick-doc-drift",
+      "title": "Detect Spec Drift",
+      "priority": "P2",
+      "estimatedTime": "15min",
+      "dependencies": [
+        "3"
+      ],
+      "status": "completed",
+      "file": "quick-drift-detection.md",
+      "record": "records/quick-drift-detection.md",
+      "type": "doc.drift"
+    }
+  },
+  "statusEnum": [
+    "pending",
+    "in_progress",
+    "completed",
+    "blocked",
+    "suspended",
+    "skipped",
+    "rejected"
+  ],
+  "priorityEnum": [
+    "P0",
+    "P1",
+    "P2"
+  ]
+}

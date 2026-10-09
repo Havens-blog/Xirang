@@ -1,0 +1,26 @@
+{
+  "taskId": "3",
+  "status": "completed",
+  "summary": "Kafka 页重写对齐主机页紧凑标准：仅改 src/views/middleware/kafka/index.vue（224 行 → 约 1035 行），整版移植 elasticsearch 版（8a504af）并按 Kafka 领域适配——根类 kafka-page、5 内联状态标改后端全局口径（listKafkaAssetsApi({limit:1,offset:0}) 三连查，实测 21/17/0/0/0）、领域动作 新建/Topic管理/重启/扩容（全禁用+tooltip，Topic佐证=KafkaDetailDrawer Topic tab）、字段搜索栏（回车加条件+chips，字段仅映射 ListAssetsParams）、去多选列/全选/选中N、.cell-sub 等宽 ID 副行、行操作「详情」、首/末列 20px 对齐、AssetExportDialog :selected-ids=\"[]\"。等价保留：localStorage 键 kafka-column-settings、H-03 route.query.search 预填、导出字段配置/文件名 Kafka实例、状态映射保留 Kafka 自有 running/serving、stopped/shutdown。",
+  "filesCreated": [],
+  "filesModified": ["src/views/middleware/kafka/index.vue"],
+  "keyDecisions": [
+    "领域动作按本页派生：Topic管理（KafkaDetailDrawer 有 Topic tab）、扩容（partition_num/disk_size 字段），全部禁用+tooltip「功能开发中」（主题 B 决策，与 RDS/Redis/Mongo/ES 先例一致）",
+    "列保持本页原 11 列派生（状态/版本/规格/Topic数/分区数/存储/接入点/平台/区域 + 隐藏 VPC/创建时间），未造新列",
+    "状态映射保留 Kafka 自有值域 running/serving→运行中、stopped/shutdown→已停止（未照搬 ES 的 active/inactive）",
+    "字段回退链保留本页自有：topic_num||topic_count、spec_type||instance_type、endpoint||connection_string",
+    "样式子集整版内联自 elasticsearch 版（同目录同标准），不抽共享 scss"
+  ],
+  "testsPassed": 902,
+  "testsFailed": 0,
+  "coverage": 0,
+  "acceptanceCriteria": [
+    { "criterion": "Kafka 页为紧凑标准骨架：page-top（标题 + tab + 内联状态标，无大卡片）", "met": true },
+    { "criterion": "操作栏为 Kafka 领域动作（从本页实际能力派生，勿照搬主机电源操作）", "met": true },
+    { "criterion": "表格无默认多选列；字段搜索栏（回车加条件 + chips）可用", "met": true },
+    { "criterion": "pnpm build 与 pnpm typecheck 通过；pnpm lint 相对基线零新增", "met": true },
+    { "criterion": "浏览器深/浅两主题渲染与标准一致、无控制台错误", "met": true }
+  ],
+  "notes": "验证证据：全量 vitest 902/902 全绿（49 文件，与本 feature 基线一致，零回归）；coverage 0 指本模块——kafka 无测试文件（重构前即 0%，maintain 策略零下降）；just e-cam-web-compile / pnpm typecheck 全绿；just e-cam-web-lint 3 error + 12 warning = 历史基线（kafka 零条目，零新增）；pnpm build 成功（仅历史 chunk 体积告警）。nginx :8888 浏览器实测（chrome-devtools MCP）：5 状态标 21/17/0/0/0（全局口径，页渲染 20 行恰好证明）；搜索实测 chip「名称: mes-factory」→1/1、「状态: 运行中」→17 行与运行中标一致、清除还原 20 行；行点击抽屉打开/关闭正常；双主题计算样式断言过（dark 分层 rgb(8,9,10)/(15,16,17)/(25,26,27)，light 白系，靛紫强调色+绿色状态点双主题一致）；console 零 error/warn；截图归档 docs/features/ui-unify-mongo-es-kafka/screenshots/task3/。kafka 模块无测试文件（重构前即 0%，maintain 策略零下降）。基线脏区 src/views/network/** 3 文件为并发会话 WIP，未触碰。",
+  "recordFormat": "coding"
+}

@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>原型导航 · 平台控制台</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="app-header">
+    <a class="nav-brand" href="index.html"><span class="brand-mark">PC</span>平台控制台 · 原型导航</a>
+  </header>
+
+  <main class="container page">
+    <section class="page-header">
+      <div class="page-title">
+        <h2 style="font-size: 24px;">平台控制台 · HTML 原型</h2>
+        <p class="text-muted">统一入口 + 身份治理 + 权限管理 + 工作台 · 共 14 个页面 · Linear 靛紫设计系统（深色默认，主布局 header 内可切换明暗）</p>
+      </div>
+    </section>
+
+    <section class="stack-6">
+      <h3 style="font-size: 18px;">认证与租户选择</h3>
+      <div class="app-grid">
+        <a class="app-card" href="login.html">
+          <div class="app-icon">1</div>
+          <div>
+            <div class="font-medium">登录页（UF-1）</div>
+            <p class="app-meta">密码 / LDAP / Passkey 三种登录方式 Tab、MFA 挑战态、强制改密态、错误态、账号级/方式级锁定态、Passkey 不可用提示</p>
+          </div>
+        </a>
+        <a class="app-card" href="tenant-select.html">
+          <div class="app-icon">11</div>
+          <div>
+            <div class="font-medium">租户选择（UF-11）</div>
+            <p class="app-meta">多租户单选列表 / 单租户自动选定 / 零租户受限提示 / 查询失败重试</p>
+          </div>
+        </a>
+      </div>
+    </section>
+
+    <section class="stack-6">
+      <h3 style="font-size: 18px;">主布局页（共享侧边栏 + 顶部 header：分组菜单 8 项 + 租户选择器 + 应用切换器 + 主题切换 + 用户菜单）</h3>
+      <div class="app-grid">
+        <a class="app-card" href="workbench.html">
+          <div class="app-icon">3</div>
+          <div>
+            <div class="font-medium">工作台（UF-3）</div>
+            <p class="app-meta">欢迎横幅 + 我的信息四字段 + 应用快捷导航卡片（1280–1599px 2 列、≥1600px 3 列）；支持受限视图 / eiam 降级 / 菜单骨架屏演示</p>
+          </div>
+        </a>
+        <a class="app-card" href="users.html">
+          <div class="app-icon">4</div>
+          <div>
+            <div class="font-medium">用户管理（UF-4）</div>
+            <p class="app-meta">关键词 + 角色过滤（服务端查询，提交即重置页码）、分页边界回退、新增用户 Dialog、并发编辑 409、状态三态徽章</p>
+          </div>
+        </a>
+        <a class="app-card" href="organizations.html">
+          <div class="app-icon">5</div>
+          <div>
+            <div class="font-medium">组织管理（UF-5）</div>
+            <p class="app-meta">左树右详情（2:3，树最小 280px）、键盘树导航、树超限禁建、删除被拒弹窗（确认置灰）</p>
+          </div>
+        </a>
+        <a class="app-card" href="tenants.html">
+          <div class="app-icon">6</div>
+          <div>
+            <div class="font-medium">租户管理（UF-6）</div>
+            <p class="app-meta">租户表格 + 活跃会话数列、禁用高危操作（输入租户名确认）、禁用被拒提示活跃会话数、名称唯一冲突</p>
+          </div>
+        </a>
+        <a class="app-card" href="identity-sources.html">
+          <div class="app-icon">7</div>
+          <div>
+            <div class="font-medium">身份源管理（UF-7）</div>
+            <p class="app-meta">6 字段 LDAP 连接参数表单、测试连接成功/失败反馈、Bind 密码掩码不回显、启停开关</p>
+          </div>
+        </a>
+        <a class="app-card" href="roles.html">
+          <div class="app-icon">8</div>
+          <div>
+            <div class="font-medium">角色管理（UF-8）</div>
+            <p class="app-meta">角色列表（绑定策略数/绑定用户数）、新增 Dialog、删除被拒提示绑定用户数、行内编辑跳详情</p>
+          </div>
+        </a>
+        <a class="app-card" href="authorizations.html">
+          <div class="app-icon">9</div>
+          <div>
+            <div class="font-medium">授权管理（UF-9）</div>
+            <p class="app-meta">主体/资源/动作三元组下拉、唯一性预检、撤销 pending 态（≤30s aria-live 播报后移除）</p>
+          </div>
+        </a>
+        <a class="app-card" href="policies.html">
+          <div class="app-icon">10</div>
+          <div>
+            <div class="font-medium">策略管理（UF-10）</div>
+            <p class="app-meta">JSON Statement 表单、前端语法校验失败标红阻断保存、删除被拒提示绑定角色数</p>
+          </div>
+        </a>
+      </div>
+    </section>
+
+    <section class="stack-6">
+      <h3 style="font-size: 18px;">权限控制 P0（已实现）</h3>
+      <div class="app-grid">
+        <a class="app-card" href="permission-p0.html">
+          <div class="app-icon">P0</div>
+          <div>
+            <div class="font-medium">权限三级裁剪原型（permission-p0）</div>
+            <p class="app-meta">四角色实时切换（平台/租户管理员、只读审计、普通用户）：侧边栏按 iam:* 权限码裁剪、路由 meta.permissions 403 原地、v-can 按钮级显隐、权限码矩阵、数据流总览</p>
+          </div>
+        </a>
+      </div>
+    </section>
+
+    <section class="stack-6">
+      <h3 style="font-size: 18px;">二级页与辅助占位</h3>
+      <div class="app-grid">
+        <a class="app-card" href="user-detail.html">
+          <div class="app-icon">4a</div>
+          <div>
+            <div class="font-medium">用户详情/编辑（/users/:id）</div>
+            <p class="app-meta">返回用户列表、初始密码展示一次、passkey 注册引导（15 分钟一次性会话）与撤销重绑、角色绑定多选</p>
+          </div>
+        </a>
+        <a class="app-card" href="role-detail.html">
+          <div class="app-icon">8a</div>
+          <div>
+            <div class="font-medium">角色详情/绑定（/roles/:id）</div>
+            <p class="app-meta">返回角色列表、策略绑定多选 + 用户绑定多选（支持搜索），整页承载</p>
+          </div>
+        </a>
+        <a class="app-card" href="help.html">
+          <div class="app-icon">?</div>
+          <div>
+            <div class="font-medium">帮助中心（/help 占位）</div>
+            <p class="app-meta">登录页帮助入口的站内路由占位页</p>
+          </div>
+        </a>
+        <a class="app-card" href="ecam-web.html">
+          <div class="app-icon">云</div>
+          <div>
+            <div class="font-medium">云管 e-cam-web（应用切换占位）</div>
+            <p class="app-meta">应用切换器新标签打开的目标占位页（共享会话）</p>
+          </div>
+        </a>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="card-title" style="margin-bottom: 8px;">使用说明</div>
+      <ul class="text-sm text-muted" style="display: flex; flex-direction: column; gap: 6px; list-style: disc; padding-left: 20px;">
+        <li>右下角「原型状态演示」面板可切换各页 loading / empty / error / populated 状态，并演示 401、403、导航骨架屏。</li>
+        <li>默认深色主题（Linear 规格：深色为默认）；主布局 header 的月/日按钮切换明暗，选择持久化到 localStorage。</li>
+        <li>最小支持分辨率 1280×720；表格容器横向滚动，不产生页面级横滚。</li>
+      </ul>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>

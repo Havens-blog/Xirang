@@ -1,0 +1,73 @@
+{
+  "feature": "rule-engine-unify",
+  "proposal": "docs/proposals/rule-engine-unify/proposal.md",
+  "created": "2026-09-17",
+  "tasks": {
+    "1-matchvalue-domain": {
+      "id": "1",
+      "title": "cam/domain 新增共享 MatchValue 求值函数",
+      "priority": "P0",
+      "estimatedTime": "1h",
+      "status": "completed",
+      "file": "1-matchvalue-domain.md",
+      "record": "records/1-matchvalue-domain.md",
+      "type": "coding.enhancement",
+      "complexity": "medium"
+    },
+    "2-tag-delegate": {
+      "id": "2",
+      "title": "tag_rules.matchOperator 委托 cam/domain.MatchValue",
+      "priority": "P0",
+      "estimatedTime": "30m",
+      "dependencies": [
+        "1"
+      ],
+      "status": "completed",
+      "file": "2-tag-delegate.md",
+      "record": "records/2-tag-delegate.md",
+      "type": "coding.enhancement",
+      "complexity": "low"
+    },
+    "3-servicetree-delegate": {
+      "id": "3",
+      "title": "rule_engine.compareValue 委托 MatchValue（Contains 放宽不敏感）",
+      "priority": "P0",
+      "estimatedTime": "1h",
+      "dependencies": [
+        "2"
+      ],
+      "status": "completed",
+      "file": "3-servicetree-delegate.md",
+      "record": "records/3-servicetree-delegate.md",
+      "type": "coding.enhancement",
+      "complexity": "medium"
+    },
+    "quick-drift-detection": {
+      "id": "T-quick-doc-drift",
+      "title": "Detect Spec Drift",
+      "priority": "P2",
+      "estimatedTime": "15min",
+      "dependencies": [
+        "2"
+      ],
+      "status": "completed",
+      "file": "quick-drift-detection.md",
+      "record": "records/quick-drift-detection.md",
+      "type": "doc.drift"
+    }
+  },
+  "statusEnum": [
+    "pending",
+    "in_progress",
+    "completed",
+    "blocked",
+    "suspended",
+    "skipped",
+    "rejected"
+  ],
+  "priorityEnum": [
+    "P0",
+    "P1",
+    "P2"
+  ]
+}

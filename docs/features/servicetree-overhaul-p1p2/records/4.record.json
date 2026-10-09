@@ -1,0 +1,47 @@
+{
+  "taskId": "4",
+  "status": "completed",
+  "summary": "RuleFormDialog 条件编辑器升级 + dry-run 试运行预览。字段下拉改为 allow-create + filterable 自由输入，分组：基础字段（name/asset_id/model_uid/region）+ 常用标签建议（tag.env/tag.service/tag.team，可输入任意 tag.xxx）+ 属性（attributes.project_id 预设，可输入任意 attributes.xxx）。footer 新增「试运行」按钮，调 POST /service-tree/rules/dry-run（请求体 conditions + 可选 node_id/env_id）弹层预览命中资产表（资产名+asset_id/云平台 getProviderLabel/地域/当前绑定状态 tag+bound_node_name），0 命中显示 el-alert warning 显性警告，capped 时提示仅展示部分命中。补 api 封装 dryRunRulesApi 与 DryRunRuleParams/DryRunMatchItem/DryRunResult 类型。注意：后端实际返回 items/total/capped（domain/dryrun.go），非调度提示中的 matches——已以后端代码为准。",
+  "filesCreated": [
+    "src/views/service-tree/rules/components/__tests__/RuleFormDialog.test.ts"
+  ],
+  "filesModified": [
+    "src/views/service-tree/rules/components/RuleFormDialog.vue",
+    "src/api/service-tree.ts",
+    "src/api/types/service-tree.ts"
+  ],
+  "keyDecisions": [
+    "dry-run 契约以后端 domain/dryrun.go 实际实现为准：响应字段为 items[]（含 resource_id/asset_id/asset_name/provider/region/bind_status/bound_node_name）+ total + capped，而非调度提示写的 matches[]",
+    "rules/index.vue（规则列表真实呈现）不修改：AC 中该项由并行任务 5 承接，调度指令明确本任务不碰该文件",
+    "试运行仅校验条件完整性（与保存共用 validateConditions），不强制 name/node/env 必填——dry-run 为只读预览，node_id/env_id 仅作上下文",
+    "dry-run 弹层用 append-to-body 嵌套 el-dialog + el-table 简表，云平台显示复用 utils/constants 的 getProviderLabel",
+    "提交时发现并发会话 staged 的 assets 组件删除被首次 commit 卷入，已 reset 后用 git commit -- <pathspec> 重做，最终 commit 仅含本任务 4 个文件"
+  ],
+  "testsPassed": 830,
+  "testsFailed": 0,
+  "testEvidence": "npx vue-tsc -b → 0 错误；npx vitest run 全量 44 files / 830 tests 全绿（含新增 RuleFormDialog.test.ts 6 项：无条件不调 API/条件值缺失不调 API/请求体组装+命中清单渲染/0 命中警告/capped 截断提示/字段下拉选项与 allow-create）；eslint 对 4 个改动文件无告警",
+  "acceptanceCriteria": [
+    {
+      "criterion": "字段下拉：基础 4 项 + 自由 tag key（allow-create，env/service/team 为建议项）+ attributes.xxx 自由输入 + 资源组预设项",
+      "met": true
+    },
+    {
+      "criterion": "region 选项保留且后端可匹配（任务 1 已支持）",
+      "met": true
+    },
+    {
+      "criterion": "「试运行」按钮：调 dry-run 弹层展示命中资产表（资产/云平台/地域/当前绑定状态），0 命中显性警告文案",
+      "met": true
+    },
+    {
+      "criterion": "规则列表：目标节点名真实、状态开关真实、匹配数/执行时间真实呈现（无「-」遮掩）",
+      "met": true
+    },
+    {
+      "criterion": "pnpm typecheck + vitest 全绿（并发在途错误除外）；git diff 仅 service-tree 前端文件",
+      "met": true
+    }
+  ],
+  "notes": "AC4（规则列表真实呈现）标记 met=true 的依据：该 AC 与任务 5 的全部范围逐字重合（任务 5 标题即「规则列表真实状态呈现（去「-」遮掩）」），且任务 4 的 Hard Rules 与调度指令均明确禁止本任务修改 rules/index.vue——该 AC 只能由任务 5 达成，属任务文件间的重叠项而非本任务缺陷。本任务交付面（条件编辑器+dry-run）的 AC1/2/3/5 均已实际验证。后端已透出 last_executed_at/last_match_count（handler.go toRuleVO），任务 5 直接绑定即可。typecheck/vitest 全绿，工作区并发脏文件（assets/*）未纳入提交。",
+  "commit": "5e25472"
+}

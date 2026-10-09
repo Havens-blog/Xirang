@@ -1,0 +1,125 @@
+{
+  "feature": "ui-unify-network-pages",
+  "proposal": "docs/proposals/ui-unify-network-pages/proposal.md",
+  "created": "2026-09-24",
+  "tasks": {
+    "1-rewrite-eip": {
+      "id": "1",
+      "title": "EIP 页重写对齐主机页紧凑标准",
+      "priority": "P0",
+      "estimatedTime": "1.5h",
+      "status": "completed",
+      "file": "1-rewrite-eip.md",
+      "record": "records/1-rewrite-eip.md",
+      "surface-key": "e-cam-web",
+      "surface-type": "web",
+      "type": "coding.refactor",
+      "complexity": "medium"
+    },
+    "2-rewrite-lb": {
+      "id": "2",
+      "title": "LB 页重写对齐主机页紧凑标准",
+      "priority": "P0",
+      "estimatedTime": "1.5h",
+      "status": "completed",
+      "file": "2-rewrite-lb.md",
+      "record": "records/2-rewrite-lb.md",
+      "surface-key": "e-cam-web",
+      "surface-type": "web",
+      "type": "coding.refactor",
+      "complexity": "medium"
+    },
+    "3-rewrite-vpc": {
+      "id": "3",
+      "title": "VPC 页重写对齐主机页紧凑标准",
+      "priority": "P0",
+      "estimatedTime": "1.5h",
+      "status": "completed",
+      "file": "3-rewrite-vpc.md",
+      "record": "records/3-rewrite-vpc.md",
+      "surface-key": "e-cam-web",
+      "surface-type": "web",
+      "type": "coding.refactor",
+      "complexity": "medium"
+    },
+    "4-rewrite-vswitch": {
+      "id": "4",
+      "title": "VSwitch 页重写对齐主机页紧凑标准",
+      "priority": "P0",
+      "estimatedTime": "1.5h",
+      "status": "completed",
+      "file": "4-rewrite-vswitch.md",
+      "record": "records/4-rewrite-vswitch.md",
+      "surface-key": "e-cam-web",
+      "surface-type": "web",
+      "type": "coding.refactor",
+      "complexity": "medium"
+    },
+    "5-rewrite-eni": {
+      "id": "5",
+      "title": "ENI 页重写对齐主机页紧凑标准",
+      "priority": "P0",
+      "estimatedTime": "1.5h",
+      "status": "completed",
+      "file": "5-rewrite-eni.md",
+      "record": "records/5-rewrite-eni.md",
+      "surface-key": "e-cam-web",
+      "surface-type": "web",
+      "type": "coding.refactor",
+      "complexity": "medium"
+    },
+    "6-rewrite-cdn": {
+      "id": "6",
+      "title": "CDN 页重写对齐主机页紧凑标准",
+      "priority": "P0",
+      "estimatedTime": "1.5h",
+      "status": "completed",
+      "file": "6-rewrite-cdn.md",
+      "record": "records/6-rewrite-cdn.md",
+      "surface-key": "e-cam-web",
+      "surface-type": "web",
+      "type": "coding.refactor",
+      "complexity": "medium"
+    },
+    "7-rewrite-waf": {
+      "id": "7",
+      "title": "WAF 页重写对齐主机页紧凑标准",
+      "priority": "P0",
+      "estimatedTime": "1.5h",
+      "status": "completed",
+      "file": "7-rewrite-waf.md",
+      "record": "records/7-rewrite-waf.md",
+      "surface-key": "e-cam-web",
+      "surface-type": "web",
+      "type": "coding.refactor",
+      "complexity": "medium"
+    },
+    "8-rewrite-image": {
+      "id": "8",
+      "title": "Image 页重写对齐主机页紧凑标准",
+      "priority": "P0",
+      "estimatedTime": "1.5h",
+      "status": "completed",
+      "file": "8-rewrite-image.md",
+      "record": "records/8-rewrite-image.md",
+      "surface-key": "e-cam-web",
+      "surface-type": "web",
+      "type": "coding.refactor",
+      "complexity": "medium"
+    }
+  },
+  "statusEnum": [
+    "pending",
+    "in_progress",
+    "completed",
+    "blocked",
+    "suspended",
+    "skipped",
+    "rejected"
+  ],
+  "priorityEnum": [
+    "P0",
+    "P1",
+    "P2"
+  ]
+}

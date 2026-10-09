@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>选择租户 — 平台控制台</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main class="auth-page">
+    <div class="auth-card" style="max-width: 440px;">
+      <div class="auth-brand">
+        <span class="brand-mark">PC</span>
+        <div>
+          <h1 style="font-size: 22px; font-weight: 700;">选择租户</h1>
+          <p class="text-sm text-muted" style="margin-top: 4px;">zhangsan，你好。请选择要进入的租户上下文</p>
+        </div>
+      </div>
+
+      <!-- Loading：查询所属租户中 -->
+      <div id="tsLoading" aria-busy="true" style="display: flex; flex-direction: column; gap: 10px;">
+        <span class="skeleton skeleton-text w-60"></span>
+        <span class="skeleton skeleton-row"></span>
+        <span class="skeleton skeleton-row"></span>
+        <span class="skeleton skeleton-row"></span>
+      </div>
+
+      <!-- 多租户：单选列表 -->
+      <form id="tsList" hidden novalidate>
+        <div style="display: flex; flex-direction: column; gap: 4px;" role="radiogroup" aria-label="选择租户">
+          <label class="radio-row">
+            <input type="radio" name="tenant" value="生产租户" checked>
+            <span class="font-medium">生产租户</span>
+            <span class="text-xs text-muted spacer" style="text-align: right;">默认</span>
+          </label>
+          <label class="radio-row">
+            <input type="radio" name="tenant" value="预发租户">
+            <span class="font-medium">预发租户</span>
+          </label>
+          <label class="radio-row">
+            <input type="radio" name="tenant" value="测试租户">
+            <span class="font-medium">测试租户</span>
+          </label>
+        </div>
+        <button type="submit" class="btn btn-default" style="width: 100%; margin-top: 16px;">进入工作台</button>
+      </form>
+
+      <!-- 单租户：自动选定提示 -->
+      <div class="alert alert-success" id="tsAuto" role="status" hidden>
+        <span aria-hidden="true">✓</span>
+        <span>检测到唯一所属租户「生产租户」，正在自动进入工作台…</span>
+      </div>
+
+      <!-- 零租户：受限提示 -->
+      <div class="alert alert-warning" id="tsNone" role="alert" hidden>
+        <span aria-hidden="true">!</span>
+        <span>无所属租户
+          <span class="alert-sub">你尚未被加入任何租户，将进入受限工作台；如需开通权限，请联系平台管理员</span>
+        </span>
+      </div>
+      <a class="btn btn-outline" id="tsNoneGo" href="workbench.html" hidden>进入受限工作台</a>
+
+      <!-- Error：查询失败 + 重试 -->
+      <div id="tsError" hidden>
+        <div class="alert alert-error" role="alert">
+          <span aria-hidden="true">✕</span>
+          <span>身份服务暂不可用，请稍后重试
+            <span class="alert-sub">查询所属租户失败（eiam 接口超时）</span>
+          </span>
+        </div>
+        <button type="button" class="btn btn-outline" id="tsRetry" style="width: 100%; margin-top: 16px;">重试</button>
+      </div>
+
+      <div style="border-top: 1px solid var(--border-base); padding-top: 16px; display: flex; justify-content: space-between;">
+        <a class="text-sm text-muted" href="login.html">退出登录</a>
+        <span class="text-xs text-muted">租户上下文写入共享 session</span>
+      </div>
+    </div>
+  </main>
+
+  <script src="app.js"></script>
+  <script>
+    (function () {
+      'use strict';
+      var $ = function (id) { return document.getElementById(id); };
+
+      function show(id) {
+        ['tsLoading', 'tsList', 'tsAuto', 'tsNone', 'tsNoneGo', 'tsError'].forEach(function (x) {
+          $(x).hidden = x !== id;
+        });
+      }
+
+      /* 迁移：Loading → 0 个直达受限工作台 / 1 个自动选定 / ≥2 个渲染列表 */
+      function load(mode) {
+        show('tsLoading');
+        setTimeout(function () {
+          if (mode === 'none') { show('tsNone'); show('tsNoneGo'); return; }
+          if (mode === 'single') {
+            show('tsAuto');
+            setTimeout(function () { location.href = 'workbench.html'; }, 1600);
+            return;
+          }
+          if (mode === 'error') { show('tsError'); return; }
+          show('tsList');
+        }, 900);
+      }
+      load('multi');
+
+      $('tsRetry').addEventListener('click', function () { load('multi'); });
+
+      $('tsList').addEventListener('submit', function (e) {
+        e.preventDefault();
+        var picked = document.querySelector('input[name="tenant"]:checked');
+        App.toast('已选定租户「' + picked.value + '」，写入共享 session', 'success');
+        setTimeout(function () { location.href = 'workbench.html'; }, 700);
+      });
+
+      /* ---------- 原型状态演示（租户选择专属迁移态） ---------- */
+      var demo = document.createElement('div');
+      demo.className = 'demo-panel';
+      demo.innerHTML =
+        '<button type="button" class="demo-panel-toggle">租户态演示</button>' +
+        '<div class="demo-panel-body">' +
+        '  <div class="demo-panel-group">' +
+        '    <button type="button" class="demo-btn current" data-d="multi">多租户</button>' +
+        '    <button type="button" class="demo-btn" data-d="single">单租户自动</button>' +
+        '    <button type="button" class="demo-btn" data-d="none">零租户受限</button>' +
+        '    <button type="button" class="demo-btn" data-d="error">查询失败</button>' +
+        '  </div>' +
+        '</div>';
+      document.body.appendChild(demo);
+      demo.querySelector('.demo-panel-toggle').addEventListener('click', function () {
+        demo.classList.toggle('open');
+      });
+      demo.addEventListener('click', function (e) {
+        var btn = e.target.closest('[data-d]');
+        if (!btn) return;
+        demo.querySelectorAll('[data-d]').forEach(function (b) { b.classList.remove('current'); });
+        btn.classList.add('current');
+        load(btn.getAttribute('data-d'));
+      });
+    })();
+  </script>
+</body>
+</html>

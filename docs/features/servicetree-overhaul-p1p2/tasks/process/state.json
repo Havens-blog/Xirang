@@ -1,0 +1,12 @@
+{
+  "task_id": "fix-3",
+  "key": "fix-3",
+  "title": "fix unit-test: just unit-test failure in quality gate",
+  "priority": "P0",
+  "estimatedTime": "30min",
+  "file": "fix-3.md",
+  "record": "records/fix-3.md",
+  "startedTime": "2026-09-21 19:46",
+  "breaking": true,
+  "type": "coding.fix"
+}

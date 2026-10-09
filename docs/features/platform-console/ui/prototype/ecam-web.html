@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>云管 e-cam-web — 应用占位</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="app-header">
+    <a class="nav-brand" href="ecam-web.html"><span class="brand-mark" style="background: var(--color-success);">云</span>云管 e-cam-web</a>
+    <div class="header-actions">
+        <span class="badge badge-outline">应用切换占位页</span>
+        <div class="dropdown">
+          <button type="button" class="avatar-btn" aria-haspopup="true" aria-expanded="false" aria-label="用户菜单">张</button>
+          <div class="dropdown-menu" role="menu" aria-label="用户菜单">
+            <div class="dropdown-header">zhangsan · 张三（共享会话）</div>
+            <button type="button" class="dropdown-item" data-action="logout">登出</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="container page">
+    <section class="page-title">
+      <h2 style="font-size: 24px;">多云资产管理与运维控制台</h2>
+      <p class="text-muted" style="margin-top: 4px;">本页为「平台控制台 → 应用切换器」新标签打开的目标占位页，模拟 e-cam-web 应用首屏。</p>
+    </section>
+
+    <div class="alert alert-success" role="status">
+      <span aria-hidden="true">✓</span>
+      <span>共享会话已建立：你已通过平台控制台登录，无需再次认证；登出将同时失效双侧会话</span>
+    </div>
+
+    <div class="app-grid">
+      <div class="app-card is-disabled" aria-disabled="true">
+        <div class="app-icon" style="background: var(--bg-hover); color: var(--text-secondary);">资</div>
+        <div>
+          <div class="font-medium">资产总览</div>
+          <p class="app-meta">多云资产纳管与盘点 · 占位入口</p>
+        </div>
+      </div>
+      <div class="app-card is-disabled" aria-disabled="true">
+        <div class="app-icon" style="background: var(--bg-hover); color: var(--text-secondary);">证</div>
+        <div>
+          <div class="font-medium">证书管理</div>
+          <p class="app-meta">SSL 证书到期监控与部署 · 占位入口</p>
+        </div>
+      </div>
+      <div class="app-card is-disabled" aria-disabled="true">
+        <div class="app-icon" style="background: var(--bg-hover); color: var(--text-secondary);">账</div>
+        <div>
+          <div class="font-medium">账单中心</div>
+          <p class="app-meta">多云成本分摊与分析 · 占位入口</p>
+        </div>
+      </div>
+    </div>
+
+    <section class="card">
+      <p class="text-sm text-muted">在真实环境中，点击顶部导航「云管」将以新标签打开 e-cam-web（共享 eiam 会话）；平台控制台标签页保留，工作台上下文不丢失。</p>
+      <div class="row-16" style="margin-top: 12px;">
+        <a class="btn btn-outline" href="workbench.html" target="_blank" rel="noopener">回到平台控制台（新标签）</a>
+        <a class="btn btn-ghost" href="index.html">返回原型导航</a>
+      </div>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>

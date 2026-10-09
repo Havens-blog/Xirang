@@ -1,0 +1,108 @@
+{
+  "feature": "export-dialog-consolidation",
+  "proposal": "docs/proposals/export-dialog-consolidation/proposal.md",
+  "created": "2026-09-20",
+  "tasks": {
+    "1-shared-component": {
+      "id": "1",
+      "title": "新建共享 AssetExportDialog 配置驱动组件 + 单测",
+      "priority": "P0",
+      "estimatedTime": "2h",
+      "status": "completed",
+      "file": "1-shared-component.md",
+      "record": "records/1-shared-component.md",
+      "type": "coding.refactor",
+      "complexity": "high"
+    },
+    "2-migrate-stub-databases": {
+      "id": "2",
+      "title": "5 个 stub 页迁移共享组件并真实导出",
+      "priority": "P0",
+      "estimatedTime": "2h",
+      "dependencies": [
+        "1"
+      ],
+      "status": "completed",
+      "file": "2-migrate-stub-databases.md",
+      "record": "records/2-migrate-stub-databases.md",
+      "type": "coding.refactor",
+      "complexity": "high"
+    },
+    "3-migrate-medium-storage-compute": {
+      "id": "3",
+      "title": "中档存储/计算 5 页零漂移迁移共享组件",
+      "priority": "P1",
+      "estimatedTime": "2h",
+      "dependencies": [
+        "1"
+      ],
+      "status": "completed",
+      "file": "3-migrate-medium-storage-compute.md",
+      "record": "records/3-migrate-medium-storage-compute.md",
+      "type": "coding.refactor",
+      "complexity": "high"
+    },
+    "4-migrate-medium-network": {
+      "id": "4",
+      "title": "中档网络 5 页零漂移迁移共享组件",
+      "priority": "P1",
+      "estimatedTime": "2h",
+      "dependencies": [
+        "1"
+      ],
+      "status": "completed",
+      "file": "4-migrate-medium-network.md",
+      "record": "records/4-migrate-medium-network.md",
+      "type": "coding.refactor",
+      "complexity": "high"
+    },
+    "fix-1": {
+      "id": "fix-1",
+      "title": "Fix: 处理 3 处内联导出 stub（禁用+诚实提示）",
+      "priority": "P0",
+      "estimatedTime": "30min",
+      "status": "completed",
+      "file": "fix-1.md",
+      "record": "records/fix-1.md",
+      "breaking": true,
+      "sourceTaskID": "2",
+      "type": "coding.fix"
+    },
+    "fix-2": {
+      "id": "fix-2",
+      "title": "Fix: submit 质量门 just lint 失败（e-cam-service go vet NewDiscoveryImportService 参数不符 + gofmt 4 文件）",
+      "priority": "P0",
+      "estimatedTime": "30min",
+      "status": "skipped",
+      "file": "fix-2.md",
+      "record": "records/fix-2.md",
+      "breaking": true,
+      "sourceTaskID": "3",
+      "type": "coding.fix"
+    },
+    "fix-3": {
+      "id": "fix-3",
+      "title": "fix lint: just lint failure in quality gate",
+      "priority": "P0",
+      "estimatedTime": "15min",
+      "status": "completed",
+      "file": "fix-3.md",
+      "record": "records/fix-3.md",
+      "type": "coding.cleanup"
+    }
+  },
+  "statusEnum": [
+    "pending",
+    "in_progress",
+    "completed",
+    "blocked",
+    "suspended",
+    "skipped",
+    "rejected"
+  ],
+  "priorityEnum": [
+    "P0",
+    "P1",
+    "P2"
+  ]
+}

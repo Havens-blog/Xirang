@@ -1,0 +1,39 @@
+---
+status: "completed"
+started: "2026-09-22 11:46"
+completed: "2026-09-22 12:00"
+time_spent: "~14m"
+---
+
+# Task Record: 2 ExecuteRules 绑定环境按推断优先、规则 env_id 兜底
+
+## Summary
+ExecuteRules 绑定落库 EnvID 改为「资产推断优先、规则 env 兜底」：开篇一次加载租户 code→env_id 映射（loadEnvIDByCode，uat≡staging 归一对齐），落库循环内 EnvID = resolveEnvID(inferInstanceEnvCode(instance), rule.EnvID, envIDByCode)。新增纯函数 resolveEnvID（命中映射取 env_id，空码/未映射走规则兜底）与域适配 inferInstanceEnvCode（cam 与 cmdb 两套同构 Instance 转发到任务 1 单份实现 inferEnvCode）。加载失败或 envRepo 未注入仅告警降级为空映射（全部绑定退回规则 env，行为同现状），不阻塞绑定主流程。create-only 幂等、manual 锁定、优先级首个命中语义未动。
+
+## Changes
+
+### Files Created
+无
+
+### Files Modified
+- internal/cam/servicetree/service/rule_engine.go
+- internal/cam/servicetree/service/rule_engine_env_test.go
+
+### Key Decisions
+无
+
+## Test Results
+- **Tests Executed**: Yes
+- **Passed**: 126
+- **Failed**: 0
+- **Coverage**: 0.0%
+
+## Acceptance Criteria
+- [x] 绑定落库 EnvID：推断命中 → 资产环境码对应 env_id；未命中 → rule.EnvID 兜底
+- [x] create-only 幂等不变：已绑定资源（manual/rule）仍整体跳过，重复执行零重复绑定
+- [x] manual 锁定不变：手动绑定资产不被规则覆盖
+- [x] 优先级语义不变：仍取首个命中的规则（节点按规则，仅环境被资产纠正）
+- [x] 单测：命名 -prod- 命中落 prod env、未命中落规则 env、manual 跳过；go build ./... + go test ./internal/cam/servicetree/... 全绿
+
+## Notes
+边界遵守：仅改 rule_engine.go + 新增测试文件，未碰 node_asset.go / infer_env.go（任务 1）/ rebind_plan.go（任务 3）。实现要点：① resolveEnvID 与 inferInstanceEnvCode 定义在 rule_engine.go（Hard Rule 文件边界所限），任务 3 改绑重算可同包复用；② cam/domain.Instance 与 cmdb/domain.Instance 同构但异型，域适配器转发到 infer_env.go 单份 inferEnvCode，无第二份推断实现；③ 环境映射加载失败按 ExecuteRules 既有「仅告警不阻塞」惯例降级为规则 env 兜底（等价现状行为），而非中断规则执行——规则执行由资产同步事件异步触发，硬失败会吞掉全部新绑定；④ 现有测试 newTestRuleEngine 传 nil envRepo，nil interface 守卫使其保持全绿（typed-nil 会绕过守卫，测试中显式声明 var envRepo repository.EnvironmentRepository 保持真 nil）。提交仅含显式 pathspec 两个文件，未裹挟工作区其他会话的 cert/logquery 未提交改动。

@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>用户管理 — 平台控制台</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="layout">
+    <aside class="sidebar">
+      <a class="sidebar-logo" href="workbench.html" aria-label="Platform 工作台">
+        <svg class="logo-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M12 2L2 7L12 12L22 7L12 2Z" fill="#5e6ad2"/><path d="M2 17L12 22L22 17" stroke="#7170ff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M2 12L12 17L22 12" stroke="#7170ff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span class="logo-text">Platform</span>
+      </a>
+      <nav class="sidebar-nav" id="sidebarNav" aria-label="主导航">
+        <div class="menu-group">
+          <div class="group-title">概览</div>
+          <a href="workbench.html" class="menu-item"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="2" width="5" height="5" rx="1"/><rect x="9" y="2" width="5" height="5" rx="1"/><rect x="2" y="9" width="5" height="5" rx="1"/><rect x="9" y="9" width="5" height="5" rx="1"/></svg><span class="menu-title">工作台</span></a>
+        </div>
+        <div class="menu-group">
+          <div class="group-title">身份治理</div>
+          <a href="users.html" class="menu-item active"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="5.5" r="2.5"/><path d="M3 13.5c.8-2.6 2.7-3.6 5-3.6s4.2 1 5 3.6"/></svg><span class="menu-title">用户管理</span></a>
+          <a href="organizations.html" class="menu-item"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="2" width="10" height="12" rx="1"/><path d="M6 5.5h1.5M8.5 5.5H10M6 8h1.5M8.5 8H10M6 10.5h4"/></svg><span class="menu-title">组织管理</span></a>
+          <a href="tenants.html" class="menu-item"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2.5" y="2.5" width="8" height="8" rx="1"/><rect x="5.5" y="5.5" width="8" height="8" rx="1"/></svg><span class="menu-title">租户管理</span></a>
+          <a href="identity-sources.html" class="menu-item"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="5" cy="8" r="2.5"/><path d="M7.5 8H14M11.5 8v2.5M9.5 8v1.5"/></svg><span class="menu-title">身份源管理</span></a>
+        </div>
+        <div class="menu-group">
+          <div class="group-title">权限管理</div>
+          <a href="roles.html" class="menu-item"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 1.5l5.5 2v4c0 3.5-2.3 5.9-5.5 7-3.2-1.1-5.5-3.5-5.5-7v-4z"/></svg><span class="menu-title">角色管理</span></a>
+          <a href="authorizations.html" class="menu-item"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 1.5l5.5 2v4c0 3.5-2.3 5.9-5.5 7-3.2-1.1-5.5-3.5-5.5-7v-4z"/><path d="M5.5 8l1.8 1.8L10.8 6.3"/></svg><span class="menu-title">授权管理</span></a>
+          <a href="policies.html" class="menu-item"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 1.5h5.5L13 5v9.5a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-12a1 1 0 0 1 1-1z"/><path d="M9.5 1.5V5H13M6 8.5h4M6 11.5h4"/></svg><span class="menu-title">策略管理</span></a>
+        </div>
+      </nav>
+    </aside>
+    <div class="main-area">
+      <header class="app-header">
+        <button type="button" class="toggle-btn" id="navToggle" aria-label="折叠或展开侧边栏" aria-expanded="true" aria-controls="sidebarNav"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="2.5" width="12" height="11" rx="2"/><path d="M6 2.5v11"/></svg></button>
+        <nav class="breadcrumb" aria-label="面包屑"><a href="workbench.html">首页</a><span class="crumb-sep" aria-hidden="true">/</span><span class="crumb-current" data-crumb-current></span></nav>
+        <div class="header-actions">
+          <div class="dropdown">
+            <button type="button" class="tenant-trigger" aria-haspopup="true" aria-expanded="false" title="切换租户：写入 session 后按新租户重新拉取数据">
+              <span class="dot" aria-hidden="true"></span><span class="label">生产租户</span><span aria-hidden="true">▾</span>
+            </button>
+            <div class="dropdown-menu" role="menu" aria-label="切换租户">
+              <div class="dropdown-header">我的所属租户</div>
+              <button type="button" class="dropdown-item is-selected" data-tenant="生产租户">生产租户</button>
+              <button type="button" class="dropdown-item" data-tenant="预发租户">预发租户</button>
+              <button type="button" class="dropdown-item" data-tenant="测试租户">测试租户</button>
+              <div class="dropdown-note">切换后丢弃未提交草稿并关闭弹窗，数据按新租户重新加载</div>
+            </div>
+          </div>
+          <a class="app-switcher" href="ecam-web.html" target="_blank" rel="noopener" title="打开云管 e-cam-web（新标签，共享会话）"><span class="grid-dot" aria-hidden="true"><i></i><i></i><i></i><i></i></span><span class="switcher-text">云管</span></a>
+          <button type="button" class="toggle-btn" data-action="toggle-theme" aria-label="切换深色 / 浅色主题" title="切换主题">
+            <svg class="icon-moon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13.5 9.8A5.8 5.8 0 0 1 6.2 2.5a5.8 5.8 0 1 0 7.3 7.3z"/></svg>
+            <svg class="icon-sun" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="8" r="3"/><path d="M8 1.2v1.3M8 13.5v1.3M14.8 8h-1.3M2.5 8H1.2M12.9 3.1l-.9.9M4 12l-.9.9M12.9 12.9l-.9-.9M4 4l-.9-.9"/></svg>
+          </button>
+          <div class="dropdown">
+            <button type="button" class="avatar-btn" aria-haspopup="true" aria-expanded="false" aria-label="用户菜单">张</button>
+            <div class="dropdown-menu" role="menu" aria-label="用户菜单">
+              <div class="dropdown-header">zhangsan · 张三</div>
+              <button type="button" class="dropdown-item" data-action="logout">登出</button>
+            </div>
+          </div>
+          <span class="user-name">张三</span>
+        </div>
+      </header>
+
+  <main class="container page">
+    <section class="page-header">
+      <div class="page-title">
+        <h2>用户管理</h2>
+        <p class="text-muted">共 <span id="totalText">12</span> 名用户 · 搜索与过滤为服务端查询，提交后页码重置为 1</p>
+      </div>
+      <button type="button" class="btn btn-default" data-modal-open="userCreateModal">新增用户</button>
+    </section>
+
+    <form class="card" id="searchForm" style="padding: 16px 24px;" novalidate>
+      <div class="row-16">
+        <div class="field" style="flex: 1; min-width: 220px;">
+          <label for="keyword">关键词</label>
+          <input class="input" type="search" id="keyword" placeholder="按用户名搜索，回车提交查询">
+        </div>
+        <div class="field" style="width: 200px;">
+          <label for="roleFilter">角色过滤</label>
+          <select class="select" id="roleFilter">
+            <option value="">全部角色</option>
+            <option>运维管理员</option>
+            <option>租户管理员</option>
+            <option>只读审计员</option>
+            <option>普通用户</option>
+          </select>
+        </div>
+        <div class="row-16" style="align-items: flex-end; gap: 8px;">
+          <button type="submit" class="btn btn-default">查询</button>
+          <button type="button" class="btn btn-ghost" id="resetFilter">重置</button>
+        </div>
+      </div>
+    </form>
+
+    <!-- 列表区：loading / empty / error / populated -->
+    <section id="listLoading" hidden aria-busy="true" aria-label="用户列表加载中">
+      <div class="table-scroll"><div class="card-inner-pad" style="padding: 16px;">
+        <div class="skeleton skeleton-row"></div><div class="skeleton skeleton-row"></div><div class="skeleton skeleton-row"></div><div class="skeleton skeleton-row"></div><div class="skeleton skeleton-row"></div>
+      </div></div>
+    </section>
+
+    <section id="listEmpty" hidden>
+      <div class="table-scroll"><div class="state-block">
+        <div class="state-icon" aria-hidden="true">∅</div>
+        <div class="state-title">暂无用户</div>
+        <p class="state-desc">当前过滤条件下没有匹配的用户，可调整关键词或角色过滤，或新增用户</p>
+        <button type="button" class="btn btn-outline" data-modal-open="userCreateModal">新增用户</button>
+      </div></div>
+    </section>
+
+    <section id="listError" hidden>
+      <div class="table-scroll"><div class="state-block">
+        <div class="state-icon" aria-hidden="true">✕</div>
+        <div class="state-title">身份服务暂不可用，请稍后重试</div>
+        <p class="state-desc">用户列表查询失败（eiam 接口超时）</p>
+        <button type="button" class="btn btn-outline" id="retryBtn">重试</button>
+      </div></div>
+    </section>
+
+    <section id="listBody">
+      <div class="table-scroll">
+        <table class="data-table">
+          <thead>
+            <tr><th>用户名</th><th>所属租户</th><th>组织</th><th>登录方式</th><th>角色</th><th>状态</th><th style="text-align: right;">操作</th></tr>
+          </thead>
+          <tbody id="userTbody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <nav class="pagination" id="pager" aria-label="分页">
+      <span id="pageInfo"></span>
+      <div class="page-btns">
+        <button type="button" class="page-btn" id="prevBtn">上一页</button>
+        <button type="button" class="page-btn" id="pageOne">1</button>
+        <button type="button" class="page-btn" id="pageTwo">2</button>
+        <button type="button" class="page-btn" id="nextBtn">下一页</button>
+      </div>
+    </nav>
+  </main>
+    </div>
+  </div>
+
+  <!-- 新增用户 Dialog -->
+  <div class="modal-backdrop" id="userCreateModal" hidden>
+    <div class="modal modal-lg" role="dialog" aria-modal="true" aria-labelledby="userCreateTitle">
+      <div class="modal-header">
+        <div>
+          <div class="modal-title" id="userCreateTitle">新增用户</div>
+          <p class="modal-desc">初始密码仅在创建成功后展示一次，用户首次登录将被强制要求修改密码</p>
+        </div>
+        <button type="button" class="modal-close" data-modal-close aria-label="关闭">✕</button>
+      </div>
+      <form id="userCreateForm" novalidate>
+        <div class="modal-body">
+          <div class="row-16">
+            <div class="field" style="flex: 1;">
+              <label for="nuUsername" class="required">用户名</label>
+              <input class="input mono" type="text" id="nuUsername" placeholder="3–32 位，小写字母开头" aria-describedby="nuUsernameHint nuUsernameError">
+              <span class="field-hint" id="nuUsernameHint">正则 ^[a-z][a-z0-9_-]{2,31}$；输入含 409 的用户名可演示并发冲突</span>
+              <span class="field-error" id="nuUsernameError" role="alert"></span>
+            </div>
+            <div class="field" style="width: 220px;">
+              <label for="nuMethod" class="required">登录方式</label>
+              <select class="select" id="nuMethod">
+                <option value="pwd">密码</option>
+                <option value="passkey">Passkey（注册引导）</option>
+              </select>
+            </div>
+          </div>
+          <div class="row-16">
+            <div class="field" style="flex: 1;">
+              <label for="nuPassword" class="required">初始密码</label>
+              <div class="input-inline">
+                <input class="input mono" type="text" id="nuPassword" placeholder="管理员设置或系统生成">
+                <button type="button" class="btn btn-secondary" id="genPwd">生成</button>
+              </div>
+            </div>
+            <div class="field" style="width: 220px;">
+              <label for="nuTenant" class="required">所属租户</label>
+              <select class="select" id="nuTenant">
+                <option>生产租户</option><option>预发租户</option><option>测试租户</option>
+              </select>
+            </div>
+          </div>
+          <div class="field">
+            <label for="nuOrg">所属组织</label>
+            <select class="select" id="nuOrg">
+              <option value="">不关联</option>
+              <option>研发中心 / 前端组</option><option>研发中心 / 后端组</option>
+              <option>研发中心 / 测试组</option><option>运营中心 / 市场部</option>
+              <option>运营中心 / 客服部</option>
+            </select>
+          </div>
+          <div class="field">
+            <span class="required" style="font-size: 14px; font-weight: 500;">角色绑定</span>
+            <div class="pick-list" id="nuRoles">
+              <label class="checkbox-row"><input type="checkbox" value="运维管理员">运维管理员</label>
+              <label class="checkbox-row"><input type="checkbox" value="租户管理员">租户管理员</label>
+              <label class="checkbox-row"><input type="checkbox" value="只读审计员">只读审计员</label>
+              <label class="checkbox-row"><input type="checkbox" value="普通用户" checked>普通用户</label>
+            </div>
+          </div>
+          <div class="alert alert-error" id="conflictAlert" role="alert" hidden>
+            <span aria-hidden="true">✕</span>
+            <span>数据已被他人修改，请重新加载后再试
+              <span class="alert-sub">保存返回 409：该租户下用户目录已被其他管理员更新</span>
+            </span>
+            <button type="button" class="btn btn-sm btn-outline" id="reloadForm" style="margin-left: auto;">重新加载</button>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline" data-modal-close>取消</button>
+          <button type="submit" class="btn btn-default">保存</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 删除确认 Dialog（普通级） -->
+  <div class="modal-backdrop" id="userDeleteModal" hidden>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="userDeleteTitle">
+      <div class="modal-header">
+        <div>
+          <div class="modal-title" id="userDeleteTitle">确认删除用户</div>
+          <p class="modal-desc" id="userDeleteDesc"></p>
+        </div>
+        <button type="button" class="modal-close" data-modal-close aria-label="关闭">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="alert alert-warning"><span aria-hidden="true">!</span><span>删除后该用户的共享会话将立即失效，此操作不可恢复</span></div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline" data-modal-close>取消</button>
+        <button type="button" class="btn btn-destructive" id="confirmDeleteBtn">确认删除</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+  <script>
+    (function () {
+      'use strict';
+      var $ = function (id) { return document.getElementById(id); };
+
+      /* ---------- 服务端数据 mock ---------- */
+      var DATASET = [
+        { username: 'zhangsan', tenant: '生产租户', org: '研发中心 / 前端组', method: '密码', roles: ['运维管理员'], status: '启用', undeletable: false },
+        { username: 'lisi', tenant: '生产租户', org: '研发中心 / 后端组', method: '密码 + Passkey', roles: ['只读审计员'], status: '启用', undeletable: false },
+        { username: 'wangwu', tenant: '生产租户', org: '运营中心 / 客服部', method: 'LDAP', roles: ['普通用户'], status: '锁定', undeletable: true },
+        { username: 'zhaoliu', tenant: '生产租户', org: '研发中心 / 测试组', method: 'Passkey', roles: ['普通用户'], status: '启用', undeletable: false },
+        { username: 'sunqi', tenant: '生产租户', org: '运营中心 / 市场部', method: '密码', roles: ['普通用户'], status: '禁用', undeletable: false },
+        { username: 'qianyi', tenant: '生产租户', org: '研发中心 / 架构组', method: '密码 + Passkey', roles: ['租户管理员'], status: '启用', undeletable: false },
+        { username: 'liuer', tenant: '生产租户', org: '运营中心 / 市场部', method: 'LDAP', roles: ['普通用户'], status: '启用', undeletable: false },
+        { username: 'zhouba', tenant: '预发租户', org: '研发中心 / 后端组', method: '密码', roles: ['租户管理员'], status: '启用', undeletable: false },
+        { username: 'wujiu', tenant: '预发租户', org: '研发中心 / 前端组', method: 'LDAP', roles: ['只读审计员'], status: '启用', undeletable: false },
+        { username: 'zhengshi', tenant: '预发租户', org: '运营中心 / 客服部', method: '密码', roles: ['普通用户'], status: '启用', undeletable: false },
+        { username: 'zhaoer', tenant: '测试租户', org: '研发中心 / 测试组', method: 'Passkey', roles: ['普通用户'], status: '禁用', undeletable: false },
+        { username: 'sunsi', tenant: '测试租户', org: '研发中心 / 后端组', method: '密码', roles: ['普通用户'], status: '启用', undeletable: false }
+      ];
+      var PAGE_SIZE = 8;
+      var page = 1;
+      var serverQuery = { keyword: '', role: '' };   /* 已提交到"服务端"的查询条件 */
+      var pendingDelete = null;
+
+      function queryServer() {
+        return DATASET.filter(function (u) {
+          var okKw = !serverQuery.keyword || u.username.indexOf(serverQuery.keyword) !== -1;
+          var okRole = !serverQuery.role || u.roles.indexOf(serverQuery.role) !== -1;
+          return okKw && okRole;
+        });
+      }
+      function totalPages(list) { return Math.max(1, Math.ceil(list.length / PAGE_SIZE)); }
+
+      /* ---------- 状态徽章映射（跨页统一）：启用=success 禁用=secondary 锁定=warning ---------- */
+      var STATUS_BADGE = { '启用': 'badge badge-status-enabled', '禁用': 'badge badge-status-disabled', '锁定': 'badge badge-status-locked' };
+
+      function render() {
+        var list = queryServer();
+        /* E7：page 超出总页数自动回落最后一页；整体为空转 Empty */
+        if (page > totalPages(list)) page = totalPages(list);
+        $('totalText').textContent = list.length;
+        var slice = list.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+        var html = slice.map(function (u) {
+          return '<tr>' +
+            '<td class="mono font-medium">' + u.username + '</td>' +
+            '<td>' + u.tenant + '</td>' +
+            '<td><span class="cell-ellipsis" title="' + u.org + '">' + u.org + '</span></td>' +
+            '<td class="nowrap">' + u.method + '</td>' +
+            '<td class="nowrap">' + u.roles.join('、') + '</td>' +
+            '<td><span class="' + STATUS_BADGE[u.status] + '">' + u.status + '</span></td>' +
+            '<td><div class="cell-actions">' +
+            '  <a class="btn-link" href="user-detail.html" aria-label="编辑用户 ' + u.username + '">编辑</a>' +
+            '  <button type="button" class="btn-link danger" data-del="' + u.username + '">删除</button>' +
+            '</div></td></tr>';
+        }).join('');
+        $('userTbody').innerHTML = html;
+        $('pageInfo').textContent = '第 ' + page + ' / ' + totalPages(list) + ' 页 · 共 ' + list.length + ' 条';
+        $('pageOne').classList.toggle('current', page === 1);
+        $('pageTwo').classList.toggle('current', page === 2 && totalPages(list) >= 2);
+        $('pageTwo').style.display = totalPages(list) >= 2 ? '' : 'none';
+        $('prevBtn').disabled = page <= 1;
+        $('nextBtn').disabled = page >= totalPages(list);
+      }
+
+      function show(stateName) {
+        $('listLoading').hidden = stateName !== 'loading';
+        $('listEmpty').hidden = stateName !== 'empty';
+        $('listError').hidden = stateName !== 'error';
+        $('listBody').hidden = stateName !== 'populated';
+        $('pager').hidden = stateName !== 'populated';
+      }
+      function fetchList(stateName) {
+        show('loading');
+        setTimeout(function () {
+          var list = queryServer();
+          if (stateName === 'error') { show('error'); return; }
+          if (!list.length) { show('empty'); return; }
+          render();
+          show('populated');
+        }, 700);
+      }
+
+      /* ---------- 搜索/过滤：服务端查询，提交即重置 page=1（含 E7 边界） ---------- */
+      $('searchForm').addEventListener('submit', function (e) {
+        e.preventDefault();
+        serverQuery.keyword = $('keyword').value.trim();
+        serverQuery.role = $('roleFilter').value;
+        page = 1;
+        fetchList('populated');
+      });
+      $('roleFilter').addEventListener('change', function () {
+        serverQuery.role = this.value;
+        page = 1;
+        fetchList('populated');
+      });
+      $('resetFilter').addEventListener('click', function () {
+        $('keyword').value = '';
+        $('roleFilter').value = '';
+        serverQuery = { keyword: '', role: '' };
+        page = 1;
+        fetchList('populated');
+      });
+      $('prevBtn').addEventListener('click', function () { page--; fetchList('populated'); });
+      $('nextBtn').addEventListener('click', function () { page++; fetchList('populated'); });
+      $('pageOne').addEventListener('click', function () { page = 1; fetchList('populated'); });
+      $('pageTwo').addEventListener('click', function () { page = 2; fetchList('populated'); });
+      $('retryBtn').addEventListener('click', function () { fetchList('populated'); });
+
+      /* ---------- 删除（分级确认 + 被拒原因） ---------- */
+      $('userTbody').addEventListener('click', function (e) {
+        var btn = e.target.closest('[data-del]');
+        if (!btn) return;
+        var username = btn.getAttribute('data-del');
+        var user = DATASET.find(function (u) { return u.username === username; });
+        if (user && user.undeletable) {
+          /* 删除被拒：显示原因 */
+          App.toast('无法删除：该用户仍有 2 个活跃会话，请先禁用该用户', 'error');
+          return;
+        }
+        pendingDelete = username;
+        $('userDeleteDesc').textContent = '将删除用户「' + username + '」及其全部角色绑定。';
+        App.openModal('userDeleteModal', btn);
+      });
+      $('confirmDeleteBtn').addEventListener('click', function () {
+        var idx = DATASET.findIndex(function (u) { return u.username === pendingDelete; });
+        if (idx > -1) DATASET.splice(idx, 1);
+        App.closeModal('userDeleteModal');
+        App.toast('用户「' + pendingDelete + '」已删除', 'success');
+        pendingDelete = null;
+        fetchList('populated');  /* E7：删除后重查，当前页空则回退前一页 */
+      });
+
+      /* ---------- 新增用户 ---------- */
+      $('genPwd').addEventListener('click', function () {
+        var pwd = 'Ecam-' + Math.random().toString(36).slice(2, 10) + '!7';
+        $('nuPassword').value = pwd;
+        App.toast('初始密码已生成，仅展示一次，请妥善保存', 'success');
+      });
+      $('userCreateForm').addEventListener('submit', function (e) {
+        e.preventDefault();
+        var username = $('nuUsername').value.trim();
+        var errEl = $('nuUsernameError');
+        errEl.textContent = '';
+        $('nuUsername').classList.remove('is-invalid');
+        if (!/^[a-z][a-z0-9_-]{2,31}$/.test(username)) {
+          $('nuUsername').classList.add('is-invalid');
+          $('nuUsername').setAttribute('aria-invalid', 'true');
+          $('nuUsername').setAttribute('aria-describedby', 'nuUsernameHint nuUsernameError');
+          errEl.textContent = '用户名需为 3–32 位、小写字母开头，仅含小写字母、数字、下划线或连字符';
+          return;
+        }
+        if (username.indexOf('409') !== -1) {
+          $('conflictAlert').hidden = false;   /* E6：409 保留表单当前输入 */
+          return;
+        }
+        var roles = Array.prototype.slice.call($('nuRoles').querySelectorAll('input:checked')).map(function (i) { return i.value; });
+        DATASET.unshift({
+          username: username, tenant: $('nuTenant').value, org: $('nuOrg').value || '未关联',
+          method: $('nuMethod').value === 'passkey' ? 'Passkey' : '密码',
+          roles: roles.length ? roles : ['普通用户'], status: '启用', undeletable: false
+        });
+        App.closeModal('userCreateModal');
+        e.target.reset();
+        $('conflictAlert').hidden = true;
+        App.toast('用户「' + username + '」创建成功，列表已刷新', 'success');
+        page = 1;
+        fetchList('populated');
+      });
+      $('reloadForm').addEventListener('click', function () {
+        $('conflictAlert').hidden = true;
+        $('nuUsername').value = '';
+        App.toast('已按服务端最新数据重载表单', 'success');
+      });
+
+      App.initDemo(function (state) {
+        if (state === 'loading') { show('loading'); return; }
+        if (state === 'empty') { show('empty'); return; }
+        if (state === 'error') { show('error'); return; }
+        fetchList('populated');
+      });
+      fetchList('populated');
+    })();
+  </script>
+</body>
+</html>
