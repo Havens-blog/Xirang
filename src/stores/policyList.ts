@@ -135,20 +135,21 @@ export const usePolicyListStore = defineStore("policyList", () => {
 
   /**
    * 新增策略（写前守卫 → createPolicy）。
-   * @returns 新策略 id；失败返回 null + 归位 error
+   * eiam 创建成功不回传 id（policy/handler.go:201 无 Data），以信封 code==0 为成功。
+   * @returns true 成功（已回第一页刷新）；false 失败 + 归位 error
    */
-  async function create(payload: CreatePolicyPayload): Promise<number | null> {
-    // 写前守卫（Hard Rule：不得绕过）；不一致 → reload 自愈，返回 null
-    if (!enforceWriteGuard()) return null;
+  async function create(payload: CreatePolicyPayload): Promise<boolean> {
+    // 写前守卫（Hard Rule：不得绕过）；不一致 → reload 自愈，返回 false
+    if (!enforceWriteGuard()) return false;
     try {
-      const id = await createPolicy(payload);
+      await createPolicy(payload);
       // 新增后回到第一页刷新（新记录在第一页或搜索排序首位）
       page.value = 1;
       await fetch();
-      return id;
+      return true;
     } catch (err) {
       error.value = errorMessage(err);
-      return null;
+      return false;
     }
   }
 
