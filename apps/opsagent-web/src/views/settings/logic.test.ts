@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import type { PresetQuery } from '@/api/opsagent'
+import type { PresetQuery, SettingsData } from '@/api/opsagent'
 import {
     API_CONTRACTS,
     connectionStatusText,
@@ -8,6 +8,7 @@ import {
     DATA_SOURCE_LABEL,
     dispositionForRisk,
     formatTime,
+    normalizeSettings,
     NOTIFY_CHANNEL_LABEL,
     NOTIFY_CHANNEL_META,
     PROVIDER_LABEL,
@@ -59,6 +60,42 @@ describe('时间展示', () => {
     it('RFC3339 截断；空值占位', () => {
         expect(formatTime('2026-10-08T15:04:05Z')).toBe('2026-10-08 15:04')
         expect(formatTime('')).toBe('—')
+    })
+})
+
+describe('响应规整（Go nil slice → JSON null 契约兜底）', () => {
+    it('各数组字段为 null 时回退空数组，guidedTemplates null 回退空对象', () => {
+        const raw = {
+            datasources: null,
+            llmProviders: null,
+            notifyChannels: null,
+            riskWhitelist: null,
+            presetQueries: null,
+            guidedTemplates: null,
+        } as unknown as SettingsData
+        expect(normalizeSettings(raw)).toEqual({
+            datasources: [],
+            llmProviders: [],
+            notifyChannels: [],
+            riskWhitelist: [],
+            presetQueries: [],
+            guidedTemplates: {},
+        })
+    })
+
+    it('已配置字段原样透传', () => {
+        const raw: SettingsData = {
+            datasources: [{ name: 'cdn', cloud: 'aliyun', ok: true, checkedAt: 't' }],
+            llmProviders: [],
+            notifyChannels: [{ channel: 'dingtalk', enabled: true }],
+            riskWhitelist: [],
+            presetQueries: [],
+            guidedTemplates: { x: { template: 'tpl', channel: 'chat' } },
+        }
+        const out = normalizeSettings(raw)
+        expect(out.datasources).toHaveLength(1)
+        expect(out.notifyChannels[0]!.channel).toBe('dingtalk')
+        expect(out.guidedTemplates.x!.template).toBe('tpl')
     })
 })
 

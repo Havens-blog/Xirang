@@ -69,7 +69,7 @@ import LLMTab from './components/LLMTab.vue'
 import NotifyTab from './components/NotifyTab.vue'
 import PresetTab from './components/PresetTab.vue'
 import SecurityTab from './components/SecurityTab.vue'
-import { notifyChannelLabel, validatePreset } from './logic'
+import { normalizeSettings, notifyChannelLabel, validatePreset } from './logic'
 
 /** 原型四 tab + 预置查询（增量功能，后端可存） */
 const TABS = [
@@ -102,7 +102,7 @@ async function load(): Promise<void> {
     loading.value = true
     error.value = ''
     try {
-        const data = await getSettingsApi()
+        const data = normalizeSettings(await getSettingsApi())
         settings.value = data
         notifyDraft.value = data.notifyChannels.map((c) => ({ ...c }))
         llmDraft.value = data.llmProviders.map((p) => ({

@@ -5,7 +5,7 @@
  * docs/features/haven-opsagent/design/api-handbook.md §8 + page-map.md「系统配置」。
  */
 
-import type { PresetQuery, RiskLevel } from '@/api/opsagent'
+import type { PresetQuery, RiskLevel, SettingsData } from '@/api/opsagent'
 
 /** 预置查询时间窗上限（与后端 24h 对齐） */
 export const MAX_WINDOW_MS = 24 * 3600 * 1000
@@ -233,6 +233,23 @@ export const SECURITY_SWITCHES: { key: string; title: string; hint: string }[] =
         hint: '越界引用一律丢弃，不得回显未授权数据',
     },
 ]
+
+// ==================== 响应规整（契约兜底） ====================
+
+/**
+ * GET /settings 响应规整：Go nil slice 序列化为 JSON null（settings 集合该 scope
+ * 尚无文档时后端即返回 null），前端统一回退空数组/空对象，避免 `.map` on null。
+ */
+export function normalizeSettings(raw: SettingsData): SettingsData {
+    return {
+        datasources: raw.datasources ?? [],
+        llmProviders: raw.llmProviders ?? [],
+        notifyChannels: raw.notifyChannels ?? [],
+        riskWhitelist: raw.riskWhitelist ?? [],
+        presetQueries: raw.presetQueries ?? [],
+        guidedTemplates: raw.guidedTemplates ?? {},
+    }
+}
 
 // ==================== 时间展示 ====================
 
