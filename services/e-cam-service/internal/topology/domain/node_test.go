@@ -1,0 +1,107 @@
+package domain
+
+import (
+	"testing"
+
+	"github.com/stretchr/testify/assert"
+)
+
+func TestTopoNode_Validate(t *testing.T) {
+	tests := []struct {
+		name    string
+		node    TopoNode
+		wantErr bool
+		errMsg  string
+	}{
+		{
+			name: "valid node",
+			node: TopoNode{
+				ID: "dns-api.example.com", Name: "api.example.com",
+				Type: NodeTypeDNSRecord, Category: CategoryDNS,
+				Provider: ProviderAliyun, SourceCollector: SourceDNSAPI,
+				TenantID: 1,
+			},
+			wantErr: false,
+		},
+		{
+			name:    "missing id",
+			node:    TopoNode{Name: "test", Type: NodeTypeCDN, Category: CategoryNetwork, TenantID: 1},
+			wantErr: true, errMsg: "node id is required",
+		},
+		{
+			name:    "missing name",
+			node:    TopoNode{ID: "n1", Type: NodeTypeCDN, Category: CategoryNetwork, TenantID: 1},
+			wantErr: true, errMsg: "node name is required",
+		},
+		{
+			name:    "invalid type",
+			node:    TopoNode{ID: "n1", Name: "test", Type: "invalid", Category: CategoryNetwork, TenantID: 1},
+			wantErr: true, errMsg: "invalid node type: invalid",
+		},
+		{
+			name:    "invalid category",
+			node:    TopoNode{ID: "n1", Name: "test", Type: NodeTypeCDN, Category: "invalid", TenantID: 1},
+			wantErr: true, errMsg: "invalid category: invalid",
+		},
+		{
+			name:    "invalid provider",
+			node:    TopoNode{ID: "n1", Name: "test", Type: NodeTypeCDN, Category: CategoryNetwork, Provider: "invalid", TenantID: 1},
+			wantErr: true, errMsg: "invalid provider: invalid",
+		},
+		{
+			name:    "invalid source_collector",
+			node:    TopoNode{ID: "n1", Name: "test", Type: NodeTypeCDN, Category: CategoryNetwork, SourceCollector: "invalid", TenantID: 1},
+			wantErr: true, errMsg: "invalid source_collector: invalid",
+		},
+		{
+			name:    "missing tenant_id",
+			node:    TopoNode{ID: "n1", Name: "test", Type: NodeTypeCDN, Category: CategoryNetwork},
+			wantErr: true, errMsg: "tenant_id is required",
+		},
+		{
+			name:    "empty provider is ok",
+			node:    TopoNode{ID: "n1", Name: "test", Type: NodeTypeCDN, Category: CategoryNetwork, TenantID: 1},
+			wantErr: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := tt.node.Validate()
+			if tt.wantErr {
+				assert.Error(t, err)
+				assert.Contains(t, err.Error(), tt.errMsg)
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}
+}
+
+func TestTopoNode_IsDNSEntry(t *testing.T) {
+	assert.True(t, (&TopoNode{Type: NodeTypeDNSRecord}).IsDNSEntry())
+	assert.False(t, (&TopoNode{Type: NodeTypeCDN}).IsDNSEntry())
+}
+
+func TestValidSourceCollectors_ContainsAPM(t *testing.T) {
+	assert.True(t, ValidSourceCollectors[SourceAPM], "ValidSourceCollectors should contain 'apm'")
+	assert.Equal(t, "apm", SourceAPM)
+}
+
+func TestTopoNode_Validate_APMSource(t *testing.T) {
+	node := TopoNode{
+		ID: "k8s-cluster1-ns1-svc-a", Name: "svc-a",
+		Type: NodeTypeK8sDeployment, Category: CategoryContainer,
+		SourceCollector: SourceAPM, TenantID: 1,
+	}
+	err := node.Validate()
+	assert.NoError(t, err, "TopoNode with source_collector 'apm' should pass validation")
+}
+
+func TestTopoNode_Validate_ExtendedTypes(t *testing.T) {
+	extended := []string{"nlb", "clb", "eni", "mongodb", "vpc", "eip", "nas", "kafka", "elasticsearch"}
+	for _, typ := range extended {
+		n := TopoNode{ID: "n-" + typ, Name: "node", Type: typ, Category: CategoryNetwork, TenantID: 1}
+		assert.NoError(t, n.Validate(), "type %s should validate", typ)
+	}
+}

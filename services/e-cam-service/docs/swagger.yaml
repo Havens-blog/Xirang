@@ -1,0 +1,7508 @@
+basePath: /api/v1
+definitions:
+  domain.CloudUserStatus:
+    enum:
+    - active
+    - inactive
+    - deleted
+    type: string
+    x-enum-varnames:
+    - CloudUserStatusActive
+    - CloudUserStatusInactive
+    - CloudUserStatusDeleted
+  domain.CloudUserType:
+    enum:
+    - api_key
+    - access_key
+    - ram_user
+    - iam_user
+    - cam_user
+    - volc_user
+    type: string
+    x-enum-comments:
+      CloudUserTypeCAMUser: 腾讯云 CAM 用户
+      CloudUserTypeIAMUser: AWS/华为云 IAM 用户
+      CloudUserTypeRAMUser: 阿里云 RAM 用户
+      CloudUserTypeVolcUser: 火山云用户
+    x-enum-descriptions:
+    - ""
+    - ""
+    - 阿里云 RAM 用户
+    - AWS/华为云 IAM 用户
+    - 腾讯云 CAM 用户
+    - 火山云用户
+    x-enum-varnames:
+    - CloudUserTypeAPIKey
+    - CloudUserTypeAccessKey
+    - CloudUserTypeRAMUser
+    - CloudUserTypeIAMUser
+    - CloudUserTypeCAMUser
+    - CloudUserTypeVolcUser
+  domain.PermissionPolicy:
+    properties:
+      policy_document:
+        type: string
+      policy_id:
+        type: string
+      policy_name:
+        type: string
+      policy_type:
+        $ref: '#/definitions/domain.PolicyType'
+      provider:
+        $ref: '#/definitions/github_com_Havens-blog_e-cam-service_internal_shared_domain.CloudProvider'
+    type: object
+  domain.PolicyType:
+    enum:
+    - system
+    - custom
+    type: string
+    x-enum-varnames:
+    - PolicyTypeSystem
+    - PolicyTypeCustom
+  domain.SyncTargetType:
+    enum:
+    - user
+    - group
+    - account
+    type: string
+    x-enum-comments:
+      SyncTargetTypeAccount: 云账号级别同步
+    x-enum-descriptions:
+    - ""
+    - ""
+    - 云账号级别同步
+    x-enum-varnames:
+    - SyncTargetTypeUser
+    - SyncTargetTypeGroup
+    - SyncTargetTypeAccount
+  domain.SyncTaskType:
+    enum:
+    - user_sync
+    - permission_sync
+    - group_sync
+    - batch_user_sync
+    type: string
+    x-enum-comments:
+      SyncTaskTypeBatchUserSync: 批量用户同步（从云平台拉取所有用户）
+    x-enum-descriptions:
+    - ""
+    - ""
+    - ""
+    - 批量用户同步（从云平台拉取所有用户）
+    x-enum-varnames:
+    - SyncTaskTypeUserSync
+    - SyncTaskTypePermissionSync
+    - SyncTaskTypeGroupSync
+    - SyncTaskTypeBatchUserSync
+  domain.TemplateCategory:
+    enum:
+    - read_only
+    - admin
+    - developer
+    - custom
+    type: string
+    x-enum-varnames:
+    - TemplateCategoryReadOnly
+    - TemplateCategoryAdmin
+    - TemplateCategoryDeveloper
+    - TemplateCategoryCustom
+  domain.TenantMetadata:
+    properties:
+      cloud_account_count:
+        type: integer
+      company_name:
+        type: string
+      contact_email:
+        type: string
+      contact_phone:
+        type: string
+      industry:
+        type: string
+      owner:
+        type: string
+      region:
+        type: string
+      tags:
+        additionalProperties:
+          type: string
+        type: object
+      user_count:
+        type: integer
+      user_group_count:
+        type: integer
+    type: object
+  domain.TenantSettings:
+    properties:
+      allowed_providers:
+        items:
+          $ref: '#/definitions/github_com_Havens-blog_e-cam-service_internal_shared_domain.CloudProvider'
+        type: array
+      custom_fields:
+        additionalProperties:
+          type: string
+        type: object
+      features:
+        additionalProperties:
+          type: boolean
+        type: object
+      max_cloud_accounts:
+        type: integer
+      max_user_groups:
+        type: integer
+      max_users:
+        type: integer
+    type: object
+  domain.TenantStatus:
+    enum:
+    - active
+    - inactive
+    - suspended
+    - deleted
+    type: string
+    x-enum-varnames:
+    - TenantStatusActive
+    - TenantStatusInactive
+    - TenantStatusSuspended
+    - TenantStatusDeleted
+  ginx.Result:
+    properties:
+      code:
+        type: integer
+      data: {}
+      msg:
+        type: string
+    type: object
+  github_com_Havens-blog_e-cam-service_internal_cam_domain.Model:
+    properties:
+      category:
+        description: 资源类别
+        type: string
+      createTime:
+        description: 创建时间
+        type: string
+      description:
+        description: 描述
+        type: string
+      extensible:
+        description: 是否可扩展
+        type: boolean
+      icon:
+        description: 图标
+        type: string
+      id:
+        description: 业务ID
+        format: int64
+        type: integer
+      level:
+        description: 层级（1=主资源，2=子资源）
+        type: integer
+      modelGroupID:
+        description: 模型分组ID
+        format: int64
+        type: integer
+      name:
+        description: 模型名称
+        type: string
+      parentUID:
+        description: 父模型UID（用于层级关系）
+        type: string
+      provider:
+        description: 云厂商（all表示通用）
+        type: string
+      uid:
+        description: 模型唯一标识
+        type: string
+      updateTime:
+        description: 更新时间
+        type: string
+    type: object
+  github_com_Havens-blog_e-cam-service_internal_cam_domain.ModelField:
+    properties:
+      createTime:
+        description: 创建时间
+        type: string
+      display:
+        description: 是否显示（兼容旧系统）
+        type: boolean
+      displayName:
+        description: 显示名称（用于前端展示）
+        type: string
+      fieldName:
+        description: 字段名称
+        type: string
+      fieldType:
+        description: 字段类型
+        type: string
+      fieldUID:
+        description: 字段唯一标识
+        type: string
+      groupID:
+        description: 所属分组ID
+        format: int64
+        type: integer
+      id:
+        description: 业务ID
+        format: int64
+        type: integer
+      index:
+        description: 排序索引
+        type: integer
+      link:
+        description: 是否为关联字段（兼容旧系统）
+        type: boolean
+      linkModel:
+        description: 关联模型UID
+        type: string
+      modelUID:
+        description: 所属模型UID
+        type: string
+      option:
+        description: 字段选项（JSON）
+        type: string
+      required:
+        description: 是否必填
+        type: boolean
+      secure:
+        description: 是否敏感字段
+        type: boolean
+      updateTime:
+        description: 更新时间
+        type: string
+    type: object
+  github_com_Havens-blog_e-cam-service_internal_cam_domain.ModelFieldGroup:
+    properties:
+      createTime:
+        description: 创建时间
+        type: string
+      id:
+        description: 业务ID
+        format: int64
+        type: integer
+      index:
+        description: 排序索引
+        type: integer
+      modelUID:
+        description: 所属模型UID
+        type: string
+      name:
+        description: 分组名称
+        type: string
+      updateTime:
+        description: 更新时间
+        type: string
+    type: object
+  github_com_Havens-blog_e-cam-service_internal_cam_iam_service.GroupSyncResult:
+    properties:
+      created_groups:
+        type: integer
+      failed_groups:
+        type: integer
+      failed_members:
+        type: integer
+      synced_members:
+        type: integer
+      total_groups:
+        type: integer
+      total_members:
+        type: integer
+      updated_groups:
+        type: integer
+    type: object
+  github_com_Havens-blog_e-cam-service_internal_cam_iam_web.AssignUserGroupsVO:
+    properties:
+      group_ids:
+        items:
+          type: integer
+        minItems: 1
+        type: array
+      user_ids:
+        items:
+          type: integer
+        minItems: 1
+        type: array
+    required:
+    - group_ids
+    - user_ids
+    type: object
+  github_com_Havens-blog_e-cam-service_internal_cam_iam_web.CreateFromGroupVO:
+    properties:
+      description:
+        maxLength: 500
+        type: string
+      group_id:
+        type: integer
+      name:
+        maxLength: 100
+        minLength: 1
+        type: string
+    required:
+    - group_id
+    - name
+    type: object
+  github_com_Havens-blog_e-cam-service_internal_cam_iam_web.CreateSyncTaskVO:
+    properties:
+      cloud_account_id:
+        type: integer
+      provider:
+        $ref: '#/definitions/github_com_Havens-blog_e-cam-service_internal_shared_domain.CloudProvider'
+      target_id:
+        type: integer
+      target_type:
+        $ref: '#/definitions/domain.SyncTargetType'
+      task_type:
+        $ref: '#/definitions/domain.SyncTaskType'
+    required:
+    - cloud_account_id
+    - provider
+    - target_id
+    - target_type
+    - task_type
+    type: object
+  github_com_Havens-blog_e-cam-service_internal_cam_iam_web.CreateTemplateVO:
+    properties:
+      category:
+        $ref: '#/definitions/domain.TemplateCategory'
+      cloud_platforms:
+        items:
+          $ref: '#/definitions/github_com_Havens-blog_e-cam-service_internal_shared_domain.CloudProvider'
+        minItems: 1
+        type: array
+      description:
+        maxLength: 500
+        type: string
+      name:
+        maxLength: 100
+        minLength: 1
+        type: string
+      policies:
+        items:
+          $ref: '#/definitions/domain.PermissionPolicy'
+        type: array
+      tenant_id:
+        type: string
+    required:
+    - category
+    - cloud_platforms
+    - name
+    - tenant_id
+    type: object
+  github_com_Havens-blog_e-cam-service_internal_cam_iam_web.CreateTenantVO:
+    properties:
+      description:
+        maxLength: 500
+        type: string
+      display_name:
+        maxLength: 200
+        type: string
+      id:
+        maxLength: 50
+        minLength: 1
+        type: string
+      metadata:
+        $ref: '#/definitions/domain.TenantMetadata'
+      name:
+        maxLength: 100
+        minLength: 1
+        type: string
+      settings:
+        $ref: '#/definitions/domain.TenantSettings'
+    required:
+    - id
+    - name
+    type: object
+  github_com_Havens-blog_e-cam-service_internal_cam_iam_web.CreateUserGroupVO:
+    properties:
+      cloud_platforms:
+        items:
+          $ref: '#/definitions/github_com_Havens-blog_e-cam-service_internal_shared_domain.CloudProvider'
+        minItems: 1
+        type: array
+      description:
+        maxLength: 500
+        type: string
+      name:
+        maxLength: 100
+        minLength: 1
+        type: string
+      policies:
+        items:
+          $ref: '#/definitions/domain.PermissionPolicy'
+        type: array
+      tenant_id:
+        type: string
+    required:
+    - cloud_platforms
+    - name
+    - tenant_id
+    type: object
+  github_com_Havens-blog_e-cam-service_internal_cam_iam_web.CreateUserVO:
+    properties:
+      cloud_account_id:
+        type: integer
+      display_name:
+        maxLength: 200
+        type: string
+      email:
+        type: string
+      tenant_id:
+        type: string
+      user_groups:
+        description: 用户组ID列表
+        items:
+          type: integer
+        type: array
+      user_type:
+        $ref: '#/definitions/domain.CloudUserType'
+      username:
+        maxLength: 100
+        minLength: 1
+        type: string
+    required:
+    - cloud_account_id
+    - tenant_id
+    - user_type
+    - username
+    type: object
+  github_com_Havens-blog_e-cam-service_internal_cam_iam_web.GenerateAuditReportVO:
+    properties:
+      end_time:
+        type: string
+      start_time:
+        type: string
+      tenant_id:
+        type: string
+    required:
+    - end_time
+    - start_time
+    - tenant_id
+    type: object
+  github_com_Havens-blog_e-cam-service_internal_cam_iam_web.PageResult:
+    properties:
+      code:
+        type: integer
+      data: {}
+      msg:
+        type: string
+      page:
+        type: integer
+      size:
+        type: integer
+      total:
+        type: integer
+    type: object
+  github_com_Havens-blog_e-cam-service_internal_cam_iam_web.Result:
+    properties:
+      code:
+        type: integer
+      data: {}
+      msg:
+        type: string
+    type: object
+  github_com_Havens-blog_e-cam-service_internal_cam_iam_web.UpdatePoliciesVO:
+    properties:
+      policies:
+        items:
+          $ref: '#/definitions/domain.PermissionPolicy'
+        minItems: 1
+        type: array
+    required:
+    - policies
+    type: object
+  github_com_Havens-blog_e-cam-service_internal_cam_iam_web.UpdateTemplateVO:
+    properties:
+      cloud_platforms:
+        items:
+          $ref: '#/definitions/github_com_Havens-blog_e-cam-service_internal_shared_domain.CloudProvider'
+        type: array
+      description:
+        type: string
+      name:
+        type: string
+      policies:
+        items:
+          $ref: '#/definitions/domain.PermissionPolicy'
+        type: array
+    type: object
+  github_com_Havens-blog_e-cam-service_internal_cam_iam_web.UpdateTenantVO:
+    properties:
+      description:
+        type: string
+      display_name:
+        type: string
+      metadata:
+        $ref: '#/definitions/domain.TenantMetadata'
+      name:
+        type: string
+      settings:
+        $ref: '#/definitions/domain.TenantSettings'
+      status:
+        $ref: '#/definitions/domain.TenantStatus'
+    type: object
+  github_com_Havens-blog_e-cam-service_internal_cam_iam_web.UpdateUserGroupVO:
+    properties:
+      cloud_platforms:
+        items:
+          $ref: '#/definitions/github_com_Havens-blog_e-cam-service_internal_shared_domain.CloudProvider'
+        type: array
+      description:
+        type: string
+      name:
+        type: string
+      policies:
+        items:
+          $ref: '#/definitions/domain.PermissionPolicy'
+        type: array
+    type: object
+  github_com_Havens-blog_e-cam-service_internal_cam_iam_web.UpdateUserVO:
+    properties:
+      display_name:
+        type: string
+      email:
+        type: string
+      status:
+        $ref: '#/definitions/domain.CloudUserStatus'
+      user_groups:
+        description: 用户组ID列表
+        items:
+          type: integer
+        type: array
+    type: object
+  github_com_Havens-blog_e-cam-service_internal_cam_servicetree_domain.RuleCondition:
+    properties:
+      field:
+        description: 匹配字段 (provider/region/tag.xxx/name/attributes.xxx)
+        type: string
+      operator:
+        description: 操作符 (eq/ne/contains/regex/in)
+        type: string
+      value:
+        description: 匹配值
+        type: string
+    type: object
+  github_com_Havens-blog_e-cam-service_internal_cam_servicetree_web.BatchBindReq:
+    properties:
+      env_id:
+        type: integer
+      resource_ids:
+        items:
+          type: integer
+        type: array
+      resource_type:
+        type: string
+    required:
+    - env_id
+    - resource_ids
+    - resource_type
+    type: object
+  github_com_Havens-blog_e-cam-service_internal_cam_servicetree_web.BindResourceReq:
+    properties:
+      env_id:
+        description: 环境ID
+        type: integer
+      resource_id:
+        type: integer
+      resource_type:
+        description: instance/asset
+        type: string
+    required:
+    - env_id
+    - resource_id
+    - resource_type
+    type: object
+  github_com_Havens-blog_e-cam-service_internal_cam_servicetree_web.BindingVO:
+    properties:
+      bind_type:
+        type: string
+      create_time:
+        type: integer
+      env_id:
+        type: integer
+      id:
+        type: integer
+      node_id:
+        type: integer
+      resource_id:
+        type: integer
+      resource_type:
+        type: string
+      rule_id:
+        type: integer
+    type: object
+  github_com_Havens-blog_e-cam-service_internal_cam_servicetree_web.CreateEnvReq:
+    properties:
+      code:
+        type: string
+      color:
+        type: string
+      description:
+        type: string
+      name:
+        type: string
+      order:
+        type: integer
+    required:
+    - code
+    - name
+    type: object
+  github_com_Havens-blog_e-cam-service_internal_cam_servicetree_web.CreateNodeReq:
+    properties:
+      description:
+        description: 描述
+        type: string
+      name:
+        description: 节点名称
+        type: string
+      order:
+        description: 排序
+        type: integer
+      owner:
+        description: 负责人
+        type: string
+      parent_id:
+        description: 父节点ID
+        type: integer
+      tags:
+        description: 标签
+        items:
+          type: string
+        type: array
+      team:
+        description: 团队
+        type: string
+      uid:
+        description: 节点唯一标识
+        type: string
+    required:
+    - name
+    type: object
+  github_com_Havens-blog_e-cam-service_internal_cam_servicetree_web.CreateRuleReq:
+    properties:
+      conditions:
+        items:
+          $ref: '#/definitions/github_com_Havens-blog_e-cam-service_internal_cam_servicetree_domain.RuleCondition'
+        type: array
+      description:
+        type: string
+      enabled:
+        type: boolean
+      env_id:
+        type: integer
+      name:
+        type: string
+      node_id:
+        type: integer
+      priority:
+        type: integer
+    required:
+    - conditions
+    - env_id
+    - name
+    - node_id
+    type: object
+  github_com_Havens-blog_e-cam-service_internal_cam_servicetree_web.EnvironmentVO:
+    properties:
+      code:
+        type: string
+      color:
+        type: string
+      create_time:
+        type: integer
+      description:
+        type: string
+      id:
+        type: integer
+      name:
+        type: string
+      order:
+        type: integer
+      status:
+        type: integer
+      update_time:
+        type: integer
+    type: object
+  github_com_Havens-blog_e-cam-service_internal_cam_servicetree_web.MoveNodeReq:
+    properties:
+      new_parent_id:
+        type: integer
+    type: object
+  github_com_Havens-blog_e-cam-service_internal_cam_servicetree_web.NodeVO:
+    properties:
+      create_time:
+        type: integer
+      description:
+        type: string
+      id:
+        type: integer
+      level:
+        type: integer
+      name:
+        type: string
+      order:
+        type: integer
+      owner:
+        type: string
+      parent_id:
+        type: integer
+      path:
+        type: string
+      status:
+        type: integer
+      tags:
+        items:
+          type: string
+        type: array
+      team:
+        type: string
+      uid:
+        type: string
+      update_time:
+        type: integer
+    type: object
+  github_com_Havens-blog_e-cam-service_internal_cam_servicetree_web.RuleVO:
+    properties:
+      conditions:
+        items:
+          $ref: '#/definitions/github_com_Havens-blog_e-cam-service_internal_cam_servicetree_domain.RuleCondition'
+        type: array
+      create_time:
+        type: integer
+      description:
+        type: string
+      enabled:
+        type: boolean
+      env_id:
+        type: integer
+      id:
+        type: integer
+      name:
+        type: string
+      node_id:
+        type: integer
+      priority:
+        type: integer
+      update_time:
+        type: integer
+    type: object
+  github_com_Havens-blog_e-cam-service_internal_cam_servicetree_web.TreeNodeVO:
+    properties:
+      children:
+        items:
+          $ref: '#/definitions/github_com_Havens-blog_e-cam-service_internal_cam_servicetree_web.TreeNodeVO'
+        type: array
+      create_time:
+        type: integer
+      description:
+        type: string
+      id:
+        type: integer
+      level:
+        type: integer
+      name:
+        type: string
+      order:
+        type: integer
+      owner:
+        type: string
+      parent_id:
+        type: integer
+      path:
+        type: string
+      resource_count:
+        type: integer
+      status:
+        type: integer
+      tags:
+        items:
+          type: string
+        type: array
+      team:
+        type: string
+      uid:
+        type: string
+      update_time:
+        type: integer
+    type: object
+  github_com_Havens-blog_e-cam-service_internal_cam_servicetree_web.UpdateEnvReq:
+    properties:
+      code:
+        type: string
+      color:
+        type: string
+      description:
+        type: string
+      name:
+        type: string
+      order:
+        type: integer
+      status:
+        type: integer
+    required:
+    - code
+    - name
+    type: object
+  github_com_Havens-blog_e-cam-service_internal_cam_servicetree_web.UpdateNodeReq:
+    properties:
+      description:
+        type: string
+      name:
+        type: string
+      order:
+        type: integer
+      owner:
+        type: string
+      status:
+        type: integer
+      tags:
+        items:
+          type: string
+        type: array
+      team:
+        type: string
+      uid:
+        type: string
+    required:
+    - name
+    type: object
+  github_com_Havens-blog_e-cam-service_internal_cam_servicetree_web.UpdateRuleReq:
+    properties:
+      conditions:
+        items:
+          $ref: '#/definitions/github_com_Havens-blog_e-cam-service_internal_cam_servicetree_domain.RuleCondition'
+        type: array
+      description:
+        type: string
+      enabled:
+        type: boolean
+      env_id:
+        type: integer
+      name:
+        type: string
+      node_id:
+        type: integer
+      priority:
+        type: integer
+    required:
+    - conditions
+    - env_id
+    - name
+    - node_id
+    type: object
+  github_com_Havens-blog_e-cam-service_internal_cam_task_web.SubmitDiscoverAssetsTaskReq:
+    properties:
+      account_id:
+        type: integer
+      asset_types:
+        items:
+          type: string
+        type: array
+      provider:
+        type: string
+      region:
+        type: string
+    required:
+    - provider
+    type: object
+  github_com_Havens-blog_e-cam-service_internal_cam_task_web.SubmitSyncAssetsTaskReq:
+    properties:
+      account_id:
+        type: integer
+      asset_types:
+        items:
+          type: string
+        type: array
+      provider:
+        type: string
+      regions:
+        items:
+          type: string
+        type: array
+    required:
+    - provider
+    type: object
+  github_com_Havens-blog_e-cam-service_internal_cam_task_web.SubmitTaskResp:
+    properties:
+      message:
+        type: string
+      task_id:
+        type: string
+    type: object
+  github_com_Havens-blog_e-cam-service_internal_cam_task_web.TaskListResp:
+    properties:
+      tasks:
+        items:
+          $ref: '#/definitions/github_com_Havens-blog_e-cam-service_internal_cam_task_web.TaskResp'
+        type: array
+      total:
+        type: integer
+    type: object
+  github_com_Havens-blog_e-cam-service_internal_cam_task_web.TaskResp:
+    properties:
+      completed_at:
+        type: string
+      created_at:
+        type: string
+      created_by:
+        type: string
+      duration:
+        type: integer
+      error:
+        type: string
+      id:
+        type: string
+      message:
+        type: string
+      params:
+        additionalProperties: true
+        type: object
+      progress:
+        type: integer
+      result:
+        additionalProperties: true
+        type: object
+      started_at:
+        type: string
+      status:
+        type: string
+      type:
+        type: string
+    type: object
+  github_com_Havens-blog_e-cam-service_internal_cam_web.CreateBatchInstanceReq:
+    properties:
+      instances:
+        items:
+          $ref: '#/definitions/github_com_Havens-blog_e-cam-service_internal_cam_web.CreateInstanceReq'
+        type: array
+    required:
+    - instances
+    type: object
+  github_com_Havens-blog_e-cam-service_internal_cam_web.CreateInstanceReq:
+    properties:
+      account_id:
+        type: integer
+      asset_id:
+        type: string
+      asset_name:
+        type: string
+      attributes:
+        additionalProperties: true
+        type: object
+      model_uid:
+        type: string
+      tenant_id:
+        type: string
+    required:
+    - asset_id
+    - model_uid
+    - tenant_id
+    type: object
+  github_com_Havens-blog_e-cam-service_internal_cam_web.CreateModelReq:
+    properties:
+      category:
+        type: string
+      description:
+        type: string
+      extensible:
+        type: boolean
+      icon:
+        type: string
+      level:
+        minimum: 1
+        type: integer
+      model_group_id:
+        type: integer
+      name:
+        maxLength: 100
+        minLength: 1
+        type: string
+      parent_uid:
+        type: string
+      provider:
+        type: string
+      uid:
+        maxLength: 100
+        minLength: 1
+        type: string
+    required:
+    - category
+    - level
+    - name
+    - provider
+    - uid
+    type: object
+  github_com_Havens-blog_e-cam-service_internal_cam_web.InstanceListResp:
+    properties:
+      instances:
+        items:
+          $ref: '#/definitions/github_com_Havens-blog_e-cam-service_internal_cam_web.InstanceVO'
+        type: array
+      total:
+        type: integer
+    type: object
+  github_com_Havens-blog_e-cam-service_internal_cam_web.InstanceVO:
+    properties:
+      account_id:
+        type: integer
+      asset_id:
+        type: string
+      asset_name:
+        type: string
+      attributes:
+        additionalProperties: true
+        type: object
+      create_time:
+        type: integer
+      id:
+        type: integer
+      model_uid:
+        type: string
+      tenant_id:
+        type: string
+      update_time:
+        type: integer
+    type: object
+  github_com_Havens-blog_e-cam-service_internal_cam_web.UpdateInstanceReq:
+    properties:
+      asset_name:
+        type: string
+      attributes:
+        additionalProperties: true
+        type: object
+    type: object
+  github_com_Havens-blog_e-cam-service_internal_cam_web.UpdateModelReq:
+    properties:
+      description:
+        type: string
+      extensible:
+        type: boolean
+      icon:
+        type: string
+      model_group_id:
+        type: integer
+      name:
+        type: string
+    type: object
+  github_com_Havens-blog_e-cam-service_internal_cam_web.UpsertBatchInstanceReq:
+    properties:
+      instances:
+        items:
+          $ref: '#/definitions/github_com_Havens-blog_e-cam-service_internal_cam_web.UpsertInstanceReq'
+        type: array
+    required:
+    - instances
+    type: object
+  github_com_Havens-blog_e-cam-service_internal_cam_web.UpsertInstanceReq:
+    properties:
+      account_id:
+        type: integer
+      asset_id:
+        type: string
+      asset_name:
+        type: string
+      attributes:
+        additionalProperties: true
+        type: object
+      model_uid:
+        type: string
+      tenant_id:
+        type: string
+    required:
+    - asset_id
+    - model_uid
+    - tenant_id
+    type: object
+  github_com_Havens-blog_e-cam-service_internal_iam_service.GroupSyncResult:
+    properties:
+      created_groups:
+        type: integer
+      failed_groups:
+        type: integer
+      failed_members:
+        type: integer
+      synced_members:
+        type: integer
+      total_groups:
+        type: integer
+      total_members:
+        type: integer
+      updated_groups:
+        type: integer
+    type: object
+  github_com_Havens-blog_e-cam-service_internal_iam_web.AssignUserGroupsVO:
+    properties:
+      group_ids:
+        items:
+          type: integer
+        minItems: 1
+        type: array
+      user_ids:
+        items:
+          type: integer
+        minItems: 1
+        type: array
+    required:
+    - group_ids
+    - user_ids
+    type: object
+  github_com_Havens-blog_e-cam-service_internal_iam_web.CreateFromGroupVO:
+    properties:
+      description:
+        maxLength: 500
+        type: string
+      group_id:
+        type: integer
+      name:
+        maxLength: 100
+        minLength: 1
+        type: string
+    required:
+    - group_id
+    - name
+    type: object
+  github_com_Havens-blog_e-cam-service_internal_iam_web.CreateSyncTaskVO:
+    properties:
+      cloud_account_id:
+        type: integer
+      provider:
+        $ref: '#/definitions/github_com_Havens-blog_e-cam-service_internal_shared_domain.CloudProvider'
+      target_id:
+        type: integer
+      target_type:
+        $ref: '#/definitions/domain.SyncTargetType'
+      task_type:
+        $ref: '#/definitions/domain.SyncTaskType'
+    required:
+    - cloud_account_id
+    - provider
+    - target_id
+    - target_type
+    - task_type
+    type: object
+  github_com_Havens-blog_e-cam-service_internal_iam_web.CreateTemplateVO:
+    properties:
+      category:
+        $ref: '#/definitions/domain.TemplateCategory'
+      cloud_platforms:
+        items:
+          $ref: '#/definitions/github_com_Havens-blog_e-cam-service_internal_shared_domain.CloudProvider'
+        minItems: 1
+        type: array
+      description:
+        maxLength: 500
+        type: string
+      name:
+        maxLength: 100
+        minLength: 1
+        type: string
+      policies:
+        items:
+          $ref: '#/definitions/domain.PermissionPolicy'
+        type: array
+      tenant_id:
+        type: string
+    required:
+    - category
+    - cloud_platforms
+    - name
+    - tenant_id
+    type: object
+  github_com_Havens-blog_e-cam-service_internal_iam_web.CreateTenantVO:
+    properties:
+      description:
+        maxLength: 500
+        type: string
+      display_name:
+        maxLength: 200
+        type: string
+      id:
+        maxLength: 50
+        minLength: 1
+        type: string
+      metadata:
+        $ref: '#/definitions/domain.TenantMetadata'
+      name:
+        maxLength: 100
+        minLength: 1
+        type: string
+      settings:
+        $ref: '#/definitions/domain.TenantSettings'
+    required:
+    - id
+    - name
+    type: object
+  github_com_Havens-blog_e-cam-service_internal_iam_web.CreateUserGroupVO:
+    properties:
+      cloud_platforms:
+        items:
+          $ref: '#/definitions/github_com_Havens-blog_e-cam-service_internal_shared_domain.CloudProvider'
+        minItems: 1
+        type: array
+      description:
+        maxLength: 500
+        type: string
+      name:
+        maxLength: 100
+        minLength: 1
+        type: string
+      policies:
+        items:
+          $ref: '#/definitions/domain.PermissionPolicy'
+        type: array
+      tenant_id:
+        type: string
+    required:
+    - cloud_platforms
+    - name
+    - tenant_id
+    type: object
+  github_com_Havens-blog_e-cam-service_internal_iam_web.CreateUserVO:
+    properties:
+      cloud_account_id:
+        type: integer
+      display_name:
+        maxLength: 200
+        type: string
+      email:
+        type: string
+      tenant_id:
+        type: string
+      user_groups:
+        description: 用户组ID列表
+        items:
+          type: integer
+        type: array
+      user_type:
+        $ref: '#/definitions/domain.CloudUserType'
+      username:
+        maxLength: 100
+        minLength: 1
+        type: string
+    required:
+    - cloud_account_id
+    - tenant_id
+    - user_type
+    - username
+    type: object
+  github_com_Havens-blog_e-cam-service_internal_iam_web.GenerateAuditReportVO:
+    properties:
+      end_time:
+        type: string
+      start_time:
+        type: string
+      tenant_id:
+        type: string
+    required:
+    - end_time
+    - start_time
+    - tenant_id
+    type: object
+  github_com_Havens-blog_e-cam-service_internal_iam_web.PageResult:
+    properties:
+      code:
+        type: integer
+      data: {}
+      msg:
+        type: string
+      page:
+        type: integer
+      size:
+        type: integer
+      total:
+        type: integer
+    type: object
+  github_com_Havens-blog_e-cam-service_internal_iam_web.Result:
+    properties:
+      code:
+        type: integer
+      data: {}
+      msg:
+        type: string
+    type: object
+  github_com_Havens-blog_e-cam-service_internal_iam_web.UpdatePoliciesVO:
+    properties:
+      policies:
+        items:
+          $ref: '#/definitions/domain.PermissionPolicy'
+        minItems: 1
+        type: array
+    required:
+    - policies
+    type: object
+  github_com_Havens-blog_e-cam-service_internal_iam_web.UpdateTemplateVO:
+    properties:
+      cloud_platforms:
+        items:
+          $ref: '#/definitions/github_com_Havens-blog_e-cam-service_internal_shared_domain.CloudProvider'
+        type: array
+      description:
+        type: string
+      name:
+        type: string
+      policies:
+        items:
+          $ref: '#/definitions/domain.PermissionPolicy'
+        type: array
+    type: object
+  github_com_Havens-blog_e-cam-service_internal_iam_web.UpdateTenantVO:
+    properties:
+      description:
+        type: string
+      display_name:
+        type: string
+      metadata:
+        $ref: '#/definitions/domain.TenantMetadata'
+      name:
+        type: string
+      settings:
+        $ref: '#/definitions/domain.TenantSettings'
+      status:
+        $ref: '#/definitions/domain.TenantStatus'
+    type: object
+  github_com_Havens-blog_e-cam-service_internal_iam_web.UpdateUserGroupVO:
+    properties:
+      cloud_platforms:
+        items:
+          $ref: '#/definitions/github_com_Havens-blog_e-cam-service_internal_shared_domain.CloudProvider'
+        type: array
+      description:
+        type: string
+      name:
+        type: string
+      policies:
+        items:
+          $ref: '#/definitions/domain.PermissionPolicy'
+        type: array
+    type: object
+  github_com_Havens-blog_e-cam-service_internal_iam_web.UpdateUserVO:
+    properties:
+      display_name:
+        type: string
+      email:
+        type: string
+      status:
+        $ref: '#/definitions/domain.CloudUserStatus'
+      user_groups:
+        description: 用户组ID列表
+        items:
+          type: integer
+        type: array
+    type: object
+  github_com_Havens-blog_e-cam-service_internal_shared_domain.CloudAccount:
+    properties:
+      access_key_id:
+        description: 访问密钥ID
+        type: string
+      access_key_secret:
+        description: 访问密钥Secret (加密存储)
+        type: string
+      asset_count:
+        description: 资产数量
+        type: integer
+      config:
+        allOf:
+        - $ref: '#/definitions/github_com_Havens-blog_e-cam-service_internal_shared_domain.CloudAccountConfig'
+        description: 配置信息
+      create_time:
+        description: 创建时间
+        type: string
+      ctime:
+        description: 创建时间戳
+        type: integer
+      description:
+        description: 描述信息
+        type: string
+      environment:
+        allOf:
+        - $ref: '#/definitions/github_com_Havens-blog_e-cam-service_internal_shared_domain.Environment'
+        description: 环境
+      error_message:
+        description: 错误信息
+        type: string
+      id:
+        description: 账号ID
+        type: integer
+      last_sync_time:
+        description: 最后同步时间
+        type: string
+      last_test_time:
+        description: 最后测试时间
+        type: string
+      name:
+        description: 账号名称
+        type: string
+      provider:
+        allOf:
+        - $ref: '#/definitions/github_com_Havens-blog_e-cam-service_internal_shared_domain.CloudProvider'
+        description: 云厂商
+      regions:
+        description: 支持的地域列表
+        items:
+          type: string
+        type: array
+      status:
+        allOf:
+        - $ref: '#/definitions/github_com_Havens-blog_e-cam-service_internal_shared_domain.CloudAccountStatus'
+        description: 账号状态
+      tenant_id:
+        description: 租户ID
+        type: string
+      update_time:
+        description: 更新时间
+        type: string
+      utime:
+        description: 更新时间戳
+        type: integer
+    type: object
+  github_com_Havens-blog_e-cam-service_internal_shared_domain.CloudAccountConfig:
+    properties:
+      enable_auto_sync:
+        description: 是否启用自动同步
+        type: boolean
+      enable_cost_monitoring:
+        description: 启用成本监控
+        type: boolean
+      read_only:
+        description: 只读权限
+        type: boolean
+      show_sub_accounts:
+        description: 显示子账号
+        type: boolean
+      supported_asset_types:
+        description: 支持的资产类型
+        items:
+          type: string
+        type: array
+      supported_regions:
+        description: 支持的地域列表
+        items:
+          type: string
+        type: array
+      sync_interval:
+        description: 同步间隔(分钟)
+        type: integer
+    type: object
+  github_com_Havens-blog_e-cam-service_internal_shared_domain.CloudAccountStatus:
+    enum:
+    - active
+    - disabled
+    - error
+    - testing
+    type: string
+    x-enum-comments:
+      CloudAccountStatusActive: 活跃状态
+      CloudAccountStatusDisabled: 已禁用
+      CloudAccountStatusError: 错误状态
+      CloudAccountStatusTesting: 测试中
+    x-enum-descriptions:
+    - 活跃状态
+    - 已禁用
+    - 错误状态
+    - 测试中
+    x-enum-varnames:
+    - CloudAccountStatusActive
+    - CloudAccountStatusDisabled
+    - CloudAccountStatusError
+    - CloudAccountStatusTesting
+  github_com_Havens-blog_e-cam-service_internal_shared_domain.CloudProvider:
+    enum:
+    - aliyun
+    - aws
+    - azure
+    - tencent
+    - huawei
+    - volcano
+    - volcengine
+    type: string
+    x-enum-comments:
+      CloudProviderAWS: Amazon Web Services
+      CloudProviderAliyun: 阿里云
+      CloudProviderAzure: Microsoft Azure
+      CloudProviderHuawei: 华为云
+      CloudProviderTencent: 腾讯云
+      CloudProviderVolcano: 火山云 (别名)
+      CloudProviderVolcengine: 火山引擎
+    x-enum-descriptions:
+    - 阿里云
+    - Amazon Web Services
+    - Microsoft Azure
+    - 腾讯云
+    - 华为云
+    - 火山云 (别名)
+    - 火山引擎
+    x-enum-varnames:
+    - CloudProviderAliyun
+    - CloudProviderAWS
+    - CloudProviderAzure
+    - CloudProviderTencent
+    - CloudProviderHuawei
+    - CloudProviderVolcano
+    - CloudProviderVolcengine
+  github_com_Havens-blog_e-cam-service_internal_shared_domain.Environment:
+    enum:
+    - production
+    - staging
+    - development
+    type: string
+    x-enum-comments:
+      EnvironmentDevelopment: 开发环境
+      EnvironmentProduction: 生产环境
+      EnvironmentStaging: 预发环境
+    x-enum-descriptions:
+    - 生产环境
+    - 预发环境
+    - 开发环境
+    x-enum-varnames:
+    - EnvironmentProduction
+    - EnvironmentStaging
+    - EnvironmentDevelopment
+  github_com_Havens-blog_e-cam-service_internal_shared_domain.SyncTask:
+    properties:
+      cloud_account_id:
+        type: integer
+      create_time:
+        type: string
+      ctime:
+        type: integer
+      end_time:
+        type: string
+      error_message:
+        type: string
+      id:
+        type: integer
+      max_retries:
+        type: integer
+      progress:
+        type: integer
+      provider:
+        $ref: '#/definitions/github_com_Havens-blog_e-cam-service_internal_shared_domain.CloudProvider'
+      retry_count:
+        type: integer
+      start_time:
+        type: string
+      status:
+        $ref: '#/definitions/github_com_Havens-blog_e-cam-service_internal_shared_domain.SyncTaskStatus'
+      target_id:
+        type: integer
+      target_type:
+        $ref: '#/definitions/domain.SyncTargetType'
+      task_type:
+        $ref: '#/definitions/domain.SyncTaskType'
+      update_time:
+        type: string
+      utime:
+        type: integer
+    type: object
+  github_com_Havens-blog_e-cam-service_internal_shared_domain.SyncTaskStatus:
+    enum:
+    - pending
+    - running
+    - success
+    - failed
+    - retrying
+    type: string
+    x-enum-varnames:
+    - SyncTaskStatusPending
+    - SyncTaskStatusRunning
+    - SyncTaskStatusSuccess
+    - SyncTaskStatusFailed
+    - SyncTaskStatusRetrying
+  github_com_Havens-blog_e-cam-service_internal_task_web.SubmitDiscoverAssetsTaskReq:
+    properties:
+      account_id:
+        type: integer
+      asset_types:
+        items:
+          type: string
+        type: array
+      provider:
+        type: string
+      region:
+        type: string
+    required:
+    - provider
+    type: object
+  github_com_Havens-blog_e-cam-service_internal_task_web.SubmitSyncAssetsTaskReq:
+    properties:
+      account_id:
+        type: integer
+      asset_types:
+        items:
+          type: string
+        type: array
+      provider:
+        type: string
+      regions:
+        items:
+          type: string
+        type: array
+    required:
+    - provider
+    type: object
+  github_com_Havens-blog_e-cam-service_internal_task_web.SubmitTaskResp:
+    properties:
+      message:
+        type: string
+      task_id:
+        type: string
+    type: object
+  github_com_Havens-blog_e-cam-service_internal_task_web.TaskListResp:
+    properties:
+      tasks:
+        items:
+          $ref: '#/definitions/github_com_Havens-blog_e-cam-service_internal_task_web.TaskResp'
+        type: array
+      total:
+        type: integer
+    type: object
+  github_com_Havens-blog_e-cam-service_internal_task_web.TaskResp:
+    properties:
+      completed_at:
+        type: string
+      created_at:
+        type: string
+      created_by:
+        type: string
+      duration:
+        type: integer
+      error:
+        type: string
+      id:
+        type: string
+      message:
+        type: string
+      params:
+        additionalProperties: true
+        type: object
+      progress:
+        type: integer
+      result:
+        additionalProperties: true
+        type: object
+      started_at:
+        type: string
+      status:
+        type: string
+      type:
+        type: string
+    type: object
+  web.AssetDetailResult:
+    properties:
+      code:
+        example: 0
+        type: integer
+      data:
+        $ref: '#/definitions/web.UnifiedAssetVO'
+      msg:
+        example: success
+        type: string
+    type: object
+  web.AssetListResult:
+    properties:
+      code:
+        example: 0
+        type: integer
+      data:
+        $ref: '#/definitions/web.UnifiedAssetListResp'
+      msg:
+        example: success
+        type: string
+    type: object
+  web.CloudAccount:
+    properties:
+      access_key_id:
+        type: string
+      access_key_secret:
+        description: 敏感信息，通常不返回
+        type: string
+      asset_count:
+        type: integer
+      config:
+        $ref: '#/definitions/web.CloudAccountConfigVO'
+      create_time:
+        type: string
+      description:
+        type: string
+      environment:
+        type: string
+      error_message:
+        type: string
+      id:
+        type: integer
+      last_sync_time:
+        type: string
+      last_test_time:
+        type: string
+      name:
+        type: string
+      provider:
+        type: string
+      regions:
+        items:
+          type: string
+        type: array
+      status:
+        type: string
+      tenant_id:
+        type: string
+      update_time:
+        type: string
+    type: object
+  web.CloudAccountConfigVO:
+    properties:
+      enable_auto_sync:
+        type: boolean
+      enable_cost_monitoring:
+        type: boolean
+      read_only:
+        type: boolean
+      show_sub_accounts:
+        type: boolean
+      supported_asset_types:
+        items:
+          type: string
+        type: array
+      supported_regions:
+        items:
+          type: string
+        type: array
+      sync_interval:
+        type: integer
+    type: object
+  web.CloudAsset:
+    properties:
+      asset_id:
+        type: string
+      asset_name:
+        type: string
+      asset_type:
+        type: string
+      cost:
+        type: number
+      create_time:
+        type: string
+      discover_time:
+        type: string
+      id:
+        type: integer
+      metadata:
+        type: string
+      provider:
+        type: string
+      region:
+        type: string
+      status:
+        type: string
+      tags:
+        items:
+          $ref: '#/definitions/web.Tag'
+        type: array
+      update_time:
+        type: string
+      zone:
+        type: string
+    type: object
+  web.CreateAssetReq:
+    properties:
+      asset_id:
+        type: string
+      asset_name:
+        type: string
+      asset_type:
+        type: string
+      cost:
+        type: number
+      create_time:
+        type: string
+      discover_time:
+        type: string
+      metadata:
+        type: string
+      provider:
+        type: string
+      region:
+        type: string
+      status:
+        type: string
+      tags:
+        items:
+          $ref: '#/definitions/web.Tag'
+        type: array
+      update_time:
+        type: string
+      zone:
+        type: string
+    required:
+    - asset_id
+    - asset_name
+    - asset_type
+    - provider
+    - region
+    type: object
+  web.CreateCloudAccountReq:
+    properties:
+      access_key_id:
+        maxLength: 128
+        minLength: 16
+        type: string
+      access_key_secret:
+        maxLength: 256
+        minLength: 16
+        type: string
+      config:
+        $ref: '#/definitions/web.CloudAccountConfigVO'
+      description:
+        maxLength: 500
+        type: string
+      environment:
+        type: string
+      name:
+        maxLength: 100
+        minLength: 1
+        type: string
+      provider:
+        type: string
+      regions:
+        items:
+          type: string
+        minItems: 1
+        type: array
+      tenant_id:
+        type: string
+    required:
+    - access_key_id
+    - access_key_secret
+    - environment
+    - name
+    - provider
+    - regions
+    - tenant_id
+    type: object
+  web.CreateFieldGroupReq:
+    properties:
+      index:
+        type: integer
+      model_uid:
+        type: string
+      name:
+        maxLength: 100
+        minLength: 1
+        type: string
+    required:
+    - model_uid
+    - name
+    type: object
+  web.CreateFieldReq:
+    properties:
+      display:
+        description: 是否显示（默认true）
+        type: boolean
+      display_name:
+        description: 显示名称
+        type: string
+      field_name:
+        maxLength: 100
+        minLength: 1
+        type: string
+      field_type:
+        type: string
+      field_uid:
+        maxLength: 100
+        minLength: 1
+        type: string
+      group_id:
+        type: integer
+      index:
+        type: integer
+      link:
+        description: 是否为关联字段
+        type: boolean
+      link_model:
+        description: 关联模型UID
+        type: string
+      model_uid:
+        type: string
+      option:
+        type: string
+      required:
+        type: boolean
+      secure:
+        type: boolean
+    required:
+    - display_name
+    - field_name
+    - field_type
+    - field_uid
+    - model_uid
+    type: object
+  web.CreateMultiAssetsReq:
+    properties:
+      assets:
+        items:
+          $ref: '#/definitions/web.CreateAssetReq'
+        type: array
+    required:
+    - assets
+    type: object
+  web.DatabaseInstanceListResp:
+    properties:
+      instances:
+        items:
+          $ref: '#/definitions/web.DatabaseInstanceVO'
+        type: array
+      total:
+        type: integer
+    type: object
+  web.DatabaseInstanceVO:
+    properties:
+      account_id:
+        type: integer
+      asset_id:
+        type: string
+      asset_name:
+        type: string
+      attributes:
+        additionalProperties: true
+        type: object
+      create_time:
+        type: integer
+      id:
+        type: integer
+      model_uid:
+        type: string
+      provider:
+        type: string
+      region:
+        type: string
+      status:
+        type: string
+      tenant_id:
+        type: string
+      update_time:
+        type: integer
+    type: object
+  web.DiscoverAssetsReq:
+    properties:
+      asset_types:
+        description: 要发现的资源类型，为空则发现所有支持的类型
+        items:
+          type: string
+        type: array
+      provider:
+        type: string
+      region:
+        type: string
+    required:
+    - provider
+    type: object
+  web.ECSRelationsResp:
+    properties:
+      disks:
+        description: 关联的云盘
+        items:
+          $ref: '#/definitions/web.UnifiedAssetVO'
+        type: array
+      ecs:
+        allOf:
+        - $ref: '#/definitions/web.UnifiedAssetVO'
+        description: ECS实例信息
+      security_groups:
+        description: 关联的安全组
+        items:
+          $ref: '#/definitions/web.UnifiedAssetVO'
+        type: array
+      snapshots:
+        description: 关联的快照
+        items:
+          $ref: '#/definitions/web.UnifiedAssetVO'
+        type: array
+      subnet:
+        allOf:
+        - $ref: '#/definitions/web.UnifiedAssetVO'
+        description: 关联的子网/交换机
+      vpc:
+        allOf:
+        - $ref: '#/definitions/web.UnifiedAssetVO'
+        description: 关联的VPC
+    type: object
+  web.ECSRelationsResult:
+    properties:
+      code:
+        example: 0
+        type: integer
+      data:
+        $ref: '#/definitions/web.ECSRelationsResp'
+      msg:
+        example: success
+        type: string
+    type: object
+  web.ErrorResponse:
+    properties:
+      code:
+        example: 400
+        type: integer
+      msg:
+        example: 租户ID不能为空
+        type: string
+    type: object
+  web.MatchInfo:
+    properties:
+      field:
+        description: 匹配的字段名
+        type: string
+      label:
+        description: 字段显示名称
+        type: string
+      value:
+        description: 匹配的字段值
+        type: string
+    type: object
+  web.MenuItem:
+    properties:
+      children:
+        items:
+          $ref: '#/definitions/web.MenuItem'
+        type: array
+      icon:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+      order:
+        type: integer
+      path:
+        type: string
+    type: object
+  web.SearchListResp:
+    properties:
+      items:
+        items:
+          $ref: '#/definitions/web.SearchResultVO'
+        type: array
+      keyword:
+        description: 返回搜索关键词，方便前端高亮
+        type: string
+      total:
+        type: integer
+    type: object
+  web.SearchResultResponse:
+    properties:
+      code:
+        example: 0
+        type: integer
+      data:
+        $ref: '#/definitions/web.SearchListResp'
+      msg:
+        example: success
+        type: string
+    type: object
+  web.SearchResultVO:
+    properties:
+      account_id:
+        type: integer
+      asset_id:
+        type: string
+      asset_name:
+        type: string
+      asset_type:
+        type: string
+      attributes:
+        additionalProperties: true
+        type: object
+      create_time:
+        type: integer
+      id:
+        type: integer
+      matches:
+        description: 匹配信息，用于前端高亮
+        items:
+          $ref: '#/definitions/web.MatchInfo'
+        type: array
+      provider:
+        type: string
+      region:
+        type: string
+      status:
+        type: string
+      tenant_id:
+        type: string
+      update_time:
+        type: integer
+    type: object
+  web.SyncAccountReq:
+    description: 同步云账号资产的请求参数
+    properties:
+      asset_types:
+        description: |-
+          要同步的资源类型列表，支持: ecs, rds, oss, vpc 等
+          为空则默认只同步 ecs
+        example:
+        - ecs
+        - rds
+        items:
+          type: string
+        type: array
+      regions:
+        description: 要同步的地域列表，为空则同步账号配置的所有地域
+        example:
+        - cn-hangzhou
+        - cn-shanghai
+        items:
+          type: string
+        type: array
+    type: object
+  web.SyncAssetsReq:
+    properties:
+      account_id:
+        description: 云账号ID
+        type: integer
+      asset_types:
+        description: 要同步的资源类型，为空则同步所有支持的类型
+        items:
+          type: string
+        type: array
+    required:
+    - account_id
+    type: object
+  web.SyncResult:
+    description: 云资产同步操作的结果
+    properties:
+      message:
+        description: 同步结果消息
+        example: 同步完成，共同步 10 个资产
+        type: string
+      start_time:
+        description: 同步开始时间
+        type: string
+      status:
+        description: '同步状态: running, success, failed'
+        example: success
+        type: string
+      sync_id:
+        description: '同步任务ID，格式: sync_{account_id}_{timestamp}'
+        example: sync_1_1706000000
+        type: string
+    type: object
+  web.Tag:
+    properties:
+      key:
+        type: string
+      value:
+        type: string
+    type: object
+  web.UnifiedAssetListResp:
+    properties:
+      items:
+        items:
+          $ref: '#/definitions/web.UnifiedAssetVO'
+        type: array
+      total:
+        type: integer
+    type: object
+  web.UnifiedAssetVO:
+    properties:
+      account_id:
+        type: integer
+      asset_id:
+        type: string
+      asset_name:
+        type: string
+      asset_type:
+        type: string
+      attributes:
+        additionalProperties: true
+        type: object
+      create_time:
+        type: integer
+      id:
+        type: integer
+      provider:
+        type: string
+      region:
+        type: string
+      status:
+        type: string
+      tenant_id:
+        type: string
+      update_time:
+        type: integer
+    type: object
+  web.UpdateAssetReq:
+    properties:
+      asset_name:
+        type: string
+      cost:
+        type: number
+      metadata:
+        type: string
+      status:
+        type: string
+      tags:
+        items:
+          $ref: '#/definitions/web.Tag'
+        type: array
+      update_time:
+        type: string
+    type: object
+  web.UpdateCloudAccountReq:
+    properties:
+      access_key_id:
+        type: string
+      access_key_secret:
+        type: string
+      config:
+        $ref: '#/definitions/web.CloudAccountConfigVO'
+      description:
+        type: string
+      environment:
+        type: string
+      name:
+        type: string
+      regions:
+        items:
+          type: string
+        type: array
+      tenant_id:
+        type: string
+    type: object
+  web.UpdateFieldGroupReq:
+    properties:
+      index:
+        type: integer
+      name:
+        type: string
+    type: object
+  web.UpdateFieldReq:
+    properties:
+      display:
+        type: boolean
+      display_name:
+        type: string
+      field_name:
+        type: string
+      field_type:
+        type: string
+      group_id:
+        type: integer
+      index:
+        type: integer
+      link:
+        description: 是否为关联字段
+        type: boolean
+      link_model:
+        description: 关联模型UID
+        type: string
+      option:
+        type: string
+      required:
+        type: boolean
+      secure:
+        type: boolean
+    type: object
+host: localhost:8001
+info:
+  contact:
+    email: support@example.com
+    name: API Support
+  description: 企业云资产管理服务 API 文档
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+  termsOfService: http://swagger.io/terms/
+  title: E-CAM Service API
+  version: "1.0"
+paths:
+  /api/v1/cam/assets/disk:
+    get:
+      consumes:
+      - application/json
+      description: 从数据库获取已同步的云盘列表
+      parameters:
+      - description: 租户ID
+        in: header
+        name: X-Tenant-ID
+        required: true
+        type: string
+      - description: 云账号ID
+        in: query
+        name: account_id
+        type: integer
+      - description: 云厂商
+        enum:
+        - aliyun
+        - aws
+        - huawei
+        - tencent
+        - volcano
+        in: query
+        name: provider
+        type: string
+      - description: 地域
+        in: query
+        name: region
+        type: string
+      - description: 云盘状态
+        in: query
+        name: status
+        type: string
+      - description: 云盘名称(模糊搜索)
+        in: query
+        name: name
+        type: string
+      - description: 云盘类型(system/data)
+        in: query
+        name: disk_type
+        type: string
+      - description: 挂载的实例ID
+        in: query
+        name: instance_id
+        type: string
+      - default: 0
+        description: 偏移量
+        in: query
+        name: offset
+        type: integer
+      - default: 20
+        description: 限制数量
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功
+          schema:
+            $ref: '#/definitions/web.AssetListResult'
+        "400":
+          description: 租户ID不能为空
+          schema:
+            $ref: '#/definitions/web.ErrorResponse'
+      summary: 获取云盘列表
+      tags:
+      - 资产管理-云盘
+  /api/v1/cam/assets/disk/{asset_id}:
+    get:
+      consumes:
+      - application/json
+      description: 从数据库获取指定云盘的详细信息
+      parameters:
+      - description: 租户ID
+        in: header
+        name: X-Tenant-ID
+        required: true
+        type: string
+      - description: 资产ID(云盘ID)
+        in: path
+        name: asset_id
+        required: true
+        type: string
+      - description: 云厂商
+        enum:
+        - aliyun
+        - aws
+        - huawei
+        - tencent
+        - volcano
+        in: query
+        name: provider
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功
+          schema:
+            $ref: '#/definitions/web.AssetDetailResult'
+        "400":
+          description: 租户ID不能为空
+          schema:
+            $ref: '#/definitions/web.ErrorResponse'
+        "404":
+          description: 云盘不存在
+          schema:
+            $ref: '#/definitions/web.ErrorResponse'
+      summary: 获取云盘详情
+      tags:
+      - 资产管理-云盘
+  /api/v1/cam/assets/security-group:
+    get:
+      consumes:
+      - application/json
+      description: 从数据库获取已同步的安全组列表
+      parameters:
+      - description: 租户ID
+        in: header
+        name: X-Tenant-ID
+        required: true
+        type: string
+      - description: 云账号ID
+        in: query
+        name: account_id
+        type: integer
+      - description: 云厂商
+        enum:
+        - aliyun
+        - aws
+        - huawei
+        - tencent
+        - volcano
+        in: query
+        name: provider
+        type: string
+      - description: 地域
+        in: query
+        name: region
+        type: string
+      - description: 安全组名称(模糊搜索)
+        in: query
+        name: name
+        type: string
+      - description: VPC ID
+        in: query
+        name: vpc_id
+        type: string
+      - default: 0
+        description: 偏移量
+        in: query
+        name: offset
+        type: integer
+      - default: 20
+        description: 限制数量
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功
+          schema:
+            $ref: '#/definitions/web.AssetListResult'
+        "400":
+          description: 租户ID不能为空
+          schema:
+            $ref: '#/definitions/web.ErrorResponse'
+      summary: 获取安全组列表
+      tags:
+      - 资产管理-安全组
+  /api/v1/cam/assets/security-group/{asset_id}:
+    get:
+      consumes:
+      - application/json
+      description: 从数据库获取指定安全组的详细信息
+      parameters:
+      - description: 租户ID
+        in: header
+        name: X-Tenant-ID
+        required: true
+        type: string
+      - description: 资产ID(安全组ID)
+        in: path
+        name: asset_id
+        required: true
+        type: string
+      - description: 云厂商
+        enum:
+        - aliyun
+        - aws
+        - huawei
+        - tencent
+        - volcano
+        in: query
+        name: provider
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功
+          schema:
+            $ref: '#/definitions/web.AssetDetailResult'
+        "400":
+          description: 租户ID不能为空
+          schema:
+            $ref: '#/definitions/web.ErrorResponse'
+        "404":
+          description: 安全组不存在
+          schema:
+            $ref: '#/definitions/web.ErrorResponse'
+      summary: 获取安全组详情
+      tags:
+      - 资产管理-安全组
+  /api/v1/cam/assets/snapshot:
+    get:
+      consumes:
+      - application/json
+      description: 从数据库获取已同步的快照列表
+      parameters:
+      - description: 租户ID
+        in: header
+        name: X-Tenant-ID
+        required: true
+        type: string
+      - description: 云账号ID
+        in: query
+        name: account_id
+        type: integer
+      - description: 云厂商
+        enum:
+        - aliyun
+        - aws
+        - huawei
+        - tencent
+        - volcano
+        in: query
+        name: provider
+        type: string
+      - description: 地域
+        in: query
+        name: region
+        type: string
+      - description: 快照状态
+        in: query
+        name: status
+        type: string
+      - description: 快照名称(模糊搜索)
+        in: query
+        name: name
+        type: string
+      - description: 源磁盘ID
+        in: query
+        name: source_disk_id
+        type: string
+      - default: 0
+        description: 偏移量
+        in: query
+        name: offset
+        type: integer
+      - default: 20
+        description: 限制数量
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功
+          schema:
+            $ref: '#/definitions/web.AssetListResult'
+        "400":
+          description: 租户ID不能为空
+          schema:
+            $ref: '#/definitions/web.ErrorResponse'
+      summary: 获取快照列表
+      tags:
+      - 资产管理-快照
+  /api/v1/cam/assets/snapshot/{asset_id}:
+    get:
+      consumes:
+      - application/json
+      description: 从数据库获取指定快照的详细信息
+      parameters:
+      - description: 租户ID
+        in: header
+        name: X-Tenant-ID
+        required: true
+        type: string
+      - description: 资产ID(快照ID)
+        in: path
+        name: asset_id
+        required: true
+        type: string
+      - description: 云厂商
+        enum:
+        - aliyun
+        - aws
+        - huawei
+        - tencent
+        - volcano
+        in: query
+        name: provider
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功
+          schema:
+            $ref: '#/definitions/web.AssetDetailResult'
+        "400":
+          description: 租户ID不能为空
+          schema:
+            $ref: '#/definitions/web.ErrorResponse'
+        "404":
+          description: 快照不存在
+          schema:
+            $ref: '#/definitions/web.ErrorResponse'
+      summary: 获取快照详情
+      tags:
+      - 资产管理-快照
+  /api/v1/cam/iam/audit/logs:
+    get:
+      parameters:
+      - description: 操作类型
+        in: query
+        name: operation_type
+        type: string
+      - description: 操作人ID
+        in: query
+        name: operator_id
+        type: string
+      - description: 目标类型
+        in: query
+        name: target_type
+        type: string
+      - description: 云平台
+        in: query
+        name: cloud_platform
+        type: string
+      - description: 租户ID
+        in: query
+        name: tenant_id
+        type: string
+      - description: 开始时间
+        in: query
+        name: start_time
+        type: string
+      - description: 结束时间
+        in: query
+        name: end_time
+        type: string
+      - description: 页码
+        in: query
+        name: page
+        type: integer
+      - description: 每页数量
+        in: query
+        name: size
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_Havens-blog_e-cam-service_internal_iam_web.PageResult'
+      summary: 查询审计日志列表
+      tags:
+      - 审计日志管理
+  /api/v1/cam/iam/audit/logs/export:
+    get:
+      parameters:
+      - description: 操作类型
+        in: query
+        name: operation_type
+        type: string
+      - description: 操作人ID
+        in: query
+        name: operator_id
+        type: string
+      - description: 目标类型
+        in: query
+        name: target_type
+        type: string
+      - description: 云平台
+        in: query
+        name: cloud_platform
+        type: string
+      - description: 租户ID
+        in: query
+        name: tenant_id
+        type: string
+      - description: 开始时间
+        in: query
+        name: start_time
+        type: string
+      - description: 结束时间
+        in: query
+        name: end_time
+        type: string
+      - description: 导出格式(csv/json)
+        in: query
+        name: format
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: file
+      summary: 导出审计日志
+      tags:
+      - 审计日志管理
+  /api/v1/cam/iam/audit/reports:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: 生成审计报告请求
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_Havens-blog_e-cam-service_internal_iam_web.GenerateAuditReportVO'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_Havens-blog_e-cam-service_internal_iam_web.Result'
+      summary: 生成审计报告
+      tags:
+      - 审计日志管理
+  /api/v1/cam/iam/groups:
+    get:
+      parameters:
+      - description: 租户ID
+        in: header
+        name: X-Tenant-ID
+        required: true
+        type: string
+      - description: 关键词
+        in: query
+        name: keyword
+        type: string
+      - description: 页码
+        in: query
+        name: page
+        type: integer
+      - description: 每页数量
+        in: query
+        name: size
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_Havens-blog_e-cam-service_internal_iam_web.PageResult'
+      summary: 查询用户组列表
+      tags:
+      - 用户组管理
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: 租户ID
+        in: header
+        name: X-Tenant-ID
+        required: true
+        type: string
+      - description: 创建用户组请求
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_Havens-blog_e-cam-service_internal_iam_web.CreateUserGroupVO'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_Havens-blog_e-cam-service_internal_iam_web.Result'
+      summary: 创建用户组
+      tags:
+      - 用户组管理
+  /api/v1/cam/iam/groups/{id}:
+    delete:
+      parameters:
+      - description: 租户ID
+        in: header
+        name: X-Tenant-ID
+        required: true
+        type: string
+      - description: 用户组ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_Havens-blog_e-cam-service_internal_iam_web.Result'
+      summary: 删除用户组
+      tags:
+      - 用户组管理
+    get:
+      parameters:
+      - description: 租户ID
+        in: header
+        name: X-Tenant-ID
+        required: true
+        type: string
+      - description: 用户组ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_Havens-blog_e-cam-service_internal_iam_web.Result'
+      summary: 获取用户组详情
+      tags:
+      - 用户组管理
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: 租户ID
+        in: header
+        name: X-Tenant-ID
+        required: true
+        type: string
+      - description: 用户组ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: 更新用户组请求
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_Havens-blog_e-cam-service_internal_iam_web.UpdateUserGroupVO'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_Havens-blog_e-cam-service_internal_iam_web.Result'
+      summary: 更新用户组信息
+      tags:
+      - 用户组管理
+  /api/v1/cam/iam/groups/{id}/members:
+    get:
+      parameters:
+      - description: 租户ID
+        in: header
+        name: X-Tenant-ID
+        required: true
+        type: string
+      - description: 用户组ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_Havens-blog_e-cam-service_internal_iam_web.Result'
+      summary: 获取用户组成员列表
+      tags:
+      - 用户组管理
+  /api/v1/cam/iam/groups/{id}/policies:
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: 租户ID
+        in: header
+        name: X-Tenant-ID
+        required: true
+        type: string
+      - description: 用户组ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: 更新权限策略请求
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_Havens-blog_e-cam-service_internal_iam_web.UpdatePoliciesVO'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_Havens-blog_e-cam-service_internal_iam_web.Result'
+      summary: 更新用户组的权限策略
+      tags:
+      - 用户组管理
+  /api/v1/cam/iam/groups/sync:
+    post:
+      description: |-
+        从云平台同步用户组信息，包括用户组基本信息、权限策略和用户组成员。支持阿里云、腾讯云等多云平台。
+        同步结果包含：用户组统计（总数、新建、更新、失败）和成员统计（总数、同步成功、失败）
+      parameters:
+      - description: 租户ID
+        in: header
+        name: X-Tenant-ID
+        required: true
+        type: string
+      - description: 云账号ID
+        in: query
+        name: cloud_account_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 同步结果统计
+          schema:
+            allOf:
+            - $ref: '#/definitions/github_com_Havens-blog_e-cam-service_internal_iam_web.Result'
+            - properties:
+                data:
+                  $ref: '#/definitions/github_com_Havens-blog_e-cam-service_internal_iam_service.GroupSyncResult'
+              type: object
+        "400":
+          description: 参数错误
+          schema:
+            $ref: '#/definitions/github_com_Havens-blog_e-cam-service_internal_iam_web.Result'
+        "500":
+          description: 同步失败
+          schema:
+            $ref: '#/definitions/github_com_Havens-blog_e-cam-service_internal_iam_web.Result'
+      summary: 同步云平台用户组及其成员
+      tags:
+      - 用户组管理
+  /api/v1/cam/iam/permissions/groups/{group_id}:
+    get:
+      parameters:
+      - description: 用户组ID
+        in: path
+        name: group_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_Havens-blog_e-cam-service_internal_iam_web.Result'
+      summary: 获取用户组的所有权限
+      tags:
+      - 权限管理
+  /api/v1/cam/iam/permissions/policies:
+    get:
+      parameters:
+      - description: 云账号ID
+        in: query
+        name: cloud_account_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_Havens-blog_e-cam-service_internal_iam_web.Result'
+      summary: 按云厂商查询可用的权限策略
+      tags:
+      - 权限管理
+  /api/v1/cam/iam/permissions/users/{user_id}:
+    get:
+      parameters:
+      - description: 用户ID
+        in: path
+        name: user_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_Havens-blog_e-cam-service_internal_iam_web.Result'
+      summary: 获取用户的所有权限
+      tags:
+      - 权限管理
+  /api/v1/cam/iam/permissions/users/{user_id}/effective:
+    get:
+      parameters:
+      - description: 用户ID
+        in: path
+        name: user_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_Havens-blog_e-cam-service_internal_iam_web.Result'
+      summary: 获取用户的有效权限（包含用户组继承的权限）
+      tags:
+      - 权限管理
+  /api/v1/cam/iam/sync/tasks:
+    get:
+      parameters:
+      - description: 任务类型
+        in: query
+        name: task_type
+        type: string
+      - description: 状态
+        in: query
+        name: status
+        type: string
+      - description: 云账号ID
+        in: query
+        name: cloud_account_id
+        type: integer
+      - description: 云厂商
+        in: query
+        name: provider
+        type: string
+      - description: 页码
+        in: query
+        name: page
+        type: integer
+      - description: 每页数量
+        in: query
+        name: size
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_Havens-blog_e-cam-service_internal_iam_web.PageResult'
+      summary: 查询同步任务列表
+      tags:
+      - 同步任务管理
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: 创建同步任务请求
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_Havens-blog_e-cam-service_internal_iam_web.CreateSyncTaskVO'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_Havens-blog_e-cam-service_internal_iam_web.Result'
+      summary: 创建同步任务
+      tags:
+      - 同步任务管理
+  /api/v1/cam/iam/sync/tasks/{id}:
+    get:
+      parameters:
+      - description: 任务ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_Havens-blog_e-cam-service_internal_iam_web.Result'
+      summary: 获取同步任务状态
+      tags:
+      - 同步任务管理
+  /api/v1/cam/iam/sync/tasks/{id}/retry:
+    post:
+      parameters:
+      - description: 任务ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_Havens-blog_e-cam-service_internal_iam_web.Result'
+      summary: 重试失败的同步任务
+      tags:
+      - 同步任务管理
+  /api/v1/cam/iam/templates:
+    get:
+      parameters:
+      - description: 租户ID
+        in: header
+        name: X-Tenant-ID
+        required: true
+        type: string
+      - description: 模板分类
+        in: query
+        name: category
+        type: string
+      - description: 是否内置
+        in: query
+        name: is_built_in
+        type: boolean
+      - description: 关键词
+        in: query
+        name: keyword
+        type: string
+      - description: 页码
+        in: query
+        name: page
+        type: integer
+      - description: 每页数量
+        in: query
+        name: size
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_Havens-blog_e-cam-service_internal_iam_web.PageResult'
+      summary: 查询策略模板列表
+      tags:
+      - 策略模板管理
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: 租户ID
+        in: header
+        name: X-Tenant-ID
+        required: true
+        type: string
+      - description: 创建策略模板请求
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_Havens-blog_e-cam-service_internal_iam_web.CreateTemplateVO'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_Havens-blog_e-cam-service_internal_iam_web.Result'
+      summary: 创建策略模板
+      tags:
+      - 策略模板管理
+  /api/v1/cam/iam/templates/{id}:
+    delete:
+      parameters:
+      - description: 租户ID
+        in: header
+        name: X-Tenant-ID
+        required: true
+        type: string
+      - description: 模板ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_Havens-blog_e-cam-service_internal_iam_web.Result'
+      summary: 删除策略模板
+      tags:
+      - 策略模板管理
+    get:
+      parameters:
+      - description: 租户ID
+        in: header
+        name: X-Tenant-ID
+        required: true
+        type: string
+      - description: 模板ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_Havens-blog_e-cam-service_internal_iam_web.Result'
+      summary: 获取策略模板详情
+      tags:
+      - 策略模板管理
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: 租户ID
+        in: header
+        name: X-Tenant-ID
+        required: true
+        type: string
+      - description: 模板ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: 更新策略模板请求
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_Havens-blog_e-cam-service_internal_iam_web.UpdateTemplateVO'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_Havens-blog_e-cam-service_internal_iam_web.Result'
+      summary: 更新策略模板信息
+      tags:
+      - 策略模板管理
+  /api/v1/cam/iam/templates/from-group:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: 租户ID
+        in: header
+        name: X-Tenant-ID
+        required: true
+        type: string
+      - description: 从用户组创建模板请求
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_Havens-blog_e-cam-service_internal_iam_web.CreateFromGroupVO'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_Havens-blog_e-cam-service_internal_iam_web.Result'
+      summary: 从用户组创建策略模板
+      tags:
+      - 策略模板管理
+  /api/v1/cam/iam/tenants:
+    get:
+      parameters:
+      - description: 关键词
+        in: query
+        name: keyword
+        type: string
+      - description: 状态
+        in: query
+        name: status
+        type: string
+      - description: 行业
+        in: query
+        name: industry
+        type: string
+      - description: 地区
+        in: query
+        name: region
+        type: string
+      - description: 页码
+        in: query
+        name: page
+        type: integer
+      - description: 每页数量
+        in: query
+        name: size
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_Havens-blog_e-cam-service_internal_iam_web.PageResult'
+      summary: 查询租户列表
+      tags:
+      - 租户管理
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: 创建租户请求
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_Havens-blog_e-cam-service_internal_iam_web.CreateTenantVO'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_Havens-blog_e-cam-service_internal_iam_web.Result'
+      summary: 创建租户
+      tags:
+      - 租户管理
+  /api/v1/cam/iam/tenants/{tenant_id}:
+    delete:
+      parameters:
+      - description: 租户ID
+        in: path
+        name: tenant_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_Havens-blog_e-cam-service_internal_iam_web.Result'
+      summary: 删除租户
+      tags:
+      - 租户管理
+    get:
+      parameters:
+      - description: 租户ID
+        in: path
+        name: tenant_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_Havens-blog_e-cam-service_internal_iam_web.Result'
+      summary: 获取租户详情
+      tags:
+      - 租户管理
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: 租户ID
+        in: path
+        name: tenant_id
+        required: true
+        type: string
+      - description: 更新租户请求
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_Havens-blog_e-cam-service_internal_iam_web.UpdateTenantVO'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_Havens-blog_e-cam-service_internal_iam_web.Result'
+      summary: 更新租户信息
+      tags:
+      - 租户管理
+  /api/v1/cam/iam/tenants/{tenant_id}/stats:
+    get:
+      parameters:
+      - description: 租户ID
+        in: path
+        name: tenant_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_Havens-blog_e-cam-service_internal_iam_web.Result'
+      summary: 获取租户统计信息
+      tags:
+      - 租户管理
+  /api/v1/cam/iam/users:
+    get:
+      parameters:
+      - description: 租户ID
+        in: header
+        name: X-Tenant-ID
+        required: true
+        type: string
+      - description: 云厂商
+        in: query
+        name: provider
+        type: string
+      - description: 用户类型
+        in: query
+        name: user_type
+        type: string
+      - description: 状态
+        in: query
+        name: status
+        type: string
+      - description: 页码
+        in: query
+        name: page
+        type: integer
+      - description: 每页数量
+        in: query
+        name: size
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_Havens-blog_e-cam-service_internal_iam_web.PageResult'
+      summary: 查询用户列表
+      tags:
+      - 用户管理
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: 创建用户请求
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_Havens-blog_e-cam-service_internal_iam_web.CreateUserVO'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_Havens-blog_e-cam-service_internal_iam_web.Result'
+      summary: 创建云用户
+      tags:
+      - 用户管理
+  /api/v1/cam/iam/users/{id}:
+    delete:
+      parameters:
+      - description: 租户ID
+        in: header
+        name: X-Tenant-ID
+        required: true
+        type: string
+      - description: 用户ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_Havens-blog_e-cam-service_internal_iam_web.Result'
+      summary: 删除用户
+      tags:
+      - 用户管理
+    get:
+      parameters:
+      - description: 租户ID
+        in: header
+        name: X-Tenant-ID
+        required: true
+        type: string
+      - description: 用户ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_Havens-blog_e-cam-service_internal_iam_web.Result'
+      summary: 获取用户详情
+      tags:
+      - 用户管理
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: 租户ID
+        in: header
+        name: X-Tenant-ID
+        required: true
+        type: string
+      - description: 用户ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: 更新用户请求
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_Havens-blog_e-cam-service_internal_iam_web.UpdateUserVO'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_Havens-blog_e-cam-service_internal_iam_web.Result'
+      summary: 更新用户信息
+      tags:
+      - 用户管理
+  /api/v1/cam/iam/users/batch-assign:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: 租户ID
+        in: header
+        name: X-Tenant-ID
+        required: true
+        type: string
+      - description: 批量分配用户组请求
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_Havens-blog_e-cam-service_internal_iam_web.AssignUserGroupsVO'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_Havens-blog_e-cam-service_internal_iam_web.Result'
+      summary: 批量分配用户组
+      tags:
+      - 用户管理
+  /api/v1/cam/iam/users/sync:
+    post:
+      description: 创建异步同步任务，立即返回任务ID，可通过任务ID查询同步进度
+      parameters:
+      - description: 租户ID
+        in: header
+        name: X-Tenant-ID
+        required: true
+        type: string
+      - description: 云账号ID
+        in: query
+        name: cloud_account_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/github_com_Havens-blog_e-cam-service_internal_iam_web.Result'
+            - properties:
+                data:
+                  $ref: '#/definitions/github_com_Havens-blog_e-cam-service_internal_shared_domain.SyncTask'
+              type: object
+      summary: 同步云平台用户（异步）
+      tags:
+      - 用户管理
+  /api/v1/cam/menus:
+    get:
+      consumes:
+      - application/json
+      description: 获取系统导航菜单的层级结构
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功
+          schema:
+            allOf:
+            - $ref: '#/definitions/ginx.Result'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/web.MenuItem'
+                  type: array
+              type: object
+      summary: 获取菜单列表
+      tags:
+      - 系统管理
+  /api/v1/cam/service-tree/bindings/{id}:
+    delete:
+      parameters:
+      - description: 绑定ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/ginx.Result'
+      summary: 解绑资源
+      tags:
+      - 服务树
+  /api/v1/cam/service-tree/environments:
+    get:
+      parameters:
+      - description: 租户ID
+        in: header
+        name: X-Tenant-ID
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/ginx.Result'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/github_com_Havens-blog_e-cam-service_internal_cam_servicetree_web.EnvironmentVO'
+                  type: array
+              type: object
+      summary: 获取环境列表
+      tags:
+      - 服务树-环境
+    post:
+      parameters:
+      - description: 租户ID
+        in: header
+        name: X-Tenant-ID
+        required: true
+        type: string
+      - description: 环境信息
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_Havens-blog_e-cam-service_internal_cam_servicetree_web.CreateEnvReq'
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/ginx.Result'
+            - properties:
+                data:
+                  format: int64
+                  type: integer
+              type: object
+      summary: 创建环境
+      tags:
+      - 服务树-环境
+  /api/v1/cam/service-tree/environments/{id}:
+    delete:
+      parameters:
+      - description: 环境ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/ginx.Result'
+      summary: 删除环境
+      tags:
+      - 服务树-环境
+    get:
+      parameters:
+      - description: 环境ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/ginx.Result'
+            - properties:
+                data:
+                  $ref: '#/definitions/github_com_Havens-blog_e-cam-service_internal_cam_servicetree_web.EnvironmentVO'
+              type: object
+      summary: 获取环境详情
+      tags:
+      - 服务树-环境
+    put:
+      parameters:
+      - description: 环境ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: 环境信息
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_Havens-blog_e-cam-service_internal_cam_servicetree_web.UpdateEnvReq'
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/ginx.Result'
+      summary: 更新环境
+      tags:
+      - 服务树-环境
+  /api/v1/cam/service-tree/environments/init:
+    post:
+      parameters:
+      - description: 租户ID
+        in: header
+        name: X-Tenant-ID
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/ginx.Result'
+      summary: 初始化默认环境
+      tags:
+      - 服务树-环境
+  /api/v1/cam/service-tree/nodes:
+    get:
+      parameters:
+      - description: 租户ID
+        in: header
+        name: X-Tenant-ID
+        required: true
+        type: string
+      - description: 父节点ID
+        in: query
+        name: parent_id
+        type: integer
+      - description: 层级
+        in: query
+        name: level
+        type: integer
+      - description: 名称
+        in: query
+        name: name
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/ginx.Result'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/github_com_Havens-blog_e-cam-service_internal_cam_servicetree_web.NodeVO'
+                  type: array
+              type: object
+      summary: 获取节点列表
+      tags:
+      - 服务树
+    post:
+      parameters:
+      - description: 租户ID
+        in: header
+        name: X-Tenant-ID
+        required: true
+        type: string
+      - description: 节点信息
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_Havens-blog_e-cam-service_internal_cam_servicetree_web.CreateNodeReq'
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/ginx.Result'
+            - properties:
+                data:
+                  format: int64
+                  type: integer
+              type: object
+      summary: 创建服务树节点
+      tags:
+      - 服务树
+  /api/v1/cam/service-tree/nodes/{id}:
+    delete:
+      parameters:
+      - description: 节点ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/ginx.Result'
+      summary: 删除节点
+      tags:
+      - 服务树
+    get:
+      parameters:
+      - description: 节点ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/ginx.Result'
+            - properties:
+                data:
+                  $ref: '#/definitions/github_com_Havens-blog_e-cam-service_internal_cam_servicetree_web.NodeVO'
+              type: object
+      summary: 获取节点详情
+      tags:
+      - 服务树
+    put:
+      parameters:
+      - description: 节点ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: 节点信息
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_Havens-blog_e-cam-service_internal_cam_servicetree_web.UpdateNodeReq'
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/ginx.Result'
+      summary: 更新节点
+      tags:
+      - 服务树
+  /api/v1/cam/service-tree/nodes/{id}/bindings:
+    get:
+      parameters:
+      - description: 租户ID
+        in: header
+        name: X-Tenant-ID
+        required: true
+        type: string
+      - description: 节点ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: 环境ID
+        in: query
+        name: env_id
+        type: integer
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/ginx.Result'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/github_com_Havens-blog_e-cam-service_internal_cam_servicetree_web.BindingVO'
+                  type: array
+              type: object
+      summary: 获取节点绑定的资源
+      tags:
+      - 服务树
+    post:
+      parameters:
+      - description: 租户ID
+        in: header
+        name: X-Tenant-ID
+        required: true
+        type: string
+      - description: 节点ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: 资源信息
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_Havens-blog_e-cam-service_internal_cam_servicetree_web.BindResourceReq'
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/ginx.Result'
+            - properties:
+                data:
+                  format: int64
+                  type: integer
+              type: object
+      summary: 绑定资源到节点
+      tags:
+      - 服务树
+  /api/v1/cam/service-tree/nodes/{id}/bindings/batch:
+    post:
+      parameters:
+      - description: 租户ID
+        in: header
+        name: X-Tenant-ID
+        required: true
+        type: string
+      - description: 节点ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: 资源列表
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_Havens-blog_e-cam-service_internal_cam_servicetree_web.BatchBindReq'
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/ginx.Result'
+            - properties:
+                data:
+                  format: int64
+                  type: integer
+              type: object
+      summary: 批量绑定资源
+      tags:
+      - 服务树
+  /api/v1/cam/service-tree/nodes/{id}/move:
+    put:
+      parameters:
+      - description: 节点ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: 目标父节点
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_Havens-blog_e-cam-service_internal_cam_servicetree_web.MoveNodeReq'
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/ginx.Result'
+      summary: 移动节点
+      tags:
+      - 服务树
+  /api/v1/cam/service-tree/resources/{type}/{id}/node:
+    get:
+      parameters:
+      - description: 租户ID
+        in: header
+        name: X-Tenant-ID
+        required: true
+        type: string
+      - description: 资源类型
+        in: path
+        name: type
+        required: true
+        type: string
+      - description: 资源ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/ginx.Result'
+            - properties:
+                data:
+                  $ref: '#/definitions/github_com_Havens-blog_e-cam-service_internal_cam_servicetree_web.NodeVO'
+              type: object
+      summary: 获取资源所属节点
+      tags:
+      - 服务树
+  /api/v1/cam/service-tree/rules:
+    get:
+      parameters:
+      - description: 租户ID
+        in: header
+        name: X-Tenant-ID
+        required: true
+        type: string
+      - description: 节点ID
+        in: query
+        name: node_id
+        type: integer
+      - description: 是否启用
+        in: query
+        name: enabled
+        type: boolean
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/ginx.Result'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/github_com_Havens-blog_e-cam-service_internal_cam_servicetree_web.RuleVO'
+                  type: array
+              type: object
+      summary: 获取规则列表
+      tags:
+      - 服务树
+    post:
+      parameters:
+      - description: 租户ID
+        in: header
+        name: X-Tenant-ID
+        required: true
+        type: string
+      - description: 规则信息
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_Havens-blog_e-cam-service_internal_cam_servicetree_web.CreateRuleReq'
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/ginx.Result'
+            - properties:
+                data:
+                  format: int64
+                  type: integer
+              type: object
+      summary: 创建绑定规则
+      tags:
+      - 服务树
+  /api/v1/cam/service-tree/rules/{id}:
+    delete:
+      parameters:
+      - description: 规则ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/ginx.Result'
+      summary: 删除规则
+      tags:
+      - 服务树
+    get:
+      parameters:
+      - description: 规则ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/ginx.Result'
+            - properties:
+                data:
+                  $ref: '#/definitions/github_com_Havens-blog_e-cam-service_internal_cam_servicetree_web.RuleVO'
+              type: object
+      summary: 获取规则详情
+      tags:
+      - 服务树
+    put:
+      parameters:
+      - description: 规则ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: 规则信息
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_Havens-blog_e-cam-service_internal_cam_servicetree_web.UpdateRuleReq'
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/ginx.Result'
+      summary: 更新规则
+      tags:
+      - 服务树
+  /api/v1/cam/service-tree/rules/execute:
+    post:
+      description: 手动触发规则引擎，对未绑定资源执行自动匹配，绑定到规则指定的环境
+      parameters:
+      - description: 租户ID
+        in: header
+        name: X-Tenant-ID
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/ginx.Result'
+            - properties:
+                data:
+                  format: int64
+                  type: integer
+              type: object
+      summary: 执行规则匹配
+      tags:
+      - 服务树
+  /api/v1/cam/service-tree/tree:
+    get:
+      parameters:
+      - description: 租户ID
+        in: header
+        name: X-Tenant-ID
+        required: true
+        type: string
+      - description: 根节点ID
+        in: query
+        name: root_id
+        type: integer
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/ginx.Result'
+            - properties:
+                data:
+                  $ref: '#/definitions/github_com_Havens-blog_e-cam-service_internal_cam_servicetree_web.TreeNodeVO'
+              type: object
+      summary: 获取服务树结构
+      tags:
+      - 服务树
+  /cam/assets:
+    get:
+      consumes:
+      - application/json
+      description: 获取云资产列表，支持按云厂商、资产类型、状态等条件过滤
+      parameters:
+      - description: 云厂商
+        enum:
+        - aliyun
+        - aws
+        - azure
+        in: query
+        name: provider
+        type: string
+      - description: 资产类型
+        enum:
+        - ecs
+        - rds
+        - oss
+        - vpc
+        in: query
+        name: asset_type
+        type: string
+      - description: 资产状态
+        enum:
+        - running
+        - stopped
+        - deleted
+        in: query
+        name: status
+        type: string
+      - description: 地域
+        in: query
+        name: region
+        type: string
+      - description: 租户ID
+        in: query
+        name: tenant_id
+        type: string
+      - default: 0
+        description: 偏移量
+        in: query
+        name: offset
+        type: integer
+      - default: 20
+        description: 限制数量
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功
+          schema:
+            allOf:
+            - $ref: '#/definitions/ginx.Result'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/web.CloudAsset'
+                  type: array
+              type: object
+        "500":
+          description: 服务器错误
+          schema:
+            $ref: '#/definitions/ginx.Result'
+      summary: 获取资产列表
+      tags:
+      - 资产管理
+    post:
+      consumes:
+      - application/json
+      description: 创建新的云资产记录
+      parameters:
+      - description: 资产信息
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/web.CreateAssetReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功
+          schema:
+            allOf:
+            - $ref: '#/definitions/ginx.Result'
+            - properties:
+                data:
+                  $ref: '#/definitions/web.CloudAsset'
+              type: object
+        "400":
+          description: 请求参数错误
+          schema:
+            $ref: '#/definitions/ginx.Result'
+        "500":
+          description: 服务器错误
+          schema:
+            $ref: '#/definitions/ginx.Result'
+      summary: 创建资产
+      tags:
+      - 资产管理
+  /cam/assets/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: 删除指定ID的云资产记录
+      parameters:
+      - description: 资产ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功
+          schema:
+            $ref: '#/definitions/ginx.Result'
+        "400":
+          description: 请求参数错误
+          schema:
+            $ref: '#/definitions/ginx.Result'
+        "404":
+          description: 资产不存在
+          schema:
+            $ref: '#/definitions/ginx.Result'
+        "500":
+          description: 服务器错误
+          schema:
+            $ref: '#/definitions/ginx.Result'
+      summary: 删除资产
+      tags:
+      - 资产管理
+    get:
+      consumes:
+      - application/json
+      description: 根据资产ID获取详细信息
+      parameters:
+      - description: 资产ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功
+          schema:
+            allOf:
+            - $ref: '#/definitions/ginx.Result'
+            - properties:
+                data:
+                  $ref: '#/definitions/web.CloudAsset'
+              type: object
+        "400":
+          description: 请求参数错误
+          schema:
+            $ref: '#/definitions/ginx.Result'
+        "404":
+          description: 资产不存在
+          schema:
+            $ref: '#/definitions/ginx.Result'
+        "500":
+          description: 服务器错误
+          schema:
+            $ref: '#/definitions/ginx.Result'
+      summary: 获取资产详情
+      tags:
+      - 资产管理
+    put:
+      consumes:
+      - application/json
+      description: 更新指定ID的云资产信息
+      parameters:
+      - description: 资产ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: 更新的资产信息
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/web.UpdateAssetReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功
+          schema:
+            allOf:
+            - $ref: '#/definitions/ginx.Result'
+            - properties:
+                data:
+                  $ref: '#/definitions/web.CloudAsset'
+              type: object
+        "400":
+          description: 请求参数错误
+          schema:
+            $ref: '#/definitions/ginx.Result'
+        "404":
+          description: 资产不存在
+          schema:
+            $ref: '#/definitions/ginx.Result'
+        "500":
+          description: 服务器错误
+          schema:
+            $ref: '#/definitions/ginx.Result'
+      summary: 更新资产
+      tags:
+      - 资产管理
+  /cam/assets/batch:
+    post:
+      consumes:
+      - application/json
+      description: 批量创建多个云资产记录
+      parameters:
+      - description: 批量资产信息
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/web.CreateMultiAssetsReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功
+          schema:
+            allOf:
+            - $ref: '#/definitions/ginx.Result'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/web.CloudAsset'
+                  type: array
+              type: object
+        "400":
+          description: 请求参数错误
+          schema:
+            $ref: '#/definitions/ginx.Result'
+        "500":
+          description: 服务器错误
+          schema:
+            $ref: '#/definitions/ginx.Result'
+      summary: 批量创建资产
+      tags:
+      - 资产管理
+  /cam/assets/cost-analysis:
+    get:
+      consumes:
+      - application/json
+      description: 获取云资产的成本分析报告
+      parameters:
+      - description: 云厂商
+        enum:
+        - aliyun
+        - aws
+        - azure
+        in: query
+        name: provider
+        type: string
+      - default: 30
+        description: 分析天数
+        in: query
+        name: days
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功
+          schema:
+            allOf:
+            - $ref: '#/definitions/ginx.Result'
+            - properties:
+                data:
+                  type: object
+              type: object
+        "500":
+          description: 服务器错误
+          schema:
+            $ref: '#/definitions/ginx.Result'
+      summary: 获取成本分析
+      tags:
+      - 统计分析
+  /cam/assets/discover:
+    post:
+      consumes:
+      - application/json
+      description: 从指定云厂商和地域发现新的云资产
+      parameters:
+      - description: 发现资产请求
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/web.DiscoverAssetsReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功
+          schema:
+            allOf:
+            - $ref: '#/definitions/ginx.Result'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/web.CloudAsset'
+                  type: array
+              type: object
+        "400":
+          description: 请求参数错误
+          schema:
+            $ref: '#/definitions/ginx.Result'
+        "500":
+          description: 服务器错误
+          schema:
+            $ref: '#/definitions/ginx.Result'
+      summary: 发现云资产
+      tags:
+      - 资产发现
+  /cam/assets/ecs:
+    get:
+      consumes:
+      - application/json
+      description: 从数据库获取已同步的云虚拟机实例列表，支持按IP地址过滤
+      parameters:
+      - description: 租户ID
+        in: header
+        name: X-Tenant-ID
+        required: true
+        type: string
+      - description: 云账号ID
+        in: query
+        name: account_id
+        type: integer
+      - description: 云厂商
+        enum:
+        - aliyun
+        - aws
+        - huawei
+        - tencent
+        - volcano
+        in: query
+        name: provider
+        type: string
+      - description: 地域
+        in: query
+        name: region
+        type: string
+      - description: 实例状态
+        in: query
+        name: status
+        type: string
+      - description: 实例名称(模糊搜索)
+        in: query
+        name: name
+        type: string
+      - description: 内网IP
+        in: query
+        name: private_ip
+        type: string
+      - description: 公网IP
+        in: query
+        name: public_ip
+        type: string
+      - description: VPC ID
+        in: query
+        name: vpc_id
+        type: string
+      - description: 计费类型(PrePaid/PostPaid)
+        in: query
+        name: charge_type
+        type: string
+      - default: 0
+        description: 偏移量
+        in: query
+        name: offset
+        type: integer
+      - default: 20
+        description: 限制数量
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功
+          schema:
+            $ref: '#/definitions/web.AssetListResult'
+        "400":
+          description: 租户ID不能为空
+          schema:
+            $ref: '#/definitions/web.ErrorResponse'
+      summary: 获取云虚拟机列表
+      tags:
+      - 资产管理-ECS
+  /cam/assets/ecs/{asset_id}:
+    get:
+      consumes:
+      - application/json
+      description: 从数据库获取指定云虚拟机实例的详细信息
+      parameters:
+      - description: 租户ID
+        in: header
+        name: X-Tenant-ID
+        required: true
+        type: string
+      - description: 资产ID(云厂商实例ID)
+        in: path
+        name: asset_id
+        required: true
+        type: string
+      - description: 云厂商
+        enum:
+        - aliyun
+        - aws
+        - huawei
+        - tencent
+        - volcano
+        in: query
+        name: provider
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功
+          schema:
+            $ref: '#/definitions/web.AssetDetailResult'
+        "400":
+          description: 租户ID不能为空
+          schema:
+            $ref: '#/definitions/web.ErrorResponse'
+        "404":
+          description: 实例不存在
+          schema:
+            $ref: '#/definitions/web.ErrorResponse'
+      summary: 获取云虚拟机详情
+      tags:
+      - 资产管理-ECS
+  /cam/assets/ecs/{asset_id}/relations:
+    get:
+      consumes:
+      - application/json
+      description: 获取指定ECS实例关联的云盘、快照、安全组、VPC、子网等资源
+      parameters:
+      - description: 租户ID
+        in: header
+        name: X-Tenant-ID
+        required: true
+        type: string
+      - description: 资产ID(云厂商实例ID)
+        in: path
+        name: asset_id
+        required: true
+        type: string
+      - description: 云厂商
+        enum:
+        - aliyun
+        - aws
+        - huawei
+        - tencent
+        - volcano
+        in: query
+        name: provider
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功
+          schema:
+            $ref: '#/definitions/web.ECSRelationsResult'
+        "400":
+          description: 租户ID不能为空
+          schema:
+            $ref: '#/definitions/web.ErrorResponse'
+        "404":
+          description: 实例不存在
+          schema:
+            $ref: '#/definitions/web.ErrorResponse'
+      summary: 获取ECS实例关联资源
+      tags:
+      - 资产管理-ECS
+  /cam/assets/eip:
+    get:
+      consumes:
+      - application/json
+      description: 从数据库获取已同步的弹性公网IP列表，支持按绑定实例类型、IP地址、VPC等过滤
+      parameters:
+      - description: 租户ID
+        in: header
+        name: X-Tenant-ID
+        required: true
+        type: string
+      - description: 云账号ID
+        in: query
+        name: account_id
+        type: integer
+      - description: 云厂商
+        enum:
+        - aliyun
+        - aws
+        - huawei
+        - tencent
+        - volcano
+        in: query
+        name: provider
+        type: string
+      - description: 地域
+        in: query
+        name: region
+        type: string
+      - description: 状态(InUse/Available)
+        in: query
+        name: status
+        type: string
+      - description: EIP名称(模糊搜索)
+        in: query
+        name: name
+        type: string
+      - description: IP地址(精确匹配)
+        in: query
+        name: ip_address
+        type: string
+      - description: 绑定的实例ID
+        in: query
+        name: instance_id
+        type: string
+      - description: 绑定的实例类型(EcsInstance/SlbInstance/Nat/HaVip/NetworkInterface)
+        in: query
+        name: instance_type
+        type: string
+      - description: VPC ID
+        in: query
+        name: vpc_id
+        type: string
+      - description: 线路类型(BGP/BGP_PRO/ChinaTelecom/ChinaUnicom/ChinaMobile)
+        in: query
+        name: isp
+        type: string
+      - description: '绑定状态: bound(已绑定)/unbound(未绑定)'
+        in: query
+        name: bindable
+        type: string
+      - default: 0
+        description: 偏移量
+        in: query
+        name: offset
+        type: integer
+      - default: 20
+        description: 限制数量
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功
+          schema:
+            $ref: '#/definitions/web.AssetListResult'
+        "400":
+          description: 租户ID不能为空
+          schema:
+            $ref: '#/definitions/web.ErrorResponse'
+      summary: 获取弹性公网IP列表
+      tags:
+      - 资产管理-EIP
+  /cam/assets/eip/{asset_id}:
+    get:
+      consumes:
+      - application/json
+      description: 从数据库获取指定弹性公网IP的详细信息
+      parameters:
+      - description: 租户ID
+        in: header
+        name: X-Tenant-ID
+        required: true
+        type: string
+      - description: 资产ID(EIP Allocation ID)
+        in: path
+        name: asset_id
+        required: true
+        type: string
+      - description: 云厂商
+        enum:
+        - aliyun
+        - aws
+        - huawei
+        - tencent
+        - volcano
+        in: query
+        name: provider
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功
+          schema:
+            $ref: '#/definitions/web.AssetDetailResult'
+        "400":
+          description: 租户ID不能为空
+          schema:
+            $ref: '#/definitions/web.ErrorResponse'
+        "404":
+          description: EIP不存在
+          schema:
+            $ref: '#/definitions/web.ErrorResponse'
+      summary: 获取弹性公网IP详情
+      tags:
+      - 资产管理-EIP
+  /cam/assets/elasticsearch:
+    get:
+      consumes:
+      - application/json
+      description: 从数据库获取已同步的Elasticsearch实例列表
+      parameters:
+      - description: 租户ID
+        in: header
+        name: X-Tenant-ID
+        required: true
+        type: string
+      - description: 云账号ID
+        in: query
+        name: account_id
+        type: integer
+      - description: 云厂商
+        enum:
+        - aliyun
+        - aws
+        - huawei
+        - tencent
+        - volcano
+        in: query
+        name: provider
+        type: string
+      - description: 地域
+        in: query
+        name: region
+        type: string
+      - description: 实例状态
+        in: query
+        name: status
+        type: string
+      - description: 实例名称(模糊搜索)
+        in: query
+        name: name
+        type: string
+      - description: ES版本
+        in: query
+        name: version
+        type: string
+      - description: VPC ID
+        in: query
+        name: vpc_id
+        type: string
+      - default: 0
+        description: 偏移量
+        in: query
+        name: offset
+        type: integer
+      - default: 20
+        description: 限制数量
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功
+          schema:
+            $ref: '#/definitions/web.AssetListResult'
+        "400":
+          description: 租户ID不能为空
+          schema:
+            $ref: '#/definitions/web.ErrorResponse'
+      summary: 获取Elasticsearch实例列表
+      tags:
+      - 资产管理-Elasticsearch
+  /cam/assets/elasticsearch/{asset_id}:
+    get:
+      consumes:
+      - application/json
+      description: 从数据库获取指定Elasticsearch实例的详细信息
+      parameters:
+      - description: 租户ID
+        in: header
+        name: X-Tenant-ID
+        required: true
+        type: string
+      - description: 资产ID(实例ID)
+        in: path
+        name: asset_id
+        required: true
+        type: string
+      - description: 云厂商
+        enum:
+        - aliyun
+        - aws
+        - huawei
+        - tencent
+        - volcano
+        in: query
+        name: provider
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功
+          schema:
+            $ref: '#/definitions/web.AssetDetailResult'
+        "400":
+          description: 租户ID不能为空
+          schema:
+            $ref: '#/definitions/web.ErrorResponse'
+        "404":
+          description: 实例不存在
+          schema:
+            $ref: '#/definitions/web.ErrorResponse'
+      summary: 获取Elasticsearch实例详情
+      tags:
+      - 资产管理-Elasticsearch
+  /cam/assets/kafka:
+    get:
+      consumes:
+      - application/json
+      description: 从数据库获取已同步的Kafka实例列表
+      parameters:
+      - description: 租户ID
+        in: header
+        name: X-Tenant-ID
+        required: true
+        type: string
+      - description: 云账号ID
+        in: query
+        name: account_id
+        type: integer
+      - description: 云厂商
+        enum:
+        - aliyun
+        - aws
+        - huawei
+        - tencent
+        - volcano
+        in: query
+        name: provider
+        type: string
+      - description: 地域
+        in: query
+        name: region
+        type: string
+      - description: 实例状态
+        in: query
+        name: status
+        type: string
+      - description: 实例名称(模糊搜索)
+        in: query
+        name: name
+        type: string
+      - description: VPC ID
+        in: query
+        name: vpc_id
+        type: string
+      - default: 0
+        description: 偏移量
+        in: query
+        name: offset
+        type: integer
+      - default: 20
+        description: 限制数量
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功
+          schema:
+            $ref: '#/definitions/web.AssetListResult'
+        "400":
+          description: 租户ID不能为空
+          schema:
+            $ref: '#/definitions/web.ErrorResponse'
+      summary: 获取Kafka实例列表
+      tags:
+      - 资产管理-Kafka
+  /cam/assets/kafka/{asset_id}:
+    get:
+      consumes:
+      - application/json
+      description: 从数据库获取指定Kafka实例的详细信息
+      parameters:
+      - description: 租户ID
+        in: header
+        name: X-Tenant-ID
+        required: true
+        type: string
+      - description: 资产ID(实例ID)
+        in: path
+        name: asset_id
+        required: true
+        type: string
+      - description: 云厂商
+        enum:
+        - aliyun
+        - aws
+        - huawei
+        - tencent
+        - volcano
+        in: query
+        name: provider
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功
+          schema:
+            $ref: '#/definitions/web.AssetDetailResult'
+        "400":
+          description: 租户ID不能为空
+          schema:
+            $ref: '#/definitions/web.ErrorResponse'
+        "404":
+          description: 实例不存在
+          schema:
+            $ref: '#/definitions/web.ErrorResponse'
+      summary: 获取Kafka实例详情
+      tags:
+      - 资产管理-Kafka
+  /cam/assets/mongodb:
+    get:
+      consumes:
+      - application/json
+      description: 从数据库获取已同步的MongoDB实例列表
+      parameters:
+      - description: 租户ID
+        in: header
+        name: X-Tenant-ID
+        required: true
+        type: string
+      - description: 云账号ID
+        in: query
+        name: account_id
+        type: integer
+      - description: 云厂商
+        enum:
+        - aliyun
+        - aws
+        - huawei
+        - tencent
+        - volcano
+        in: query
+        name: provider
+        type: string
+      - description: 地域
+        in: query
+        name: region
+        type: string
+      - description: 实例状态
+        in: query
+        name: status
+        type: string
+      - description: 实例名称(模糊搜索)
+        in: query
+        name: name
+        type: string
+      - default: 0
+        description: 偏移量
+        in: query
+        name: offset
+        type: integer
+      - default: 20
+        description: 限制数量
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功
+          schema:
+            $ref: '#/definitions/web.AssetListResult'
+        "400":
+          description: 租户ID不能为空
+          schema:
+            $ref: '#/definitions/web.ErrorResponse'
+      summary: 获取MongoDB实例列表
+      tags:
+      - 资产管理-MongoDB
+  /cam/assets/mongodb/{asset_id}:
+    get:
+      consumes:
+      - application/json
+      description: 从数据库获取指定MongoDB实例的详细信息
+      parameters:
+      - description: 租户ID
+        in: header
+        name: X-Tenant-ID
+        required: true
+        type: string
+      - description: 资产ID(云厂商实例ID)
+        in: path
+        name: asset_id
+        required: true
+        type: string
+      - description: 云厂商
+        enum:
+        - aliyun
+        - aws
+        - huawei
+        - tencent
+        - volcano
+        in: query
+        name: provider
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功
+          schema:
+            $ref: '#/definitions/web.AssetDetailResult'
+        "400":
+          description: 租户ID不能为空
+          schema:
+            $ref: '#/definitions/web.ErrorResponse'
+        "404":
+          description: 实例不存在
+          schema:
+            $ref: '#/definitions/web.ErrorResponse'
+      summary: 获取MongoDB实例详情
+      tags:
+      - 资产管理-MongoDB
+  /cam/assets/nas:
+    get:
+      consumes:
+      - application/json
+      description: 从数据库获取已同步的NAS文件系统列表
+      parameters:
+      - description: 租户ID
+        in: header
+        name: X-Tenant-ID
+        required: true
+        type: string
+      - description: 云账号ID
+        in: query
+        name: account_id
+        type: integer
+      - description: 云厂商
+        enum:
+        - aliyun
+        - aws
+        - huawei
+        - tencent
+        - volcano
+        in: query
+        name: provider
+        type: string
+      - description: 地域
+        in: query
+        name: region
+        type: string
+      - description: 状态
+        in: query
+        name: status
+        type: string
+      - description: 文件系统名称(模糊搜索)
+        in: query
+        name: name
+        type: string
+      - description: 文件系统类型(standard/extreme/cpfs)
+        in: query
+        name: file_system_type
+        type: string
+      - description: 协议类型(NFS/SMB)
+        in: query
+        name: protocol_type
+        type: string
+      - default: 0
+        description: 偏移量
+        in: query
+        name: offset
+        type: integer
+      - default: 20
+        description: 限制数量
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功
+          schema:
+            $ref: '#/definitions/web.AssetListResult'
+        "400":
+          description: 租户ID不能为空
+          schema:
+            $ref: '#/definitions/web.ErrorResponse'
+      summary: 获取NAS文件系统列表
+      tags:
+      - 资产管理-NAS
+  /cam/assets/nas/{asset_id}:
+    get:
+      consumes:
+      - application/json
+      description: 从数据库获取指定NAS文件系统的详细信息
+      parameters:
+      - description: 租户ID
+        in: header
+        name: X-Tenant-ID
+        required: true
+        type: string
+      - description: 资产ID(文件系统ID)
+        in: path
+        name: asset_id
+        required: true
+        type: string
+      - description: 云厂商
+        enum:
+        - aliyun
+        - aws
+        - huawei
+        - tencent
+        - volcano
+        in: query
+        name: provider
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功
+          schema:
+            $ref: '#/definitions/web.AssetDetailResult'
+        "400":
+          description: 租户ID不能为空
+          schema:
+            $ref: '#/definitions/web.ErrorResponse'
+        "404":
+          description: 文件系统不存在
+          schema:
+            $ref: '#/definitions/web.ErrorResponse'
+      summary: 获取NAS文件系统详情
+      tags:
+      - 资产管理-NAS
+  /cam/assets/oss:
+    get:
+      consumes:
+      - application/json
+      description: 从数据库获取已同步的OSS存储桶列表
+      parameters:
+      - description: 租户ID
+        in: header
+        name: X-Tenant-ID
+        required: true
+        type: string
+      - description: 云账号ID
+        in: query
+        name: account_id
+        type: integer
+      - description: 云厂商
+        enum:
+        - aliyun
+        - aws
+        - huawei
+        - tencent
+        - volcano
+        in: query
+        name: provider
+        type: string
+      - description: 地域
+        in: query
+        name: region
+        type: string
+      - description: 存储桶名称(模糊搜索)
+        in: query
+        name: name
+        type: string
+      - description: 存储类型(Standard/IA/Archive)
+        in: query
+        name: storage_class
+        type: string
+      - description: 访问权限(private/public-read/public-read-write)
+        in: query
+        name: acl
+        type: string
+      - default: 0
+        description: 偏移量
+        in: query
+        name: offset
+        type: integer
+      - default: 20
+        description: 限制数量
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功
+          schema:
+            $ref: '#/definitions/web.AssetListResult'
+        "400":
+          description: 租户ID不能为空
+          schema:
+            $ref: '#/definitions/web.ErrorResponse'
+      summary: 获取OSS存储桶列表
+      tags:
+      - 资产管理-OSS
+  /cam/assets/oss/{asset_id}:
+    get:
+      consumes:
+      - application/json
+      description: 从数据库获取指定OSS存储桶的详细信息
+      parameters:
+      - description: 租户ID
+        in: header
+        name: X-Tenant-ID
+        required: true
+        type: string
+      - description: 资产ID(存储桶名称)
+        in: path
+        name: asset_id
+        required: true
+        type: string
+      - description: 云厂商
+        enum:
+        - aliyun
+        - aws
+        - huawei
+        - tencent
+        - volcano
+        in: query
+        name: provider
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功
+          schema:
+            $ref: '#/definitions/web.AssetDetailResult'
+        "400":
+          description: 租户ID不能为空
+          schema:
+            $ref: '#/definitions/web.ErrorResponse'
+        "404":
+          description: 存储桶不存在
+          schema:
+            $ref: '#/definitions/web.ErrorResponse'
+      summary: 获取OSS存储桶详情
+      tags:
+      - 资产管理-OSS
+  /cam/assets/rds:
+    get:
+      consumes:
+      - application/json
+      description: 从数据库获取已同步的RDS实例列表
+      parameters:
+      - description: 租户ID
+        in: header
+        name: X-Tenant-ID
+        required: true
+        type: string
+      - description: 云账号ID
+        in: query
+        name: account_id
+        type: integer
+      - description: 云厂商
+        enum:
+        - aliyun
+        - aws
+        - huawei
+        - tencent
+        - volcano
+        in: query
+        name: provider
+        type: string
+      - description: 地域
+        in: query
+        name: region
+        type: string
+      - description: 实例状态
+        in: query
+        name: status
+        type: string
+      - description: 实例名称(模糊搜索)
+        in: query
+        name: name
+        type: string
+      - default: 0
+        description: 偏移量
+        in: query
+        name: offset
+        type: integer
+      - default: 20
+        description: 限制数量
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功
+          schema:
+            $ref: '#/definitions/web.AssetListResult'
+        "400":
+          description: 租户ID不能为空
+          schema:
+            $ref: '#/definitions/web.ErrorResponse'
+      summary: 获取RDS实例列表
+      tags:
+      - 资产管理-RDS
+  /cam/assets/rds/{asset_id}:
+    get:
+      consumes:
+      - application/json
+      description: 从数据库获取指定RDS实例的详细信息
+      parameters:
+      - description: 租户ID
+        in: header
+        name: X-Tenant-ID
+        required: true
+        type: string
+      - description: 资产ID(云厂商实例ID)
+        in: path
+        name: asset_id
+        required: true
+        type: string
+      - description: 云厂商
+        enum:
+        - aliyun
+        - aws
+        - huawei
+        - tencent
+        - volcano
+        in: query
+        name: provider
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功
+          schema:
+            $ref: '#/definitions/web.AssetDetailResult'
+        "400":
+          description: 租户ID不能为空
+          schema:
+            $ref: '#/definitions/web.ErrorResponse'
+        "404":
+          description: 实例不存在
+          schema:
+            $ref: '#/definitions/web.ErrorResponse'
+      summary: 获取RDS实例详情
+      tags:
+      - 资产管理-RDS
+  /cam/assets/redis:
+    get:
+      consumes:
+      - application/json
+      description: 从数据库获取已同步的Redis实例列表
+      parameters:
+      - description: 租户ID
+        in: header
+        name: X-Tenant-ID
+        required: true
+        type: string
+      - description: 云账号ID
+        in: query
+        name: account_id
+        type: integer
+      - description: 云厂商
+        enum:
+        - aliyun
+        - aws
+        - huawei
+        - tencent
+        - volcano
+        in: query
+        name: provider
+        type: string
+      - description: 地域
+        in: query
+        name: region
+        type: string
+      - description: 实例状态
+        in: query
+        name: status
+        type: string
+      - description: 实例名称(模糊搜索)
+        in: query
+        name: name
+        type: string
+      - default: 0
+        description: 偏移量
+        in: query
+        name: offset
+        type: integer
+      - default: 20
+        description: 限制数量
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功
+          schema:
+            $ref: '#/definitions/web.AssetListResult'
+        "400":
+          description: 租户ID不能为空
+          schema:
+            $ref: '#/definitions/web.ErrorResponse'
+      summary: 获取Redis实例列表
+      tags:
+      - 资产管理-Redis
+  /cam/assets/redis/{asset_id}:
+    get:
+      consumes:
+      - application/json
+      description: 从数据库获取指定Redis实例的详细信息
+      parameters:
+      - description: 租户ID
+        in: header
+        name: X-Tenant-ID
+        required: true
+        type: string
+      - description: 资产ID(云厂商实例ID)
+        in: path
+        name: asset_id
+        required: true
+        type: string
+      - description: 云厂商
+        enum:
+        - aliyun
+        - aws
+        - huawei
+        - tencent
+        - volcano
+        in: query
+        name: provider
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功
+          schema:
+            $ref: '#/definitions/web.AssetDetailResult'
+        "400":
+          description: 租户ID不能为空
+          schema:
+            $ref: '#/definitions/web.ErrorResponse'
+        "404":
+          description: 实例不存在
+          schema:
+            $ref: '#/definitions/web.ErrorResponse'
+      summary: 获取Redis实例详情
+      tags:
+      - 资产管理-Redis
+  /cam/assets/search:
+    get:
+      consumes:
+      - application/json
+      description: 跨资产类型搜索，支持按关键词匹配资产ID、名称、IP地址等。返回匹配信息供前端高亮显示
+      parameters:
+      - description: 租户ID
+        in: header
+        name: X-Tenant-ID
+        required: true
+        type: string
+      - description: 搜索关键词(匹配资产ID、名称、IP等)
+        in: query
+        name: keyword
+        required: true
+        type: string
+      - description: '资产类型(逗号分隔: ecs,rds,redis,mongodb,vpc,eip)'
+        in: query
+        name: types
+        type: string
+      - description: 云厂商
+        enum:
+        - aliyun
+        - aws
+        - huawei
+        - tencent
+        - volcano
+        in: query
+        name: provider
+        type: string
+      - description: 云账号ID
+        in: query
+        name: account_id
+        type: integer
+      - description: 地域
+        in: query
+        name: region
+        type: string
+      - default: 0
+        description: 偏移量
+        in: query
+        name: offset
+        type: integer
+      - default: 20
+        description: 限制数量
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功
+          schema:
+            $ref: '#/definitions/web.SearchResultResponse'
+        "400":
+          description: 参数错误
+          schema:
+            $ref: '#/definitions/web.ErrorResponse'
+      summary: 统一搜索资产
+      tags:
+      - 资产管理-搜索
+  /cam/assets/statistics:
+    get:
+      consumes:
+      - application/json
+      description: 获取云资产的统计信息，包括数量、类型分布等
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功
+          schema:
+            allOf:
+            - $ref: '#/definitions/ginx.Result'
+            - properties:
+                data:
+                  type: object
+              type: object
+        "500":
+          description: 服务器错误
+          schema:
+            $ref: '#/definitions/ginx.Result'
+      summary: 获取资产统计
+      tags:
+      - 统计分析
+  /cam/assets/sync:
+    post:
+      consumes:
+      - application/json
+      deprecated: true
+      description: 同步指定云账号的资产状态和信息。此接口已废弃，请使用 POST /api/v1/cam/cloud-accounts/{id}/sync
+      parameters:
+      - description: 同步资产请求
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/web.SyncAssetsReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功
+          schema:
+            $ref: '#/definitions/ginx.Result'
+        "400":
+          description: 请求参数错误
+          schema:
+            $ref: '#/definitions/ginx.Result'
+        "404":
+          description: 云账号不存在
+          schema:
+            $ref: '#/definitions/ginx.Result'
+        "500":
+          description: 服务器错误
+          schema:
+            $ref: '#/definitions/ginx.Result'
+      summary: 同步云资产（已废弃）
+      tags:
+      - 资产发现
+  /cam/assets/vpc:
+    get:
+      consumes:
+      - application/json
+      description: 从数据库获取已同步的VPC列表
+      parameters:
+      - description: 租户ID
+        in: header
+        name: X-Tenant-ID
+        required: true
+        type: string
+      - description: 云账号ID
+        in: query
+        name: account_id
+        type: integer
+      - description: 云厂商
+        enum:
+        - aliyun
+        - aws
+        - huawei
+        - tencent
+        - volcano
+        in: query
+        name: provider
+        type: string
+      - description: 地域
+        in: query
+        name: region
+        type: string
+      - description: 状态
+        in: query
+        name: status
+        type: string
+      - description: VPC名称(模糊搜索)
+        in: query
+        name: name
+        type: string
+      - default: 0
+        description: 偏移量
+        in: query
+        name: offset
+        type: integer
+      - default: 20
+        description: 限制数量
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功
+          schema:
+            $ref: '#/definitions/web.AssetListResult'
+        "400":
+          description: 租户ID不能为空
+          schema:
+            $ref: '#/definitions/web.ErrorResponse'
+      summary: 获取VPC列表
+      tags:
+      - 资产管理-VPC
+  /cam/assets/vpc/{asset_id}:
+    get:
+      consumes:
+      - application/json
+      description: 从数据库获取指定VPC的详细信息
+      parameters:
+      - description: 租户ID
+        in: header
+        name: X-Tenant-ID
+        required: true
+        type: string
+      - description: 资产ID(VPC ID)
+        in: path
+        name: asset_id
+        required: true
+        type: string
+      - description: 云厂商
+        enum:
+        - aliyun
+        - aws
+        - huawei
+        - tencent
+        - volcano
+        in: query
+        name: provider
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功
+          schema:
+            $ref: '#/definitions/web.AssetDetailResult'
+        "400":
+          description: 租户ID不能为空
+          schema:
+            $ref: '#/definitions/web.ErrorResponse'
+        "404":
+          description: VPC不存在
+          schema:
+            $ref: '#/definitions/web.ErrorResponse'
+      summary: 获取VPC详情
+      tags:
+      - 资产管理-VPC
+  /cam/cloud-accounts:
+    get:
+      consumes:
+      - application/json
+      description: 获取云账号列表，支持按云厂商、环境、状态等条件过滤
+      parameters:
+      - description: 云厂商
+        enum:
+        - aliyun
+        - aws
+        - azure
+        in: query
+        name: provider
+        type: string
+      - description: 环境
+        enum:
+        - dev
+        - test
+        - prod
+        in: query
+        name: environment
+        type: string
+      - description: 状态
+        enum:
+        - active
+        - inactive
+        in: query
+        name: status
+        type: string
+      - description: 租户ID
+        in: query
+        name: tenant_id
+        type: string
+      - default: 0
+        description: 偏移量
+        in: query
+        name: offset
+        type: integer
+      - default: 20
+        description: 限制数量
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功
+          schema:
+            allOf:
+            - $ref: '#/definitions/ginx.Result'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/github_com_Havens-blog_e-cam-service_internal_shared_domain.CloudAccount'
+                  type: array
+              type: object
+        "500":
+          description: 服务器错误
+          schema:
+            $ref: '#/definitions/ginx.Result'
+      summary: 获取云账号列表
+      tags:
+      - 云账号管理
+    post:
+      consumes:
+      - application/json
+      description: 创建新的云账号配置
+      parameters:
+      - description: 云账号信息
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/web.CreateCloudAccountReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功
+          schema:
+            allOf:
+            - $ref: '#/definitions/ginx.Result'
+            - properties:
+                data:
+                  $ref: '#/definitions/github_com_Havens-blog_e-cam-service_internal_shared_domain.CloudAccount'
+              type: object
+        "400":
+          description: 请求参数错误
+          schema:
+            $ref: '#/definitions/ginx.Result'
+        "500":
+          description: 服务器错误
+          schema:
+            $ref: '#/definitions/ginx.Result'
+      summary: 创建云账号
+      tags:
+      - 云账号管理
+  /cam/cloud-accounts/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: 删除指定ID的云账号
+      parameters:
+      - description: 云账号ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功
+          schema:
+            $ref: '#/definitions/ginx.Result'
+        "400":
+          description: 请求参数错误
+          schema:
+            $ref: '#/definitions/ginx.Result'
+        "404":
+          description: 云账号不存在
+          schema:
+            $ref: '#/definitions/ginx.Result'
+        "500":
+          description: 服务器错误
+          schema:
+            $ref: '#/definitions/ginx.Result'
+      summary: 删除云账号
+      tags:
+      - 云账号管理
+    get:
+      consumes:
+      - application/json
+      description: 根据ID获取云账号的详细信息
+      parameters:
+      - description: 云账号ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功
+          schema:
+            allOf:
+            - $ref: '#/definitions/ginx.Result'
+            - properties:
+                data:
+                  $ref: '#/definitions/web.CloudAccount'
+              type: object
+        "400":
+          description: 请求参数错误
+          schema:
+            $ref: '#/definitions/ginx.Result'
+        "404":
+          description: 云账号不存在
+          schema:
+            $ref: '#/definitions/ginx.Result'
+        "500":
+          description: 服务器错误
+          schema:
+            $ref: '#/definitions/ginx.Result'
+      summary: 获取云账号详情
+      tags:
+      - 云账号管理
+    put:
+      consumes:
+      - application/json
+      description: 更新指定ID的云账号信息
+      parameters:
+      - description: 云账号ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: 更新的云账号信息
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/web.UpdateCloudAccountReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功
+          schema:
+            allOf:
+            - $ref: '#/definitions/ginx.Result'
+            - properties:
+                data:
+                  $ref: '#/definitions/web.CloudAccount'
+              type: object
+        "400":
+          description: 请求参数错误
+          schema:
+            $ref: '#/definitions/ginx.Result'
+        "404":
+          description: 云账号不存在
+          schema:
+            $ref: '#/definitions/ginx.Result'
+        "500":
+          description: 服务器错误
+          schema:
+            $ref: '#/definitions/ginx.Result'
+      summary: 更新云账号
+      tags:
+      - 云账号管理
+  /cam/cloud-accounts/{id}/disable:
+    post:
+      consumes:
+      - application/json
+      description: 禁用指定的云账号
+      parameters:
+      - description: 云账号ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功
+          schema:
+            $ref: '#/definitions/ginx.Result'
+        "400":
+          description: 请求参数错误
+          schema:
+            $ref: '#/definitions/ginx.Result'
+        "404":
+          description: 云账号不存在
+          schema:
+            $ref: '#/definitions/ginx.Result'
+        "500":
+          description: 服务器错误
+          schema:
+            $ref: '#/definitions/ginx.Result'
+      summary: 禁用云账号
+      tags:
+      - 云账号操作
+  /cam/cloud-accounts/{id}/enable:
+    post:
+      consumes:
+      - application/json
+      description: 启用指定的云账号
+      parameters:
+      - description: 云账号ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功
+          schema:
+            $ref: '#/definitions/ginx.Result'
+        "400":
+          description: 请求参数错误
+          schema:
+            $ref: '#/definitions/ginx.Result'
+        "404":
+          description: 云账号不存在
+          schema:
+            $ref: '#/definitions/ginx.Result'
+        "500":
+          description: 服务器错误
+          schema:
+            $ref: '#/definitions/ginx.Result'
+      summary: 启用云账号
+      tags:
+      - 云账号操作
+  /cam/cloud-accounts/{id}/sync:
+    post:
+      consumes:
+      - application/json
+      description: |-
+        同步指定云账号下的云资产到本地数据库。这是同步云资产的主要接口，支持按资源类型和地域过滤同步范围。
+        同步过程会自动获取云账号配置的所有地域，并逐个地域同步指定类型的资产。
+        如果不指定 asset_types，默认只同步 ECS 实例。
+      parameters:
+      - description: 云账号ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: 同步请求参数
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/web.SyncAccountReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 同步成功
+          schema:
+            allOf:
+            - $ref: '#/definitions/ginx.Result'
+            - properties:
+                data:
+                  $ref: '#/definitions/web.SyncResult'
+              type: object
+        "400":
+          description: 请求参数错误
+          schema:
+            $ref: '#/definitions/ginx.Result'
+        "404":
+          description: 云账号不存在
+          schema:
+            $ref: '#/definitions/ginx.Result'
+        "409":
+          description: 云账号已禁用
+          schema:
+            $ref: '#/definitions/ginx.Result'
+        "500":
+          description: 服务器错误
+          schema:
+            $ref: '#/definitions/ginx.Result'
+      summary: 同步云账号资产（推荐）
+      tags:
+      - 云账号操作
+  /cam/cloud-accounts/{id}/test-connection:
+    post:
+      consumes:
+      - application/json
+      description: 测试指定云账号的连接状态
+      parameters:
+      - description: 云账号ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 连接成功
+          schema:
+            allOf:
+            - $ref: '#/definitions/ginx.Result'
+            - properties:
+                data:
+                  type: object
+              type: object
+        "400":
+          description: 请求参数错误
+          schema:
+            $ref: '#/definitions/ginx.Result'
+        "404":
+          description: 云账号不存在
+          schema:
+            $ref: '#/definitions/ginx.Result'
+        "500":
+          description: 连接失败
+          schema:
+            $ref: '#/definitions/ginx.Result'
+      summary: 测试云账号连接
+      tags:
+      - 云账号操作
+  /cam/databases/mongodb:
+    get:
+      consumes:
+      - application/json
+      description: 从数据库获取已同步的MongoDB实例列表
+      parameters:
+      - description: 租户ID
+        in: query
+        name: tenant_id
+        type: string
+      - description: 云账号ID
+        in: query
+        name: account_id
+        type: integer
+      - description: 云厂商
+        enum:
+        - aliyun
+        - aws
+        - huawei
+        - tencent
+        - volcano
+        in: query
+        name: provider
+        type: string
+      - description: 地域
+        in: query
+        name: region
+        type: string
+      - description: 实例状态
+        in: query
+        name: status
+        type: string
+      - description: 实例名称(模糊搜索)
+        in: query
+        name: asset_name
+        type: string
+      - default: 0
+        description: 偏移量
+        in: query
+        name: offset
+        type: integer
+      - default: 20
+        description: 限制数量
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功
+          schema:
+            allOf:
+            - $ref: '#/definitions/ginx.Result'
+            - properties:
+                data:
+                  $ref: '#/definitions/web.DatabaseInstanceListResp'
+              type: object
+      summary: 获取MongoDB实例列表
+      tags:
+      - 数据库管理
+  /cam/databases/mongodb/{asset_id}:
+    get:
+      consumes:
+      - application/json
+      description: 从数据库获取指定MongoDB实例的详细信息
+      parameters:
+      - description: 资产ID(云厂商实例ID)
+        in: path
+        name: asset_id
+        required: true
+        type: string
+      - description: 租户ID
+        in: query
+        name: tenant_id
+        type: string
+      - description: 云厂商
+        enum:
+        - aliyun
+        - aws
+        - huawei
+        - tencent
+        - volcano
+        in: query
+        name: provider
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功
+          schema:
+            allOf:
+            - $ref: '#/definitions/ginx.Result'
+            - properties:
+                data:
+                  $ref: '#/definitions/web.DatabaseInstanceVO'
+              type: object
+        "404":
+          description: 实例不存在
+          schema:
+            $ref: '#/definitions/ginx.Result'
+      summary: 获取MongoDB实例详情
+      tags:
+      - 数据库管理
+  /cam/databases/rds:
+    get:
+      consumes:
+      - application/json
+      description: 从数据库获取已同步的RDS实例列表
+      parameters:
+      - description: 租户ID
+        in: query
+        name: tenant_id
+        type: string
+      - description: 云账号ID
+        in: query
+        name: account_id
+        type: integer
+      - description: 云厂商
+        enum:
+        - aliyun
+        - aws
+        - huawei
+        - tencent
+        - volcano
+        in: query
+        name: provider
+        type: string
+      - description: 地域
+        in: query
+        name: region
+        type: string
+      - description: 实例状态
+        in: query
+        name: status
+        type: string
+      - description: 实例名称(模糊搜索)
+        in: query
+        name: asset_name
+        type: string
+      - default: 0
+        description: 偏移量
+        in: query
+        name: offset
+        type: integer
+      - default: 20
+        description: 限制数量
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功
+          schema:
+            allOf:
+            - $ref: '#/definitions/ginx.Result'
+            - properties:
+                data:
+                  $ref: '#/definitions/web.DatabaseInstanceListResp'
+              type: object
+      summary: 获取RDS实例列表
+      tags:
+      - 数据库管理
+  /cam/databases/rds/{asset_id}:
+    get:
+      consumes:
+      - application/json
+      description: 从数据库获取指定RDS实例的详细信息
+      parameters:
+      - description: 资产ID(云厂商实例ID)
+        in: path
+        name: asset_id
+        required: true
+        type: string
+      - description: 租户ID
+        in: query
+        name: tenant_id
+        type: string
+      - description: 云厂商
+        enum:
+        - aliyun
+        - aws
+        - huawei
+        - tencent
+        - volcano
+        in: query
+        name: provider
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功
+          schema:
+            allOf:
+            - $ref: '#/definitions/ginx.Result'
+            - properties:
+                data:
+                  $ref: '#/definitions/web.DatabaseInstanceVO'
+              type: object
+        "404":
+          description: 实例不存在
+          schema:
+            $ref: '#/definitions/ginx.Result'
+      summary: 获取RDS实例详情
+      tags:
+      - 数据库管理
+  /cam/databases/redis:
+    get:
+      consumes:
+      - application/json
+      description: 从数据库获取已同步的Redis实例列表
+      parameters:
+      - description: 租户ID
+        in: query
+        name: tenant_id
+        type: string
+      - description: 云账号ID
+        in: query
+        name: account_id
+        type: integer
+      - description: 云厂商
+        enum:
+        - aliyun
+        - aws
+        - huawei
+        - tencent
+        - volcano
+        in: query
+        name: provider
+        type: string
+      - description: 地域
+        in: query
+        name: region
+        type: string
+      - description: 实例状态
+        in: query
+        name: status
+        type: string
+      - description: 实例名称(模糊搜索)
+        in: query
+        name: asset_name
+        type: string
+      - default: 0
+        description: 偏移量
+        in: query
+        name: offset
+        type: integer
+      - default: 20
+        description: 限制数量
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功
+          schema:
+            allOf:
+            - $ref: '#/definitions/ginx.Result'
+            - properties:
+                data:
+                  $ref: '#/definitions/web.DatabaseInstanceListResp'
+              type: object
+      summary: 获取Redis实例列表
+      tags:
+      - 数据库管理
+  /cam/databases/redis/{asset_id}:
+    get:
+      consumes:
+      - application/json
+      description: 从数据库获取指定Redis实例的详细信息
+      parameters:
+      - description: 资产ID(云厂商实例ID)
+        in: path
+        name: asset_id
+        required: true
+        type: string
+      - description: 租户ID
+        in: query
+        name: tenant_id
+        type: string
+      - description: 云厂商
+        enum:
+        - aliyun
+        - aws
+        - huawei
+        - tencent
+        - volcano
+        in: query
+        name: provider
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功
+          schema:
+            allOf:
+            - $ref: '#/definitions/ginx.Result'
+            - properties:
+                data:
+                  $ref: '#/definitions/web.DatabaseInstanceVO'
+              type: object
+        "404":
+          description: 实例不存在
+          schema:
+            $ref: '#/definitions/ginx.Result'
+      summary: 获取Redis实例详情
+      tags:
+      - 数据库管理
+  /cam/field-groups/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: 删除指定ID的字段分组
+      parameters:
+      - description: 分组ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功
+          schema:
+            $ref: '#/definitions/ginx.Result'
+        "404":
+          description: 分组不存在
+          schema:
+            $ref: '#/definitions/ginx.Result'
+        "500":
+          description: 服务器错误
+          schema:
+            $ref: '#/definitions/ginx.Result'
+      summary: 删除字段分组
+      tags:
+      - 字段分组管理
+    put:
+      consumes:
+      - application/json
+      description: 更新指定ID的字段分组信息
+      parameters:
+      - description: 分组ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: 更新的分组信息
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/web.UpdateFieldGroupReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功
+          schema:
+            $ref: '#/definitions/ginx.Result'
+        "400":
+          description: 请求参数错误
+          schema:
+            $ref: '#/definitions/ginx.Result'
+        "404":
+          description: 分组不存在
+          schema:
+            $ref: '#/definitions/ginx.Result'
+        "500":
+          description: 服务器错误
+          schema:
+            $ref: '#/definitions/ginx.Result'
+      summary: 更新字段分组
+      tags:
+      - 字段分组管理
+  /cam/fields/{field_uid}:
+    delete:
+      consumes:
+      - application/json
+      description: 删除指定的模型字段定义
+      parameters:
+      - description: 字段UID
+        in: path
+        name: field_uid
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功
+          schema:
+            $ref: '#/definitions/ginx.Result'
+        "404":
+          description: 字段不存在
+          schema:
+            $ref: '#/definitions/ginx.Result'
+        "500":
+          description: 服务器错误
+          schema:
+            $ref: '#/definitions/ginx.Result'
+      summary: 删除模型字段
+      tags:
+      - 字段管理
+    put:
+      consumes:
+      - application/json
+      description: 更新指定字段的定义信息
+      parameters:
+      - description: 字段UID
+        in: path
+        name: field_uid
+        required: true
+        type: string
+      - description: 更新的字段信息
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/web.UpdateFieldReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功
+          schema:
+            $ref: '#/definitions/ginx.Result'
+        "400":
+          description: 请求参数错误
+          schema:
+            $ref: '#/definitions/ginx.Result'
+        "404":
+          description: 字段不存在
+          schema:
+            $ref: '#/definitions/ginx.Result'
+        "500":
+          description: 服务器错误
+          schema:
+            $ref: '#/definitions/ginx.Result'
+      summary: 更新模型字段
+      tags:
+      - 字段管理
+  /cam/instances:
+    get:
+      consumes:
+      - application/json
+      description: 获取资产实例列表，支持按模型、租户、云账号等条件过滤，支持任意属性组合过滤
+      parameters:
+      - description: 模型UID
+        in: query
+        name: model_uid
+        type: string
+      - description: 租户ID
+        in: query
+        name: tenant_id
+        type: string
+      - description: 云账号ID
+        in: query
+        name: account_id
+        type: integer
+      - description: 资产名称(模糊搜索)
+        in: query
+        name: asset_name
+        type: string
+      - description: 资产ID(精确匹配)
+        in: query
+        name: asset_id
+        type: string
+      - description: 云平台(aliyun/aws/huawei/tencent/volcengine)
+        in: query
+        name: provider
+        type: string
+      - description: 状态
+        in: query
+        name: status
+        type: string
+      - description: 地域
+        in: query
+        name: region
+        type: string
+      - description: 可用区
+        in: query
+        name: zone
+        type: string
+      - description: VPC ID
+        in: query
+        name: vpc_id
+        type: string
+      - description: 实例规格
+        in: query
+        name: instance_type
+        type: string
+      - description: 操作系统类型
+        in: query
+        name: os_type
+        type: string
+      - description: 计费类型
+        in: query
+        name: charge_type
+        type: string
+      - description: 内网IP
+        in: query
+        name: private_ip
+        type: string
+      - description: 公网IP
+        in: query
+        name: public_ip
+        type: string
+      - description: 是否有标签(true/false)
+        in: query
+        name: has_tags
+        type: string
+      - description: 标签键(过滤包含此标签键的实例)
+        in: query
+        name: tag_key
+        type: string
+      - description: 标签值(需配合tag_key使用)
+        in: query
+        name: tag_value
+        type: string
+      - default: 0
+        description: 偏移量
+        in: query
+        name: offset
+        type: integer
+      - default: 20
+        description: 限制数量
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功
+          schema:
+            allOf:
+            - $ref: '#/definitions/ginx.Result'
+            - properties:
+                data:
+                  $ref: '#/definitions/github_com_Havens-blog_e-cam-service_internal_cam_web.InstanceListResp'
+              type: object
+      summary: 获取资产实例列表
+      tags:
+      - 资产实例
+    post:
+      consumes:
+      - application/json
+      description: 创建新的资产实例
+      parameters:
+      - description: 实例信息
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_Havens-blog_e-cam-service_internal_cam_web.CreateInstanceReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功
+          schema:
+            allOf:
+            - $ref: '#/definitions/ginx.Result'
+            - properties:
+                data:
+                  type: object
+              type: object
+      summary: 创建资产实例
+      tags:
+      - 资产实例
+  /cam/instances/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: 删除指定ID的资产实例
+      parameters:
+      - description: 实例ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功
+          schema:
+            $ref: '#/definitions/ginx.Result'
+      summary: 删除资产实例
+      tags:
+      - 资产实例
+    get:
+      consumes:
+      - application/json
+      description: 根据ID获取资产实例详细信息
+      parameters:
+      - description: 实例ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功
+          schema:
+            allOf:
+            - $ref: '#/definitions/ginx.Result'
+            - properties:
+                data:
+                  $ref: '#/definitions/github_com_Havens-blog_e-cam-service_internal_cam_web.InstanceVO'
+              type: object
+      summary: 获取资产实例详情
+      tags:
+      - 资产实例
+    put:
+      consumes:
+      - application/json
+      description: 更新指定ID的资产实例信息
+      parameters:
+      - description: 实例ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: 更新信息
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_Havens-blog_e-cam-service_internal_cam_web.UpdateInstanceReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功
+          schema:
+            $ref: '#/definitions/ginx.Result'
+      summary: 更新资产实例
+      tags:
+      - 资产实例
+  /cam/instances/batch:
+    post:
+      consumes:
+      - application/json
+      description: 批量创建多个资产实例
+      parameters:
+      - description: 实例列表
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_Havens-blog_e-cam-service_internal_cam_web.CreateBatchInstanceReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功
+          schema:
+            allOf:
+            - $ref: '#/definitions/ginx.Result'
+            - properties:
+                data:
+                  type: object
+              type: object
+      summary: 批量创建资产实例
+      tags:
+      - 资产实例
+  /cam/instances/upsert:
+    post:
+      consumes:
+      - application/json
+      description: 根据 tenant_id + model_uid + asset_id 更新或插入实例
+      parameters:
+      - description: 实例信息
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_Havens-blog_e-cam-service_internal_cam_web.UpsertInstanceReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功
+          schema:
+            $ref: '#/definitions/ginx.Result'
+      summary: 更新或插入资产实例
+      tags:
+      - 资产实例
+  /cam/instances/upsert-batch:
+    post:
+      consumes:
+      - application/json
+      description: 批量根据 tenant_id + model_uid + asset_id 更新或插入实例
+      parameters:
+      - description: 实例列表
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_Havens-blog_e-cam-service_internal_cam_web.UpsertBatchInstanceReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功
+          schema:
+            $ref: '#/definitions/ginx.Result'
+      summary: 批量更新或插入资产实例
+      tags:
+      - 资产实例
+  /cam/menus:
+    get:
+      consumes:
+      - application/json
+      description: 获取系统导航菜单的层级结构
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功
+          schema:
+            allOf:
+            - $ref: '#/definitions/ginx.Result'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/web.MenuItem'
+                  type: array
+              type: object
+      summary: 获取菜单列表
+      tags:
+      - 系统管理
+  /cam/models:
+    get:
+      consumes:
+      - application/json
+      description: 获取资产模型列表，支持按云厂商、分类等条件过滤
+      parameters:
+      - description: 云厂商
+        enum:
+        - aliyun
+        - aws
+        - azure
+        in: query
+        name: provider
+        type: string
+      - description: 模型分类
+        in: query
+        name: category
+        type: string
+      - description: 父模型UID
+        in: query
+        name: parent_uid
+        type: string
+      - description: 模型层级
+        in: query
+        name: level
+        type: integer
+      - default: 0
+        description: 偏移量
+        in: query
+        name: offset
+        type: integer
+      - default: 20
+        description: 限制数量
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功
+          schema:
+            allOf:
+            - $ref: '#/definitions/ginx.Result'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/github_com_Havens-blog_e-cam-service_internal_cam_domain.Model'
+                  type: array
+              type: object
+        "500":
+          description: 服务器错误
+          schema:
+            $ref: '#/definitions/ginx.Result'
+      summary: 获取模型列表
+      tags:
+      - 模型管理
+    post:
+      consumes:
+      - application/json
+      description: 创建新的资产模型定义
+      parameters:
+      - description: 模型信息
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_Havens-blog_e-cam-service_internal_cam_web.CreateModelReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功
+          schema:
+            allOf:
+            - $ref: '#/definitions/ginx.Result'
+            - properties:
+                data:
+                  $ref: '#/definitions/github_com_Havens-blog_e-cam-service_internal_cam_domain.Model'
+              type: object
+        "400":
+          description: 请求参数错误
+          schema:
+            $ref: '#/definitions/ginx.Result'
+        "500":
+          description: 服务器错误
+          schema:
+            $ref: '#/definitions/ginx.Result'
+      summary: 创建模型
+      tags:
+      - 模型管理
+  /cam/models/{uid}:
+    delete:
+      consumes:
+      - application/json
+      description: 删除指定UID的模型
+      parameters:
+      - description: 模型UID
+        in: path
+        name: uid
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功
+          schema:
+            $ref: '#/definitions/ginx.Result'
+        "404":
+          description: 模型不存在
+          schema:
+            $ref: '#/definitions/ginx.Result'
+        "500":
+          description: 服务器错误
+          schema:
+            $ref: '#/definitions/ginx.Result'
+      summary: 删除模型
+      tags:
+      - 模型管理
+    get:
+      consumes:
+      - application/json
+      description: 根据模型UID获取模型的详细信息
+      parameters:
+      - description: 模型UID
+        in: path
+        name: uid
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功
+          schema:
+            allOf:
+            - $ref: '#/definitions/ginx.Result'
+            - properties:
+                data:
+                  $ref: '#/definitions/github_com_Havens-blog_e-cam-service_internal_cam_domain.Model'
+              type: object
+        "404":
+          description: 模型不存在
+          schema:
+            $ref: '#/definitions/ginx.Result'
+        "500":
+          description: 服务器错误
+          schema:
+            $ref: '#/definitions/ginx.Result'
+      summary: 获取模型详情
+      tags:
+      - 模型管理
+    put:
+      consumes:
+      - application/json
+      description: 更新指定UID的模型信息
+      parameters:
+      - description: 模型UID
+        in: path
+        name: uid
+        required: true
+        type: string
+      - description: 更新的模型信息
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_Havens-blog_e-cam-service_internal_cam_web.UpdateModelReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功
+          schema:
+            allOf:
+            - $ref: '#/definitions/ginx.Result'
+            - properties:
+                data:
+                  $ref: '#/definitions/github_com_Havens-blog_e-cam-service_internal_cam_domain.Model'
+              type: object
+        "400":
+          description: 请求参数错误
+          schema:
+            $ref: '#/definitions/ginx.Result'
+        "404":
+          description: 模型不存在
+          schema:
+            $ref: '#/definitions/ginx.Result'
+        "500":
+          description: 服务器错误
+          schema:
+            $ref: '#/definitions/ginx.Result'
+      summary: 更新模型
+      tags:
+      - 模型管理
+  /cam/models/{uid}/field-groups:
+    get:
+      consumes:
+      - application/json
+      description: 获取指定模型的所有字段分组
+      parameters:
+      - description: 模型UID
+        in: path
+        name: uid
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功
+          schema:
+            allOf:
+            - $ref: '#/definitions/ginx.Result'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/github_com_Havens-blog_e-cam-service_internal_cam_domain.ModelFieldGroup'
+                  type: array
+              type: object
+        "500":
+          description: 服务器错误
+          schema:
+            $ref: '#/definitions/ginx.Result'
+      summary: 获取字段分组列表
+      tags:
+      - 字段分组管理
+    post:
+      consumes:
+      - application/json
+      description: 为指定模型添加新的字段分组
+      parameters:
+      - description: 模型UID
+        in: path
+        name: uid
+        required: true
+        type: string
+      - description: 字段分组信息
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/web.CreateFieldGroupReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功
+          schema:
+            allOf:
+            - $ref: '#/definitions/ginx.Result'
+            - properties:
+                data:
+                  $ref: '#/definitions/github_com_Havens-blog_e-cam-service_internal_cam_domain.ModelFieldGroup'
+              type: object
+        "400":
+          description: 请求参数错误
+          schema:
+            $ref: '#/definitions/ginx.Result'
+        "500":
+          description: 服务器错误
+          schema:
+            $ref: '#/definitions/ginx.Result'
+      summary: 添加字段分组
+      tags:
+      - 字段分组管理
+  /cam/models/{uid}/fields:
+    get:
+      consumes:
+      - application/json
+      description: 获取指定模型的所有字段定义
+      parameters:
+      - description: 模型UID
+        in: path
+        name: uid
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功
+          schema:
+            allOf:
+            - $ref: '#/definitions/ginx.Result'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/github_com_Havens-blog_e-cam-service_internal_cam_domain.ModelField'
+                  type: array
+              type: object
+        "500":
+          description: 服务器错误
+          schema:
+            $ref: '#/definitions/ginx.Result'
+      summary: 获取模型字段列表
+      tags:
+      - 字段管理
+    post:
+      consumes:
+      - application/json
+      description: 为指定模型添加新的字段定义
+      parameters:
+      - description: 模型UID
+        in: path
+        name: uid
+        required: true
+        type: string
+      - description: 字段信息
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/web.CreateFieldReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功
+          schema:
+            allOf:
+            - $ref: '#/definitions/ginx.Result'
+            - properties:
+                data:
+                  $ref: '#/definitions/github_com_Havens-blog_e-cam-service_internal_cam_domain.ModelField'
+              type: object
+        "400":
+          description: 请求参数错误
+          schema:
+            $ref: '#/definitions/ginx.Result'
+        "500":
+          description: 服务器错误
+          schema:
+            $ref: '#/definitions/ginx.Result'
+      summary: 添加模型字段
+      tags:
+      - 字段管理
+  /cam/tasks:
+    get:
+      consumes:
+      - application/json
+      description: 获取异步任务列表，支持按任务类型、状态、创建者等条件过滤
+      parameters:
+      - description: 任务类型
+        enum:
+        - sync_assets
+        - discover_assets
+        in: query
+        name: type
+        type: string
+      - description: 任务状态
+        enum:
+        - pending
+        - running
+        - completed
+        - failed
+        - cancelled
+        in: query
+        name: status
+        type: string
+      - description: 创建者
+        in: query
+        name: created_by
+        type: string
+      - default: 0
+        description: 偏移量
+        in: query
+        name: offset
+        type: integer
+      - default: 20
+        description: 限制数量
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功
+          schema:
+            allOf:
+            - $ref: '#/definitions/ginx.Result'
+            - properties:
+                data:
+                  $ref: '#/definitions/github_com_Havens-blog_e-cam-service_internal_task_web.TaskListResp'
+              type: object
+        "500":
+          description: 服务器错误
+          schema:
+            $ref: '#/definitions/ginx.Result'
+      summary: 获取任务列表
+      tags:
+      - 异步任务
+  /cam/tasks/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: 删除已完成或已取消的异步任务记录
+      parameters:
+      - description: 任务ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 删除成功
+          schema:
+            $ref: '#/definitions/ginx.Result'
+        "400":
+          description: 任务无法删除
+          schema:
+            $ref: '#/definitions/ginx.Result'
+        "404":
+          description: 任务不存在
+          schema:
+            $ref: '#/definitions/ginx.Result'
+        "500":
+          description: 服务器错误
+          schema:
+            $ref: '#/definitions/ginx.Result'
+      summary: 删除任务
+      tags:
+      - 异步任务
+    get:
+      consumes:
+      - application/json
+      description: 根据任务ID获取异步任务的详细信息和执行状态
+      parameters:
+      - description: 任务ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功
+          schema:
+            allOf:
+            - $ref: '#/definitions/ginx.Result'
+            - properties:
+                data:
+                  $ref: '#/definitions/github_com_Havens-blog_e-cam-service_internal_task_web.TaskResp'
+              type: object
+        "404":
+          description: 任务不存在
+          schema:
+            $ref: '#/definitions/ginx.Result'
+        "500":
+          description: 服务器错误
+          schema:
+            $ref: '#/definitions/ginx.Result'
+      summary: 获取任务详情
+      tags:
+      - 异步任务
+  /cam/tasks/{id}/cancel:
+    post:
+      consumes:
+      - application/json
+      description: 取消正在执行或等待执行的异步任务
+      parameters:
+      - description: 任务ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 取消成功
+          schema:
+            $ref: '#/definitions/ginx.Result'
+        "400":
+          description: 任务无法取消
+          schema:
+            $ref: '#/definitions/ginx.Result'
+        "404":
+          description: 任务不存在
+          schema:
+            $ref: '#/definitions/ginx.Result'
+        "500":
+          description: 服务器错误
+          schema:
+            $ref: '#/definitions/ginx.Result'
+      summary: 取消任务
+      tags:
+      - 异步任务
+  /cam/tasks/discover-assets:
+    post:
+      consumes:
+      - application/json
+      description: 提交异步发现资产任务，从指定云厂商和地域发现新资产
+      parameters:
+      - description: 发现任务参数
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_Havens-blog_e-cam-service_internal_task_web.SubmitDiscoverAssetsTaskReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 任务提交成功
+          schema:
+            allOf:
+            - $ref: '#/definitions/ginx.Result'
+            - properties:
+                data:
+                  $ref: '#/definitions/github_com_Havens-blog_e-cam-service_internal_task_web.SubmitTaskResp'
+              type: object
+        "400":
+          description: 请求参数错误
+          schema:
+            $ref: '#/definitions/ginx.Result'
+        "500":
+          description: 服务器错误
+          schema:
+            $ref: '#/definitions/ginx.Result'
+      summary: 提交发现资产任务
+      tags:
+      - 异步任务
+  /cam/tasks/sync-assets:
+    post:
+      consumes:
+      - application/json
+      description: 提交异步同步资产任务，支持指定云厂商、资产类型和地域
+      parameters:
+      - description: 同步任务参数
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_Havens-blog_e-cam-service_internal_task_web.SubmitSyncAssetsTaskReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 任务提交成功
+          schema:
+            allOf:
+            - $ref: '#/definitions/ginx.Result'
+            - properties:
+                data:
+                  $ref: '#/definitions/github_com_Havens-blog_e-cam-service_internal_task_web.SubmitTaskResp'
+              type: object
+        "400":
+          description: 请求参数错误
+          schema:
+            $ref: '#/definitions/ginx.Result'
+        "500":
+          description: 服务器错误
+          schema:
+            $ref: '#/definitions/ginx.Result'
+      summary: 提交同步资产任务
+      tags:
+      - 异步任务
+schemes:
+- http
+- https
+swagger: "2.0"
