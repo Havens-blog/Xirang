@@ -1,0 +1,142 @@
+name: Services CI (Go)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'services/**'
+      - 'go.work'
+      - '.github/workflows/services-ci.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'services/**'
+      - 'go.work'
+      - '.github/workflows/services-ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  GO_VERSION: '1.25.5'
+
+jobs:
+  # ── eiam ──────────────────────────────────────────────────────────
+  # AGENTS.md 约定：go.test 竞态检测；单测严禁直连外部资源。
+  # internal/test/integration 为真集成套件（需外部 DB/配置），CI 排除，本地真实配置环境运行。
+  eiam:
+    name: Test eiam
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: services/eiam
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+          cache-dependency-path: |
+            services/eiam/go.sum
+            services/e-cam-service/go.sum
+            services/opsagent/go.sum
+            go.work
+
+      - name: go vet
+        run: go vet ./...
+
+      - name: go test -race（单元；集成套件需要真实基础设施，CI 排除）
+        shell: bash
+        run: |
+          pkg_list=$(go list ./... | grep -v '/internal/test/integration')
+          echo "测试包：$pkg_list"
+          go test -race $pkg_list
+
+      - name: go build
+        run: go build ./...
+
+  # ── e-cam-service ─────────────────────────────────────────────────
+  # 迁自模块原 ci.yml：mongo + redis 服务容器；去掉 codecov/golangci（后续单列质量门禁）。
+  ecam-service:
+    name: Test e-cam-service
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: services/e-cam-service
+    services:
+      mongodb:
+        image: mongo:7.0
+        env:
+          MONGO_INITDB_ROOT_USERNAME: admin
+          MONGO_INITDB_ROOT_PASSWORD: password
+        ports:
+          - 27017:27017
+        options: >-
+          --health-cmd "mongosh --eval 'db.adminCommand(\"ping\")'"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      redis:
+        image: redis:7.2-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+          cache-dependency-path: |
+            services/eiam/go.sum
+            services/e-cam-service/go.sum
+            services/opsagent/go.sum
+            go.work
+
+      - name: go mod download
+        run: go mod download
+
+      - name: go test -race（需 mongo+redis 容器）
+        run: go test -race -coverprofile=coverage.out ./...
+
+      - name: go vet
+        run: go vet ./...
+
+      - name: go build
+        run: go build ./...
+
+  # ── opsagent ──────────────────────────────────────────────────────
+  opsagent:
+    name: Test opsagent
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: services/opsagent
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+          cache-dependency-path: |
+            services/eiam/go.sum
+            services/e-cam-service/go.sum
+            services/opsagent/go.sum
+            go.work
+
+      - name: go vet
+        run: go vet ./...
+
+      - name: go test
+        run: go test ./...
+
+      - name: go build
+        run: go build ./...
