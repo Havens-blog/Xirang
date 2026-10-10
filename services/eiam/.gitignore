@@ -1,9 +1,0 @@
-/config/*
-!/config/config.example.yaml
-/internal/test/config/*
-!/internal/test/config/config.example.yaml
-logs/
-.idea/
-.env
-.claude/
-.DS_Store
