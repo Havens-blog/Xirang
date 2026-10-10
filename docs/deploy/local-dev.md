@@ -79,6 +79,11 @@ D:\Haven\nginx-1.25.4\nginx.exe -s reload
    F: 盘旧 exe 监听 8080（其 compose/env 为 `OPSAGENT_PORT=8080`）。
    → 两种修法：a) 用单仓新版（默认 8081）；b) 把 `nginx.dev.conf` 的 8081 改 8080 后
    `nginx -s reload`。改完 `curl localhost:8888/api/v1/opsagent/health` 验证。
+   **附加阻塞**：单仓版按 `D:\Haven\opsagent\config` 启动时要求
+   `mongodb://127.0.0.1:27017` 本地 dev mongod——本机未装任何 mongod 二进制、
+   也无 Docker，8081 线起不来。修法二选一：装本地 MongoDB 起 27017，或把
+   config 的 mongo.uri 指到有凭据的远端（该 config 注释里注明远端为
+   106.52.187.69:27017 需认证）；redis 已是远端共享（106.52.187.69:6379）无需动。
 2. **e-cam-service NAS 同步 panic（真 Bug）**：`logs\dev\manual-start.log` 记录两次
    `panic: assignment to entry in nil map`，栈在
    `internal/shared/cloudx/aliyun/nas_metrics.go:155 createCMSClient`（client 缓存
@@ -88,6 +93,15 @@ D:\Haven\nginx-1.25.4\nginx.exe -s reload
    8080/9090）；单仓 `services/opsagent` 是历史镜像快照（默认端口 8081）；
    `apps/opsagent-web`（Vue 重写）镜像自 `D:\Haven\opsagent-web`，而 F: 的 Next
    前端**未入单仓**。开工前选定一条开发线，避免两处分叉。
+4. **eiam 与 air 热重载 + session key 硬化分叉**：旧仓 `D:\Haven\eiam` 由 air
+   类热重载工具托管（log 特征 "Running build command / Hard stopping / Restarting"），
+   且其代码已加了 `session_encrypted_key ≥32 字节` 校验——当前两个 config.yaml
+   （旧仓 + 单仓）里的 key 都只有 13 字符，旧仓新版代码因此
+   `panic: session_encrypted_key 长度不足`；单仓快照无此校验、可正常启动。
+   2026-10-10 首轮一键部署已用单仓 eiam 抢占 :9000（旧进程死于 08:03 那次
+   panic）。若你在旧仓继续 air 开发并修复 key 后重启，会与单仓实例抢 9000。
+5. **nginx reload 的 prefix 坑**：Windows 下 `nginx -s reload` 按【工作目录】解析
+   conf，务必 `nginx -p D:\Haven\nginx-1.25.4\ -s reload`（dev-up.ps1 已内置）。
 
 ## 5. 单仓 ⇔ 旧运行源对应
 
