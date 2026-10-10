@@ -66,14 +66,23 @@
         <div class="form-row form-row--end">
           <label for="defModel">默认模型</label>
           <div class="form-row-main">
-            <input
+            <el-select
               id="defModel"
               v-model="modelInput"
-              class="input"
-              placeholder="如 qwen-plus（推荐）"
+              class="model-select"
+              filterable
+              allow-create
+              default-first-option
+              clearable
+              :loading="modelsLoading"
               :disabled="!editable || busy"
-              @input="emitDraft"
-            />
+              placeholder="选择或输入模型名，如 qwen-plus"
+              @change="emitDraft"
+              @visible-change="onVisibleChange"
+            >
+              <el-option v-for="m in modelOptions" :key="m" :label="m" :value="m" />
+            </el-select>
+            <div class="form-hint">模型由后端列举（配置 Key 后可实时拉取），也支持手动输入</div>
           </div>
         </div>
       </div>
@@ -85,7 +94,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import { ElMessage } from 'element-plus'
-import type { LLMProviderInput } from '@/api/opsagent'
+import { llmModelsApi, type LLMProviderInput } from '@/api/opsagent'
 import { PROVIDER_META, providerLabel } from '../logic'
 
 const props = defineProps<{
@@ -106,6 +115,8 @@ const selected = computed<LLMProviderInput | undefined>(
 
 const keyInput = ref('')
 const modelInput = ref(selected.value?.model ?? '')
+const modelOptions = ref<string[]>([])
+const modelsLoading = ref(false)
 
 // 编辑对象切换：回填模型输入；keyInput 置空重输（明文仅驻留内存，不入组件状态）
 watch(
@@ -115,6 +126,32 @@ watch(
         keyInput.value = ''
     },
 )
+
+/** 加载当前提供商的可用模型（后端列举；apiKey 非空时后端优先实时拉取） */
+async function loadModels(): Promise<void> {
+    const name = selected.value?.name
+    if (!name) return
+    modelsLoading.value = true
+    try {
+        const data = await llmModelsApi(name, keyInput.value || undefined)
+        modelOptions.value = data.models ?? []
+    } catch {
+        modelOptions.value = []
+    } finally {
+        modelsLoading.value = false
+    }
+}
+
+// 切换提供商时重新列举；填 Key 后也刷新（可触发后端实时拉取）
+watch(
+    () => [selected.value?.name, keyInput.value] as const,
+    () => { void loadModels() },
+)
+
+/** 下拉展开时若无候选则补拉一次（切换 provider 前的异步兜底） */
+function onVisibleChange(visible: boolean): void {
+    if (visible && modelOptions.value.length === 0) void loadModels()
+}
 
 const maskedOrEmpty = computed(() => props.keyMasked?.[selected.value?.name ?? ''] || '未配置 Key')
 
@@ -278,6 +315,9 @@ function selectDefault(name: string): void {
 .input:disabled {
     opacity: 0.6;
     cursor: not-allowed;
+}
+.model-select {
+    width: 100%;
 }
 .form-hint {
     margin: 5px 0 0;

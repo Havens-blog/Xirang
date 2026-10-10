@@ -20,7 +20,8 @@ export const useUserStore = defineStore("user", () => {
     if (loaded.value) return;
     try {
       const profile = await fetchUserProfile();
-      username.value = profile.username ?? "";
+      // eiam RetrieveUser 嵌套结构：{ user: { username, nickname }, is_admin, ... }
+      username.value = profile.user?.username ?? "";
       isAdmin.value = profile.is_admin === true;
       loaded.value = true;
     } catch {

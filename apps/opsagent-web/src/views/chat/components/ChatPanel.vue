@@ -49,7 +49,7 @@
               <span class="badge badge-warning">{{ degradeBadgeMeta.text }}</span>
             </div>
 
-            <div v-if="diagnosis.conclusions.length" class="report-card__advice">
+            <div v-if="diagnosis.conclusions?.length" class="report-card__advice">
               <strong>处置建议</strong>
               <ul>
                 <li v-for="(c, i) in diagnosis.conclusions" :key="i">{{ c.text }}</li>
@@ -61,12 +61,12 @@
             </div>
 
             <div class="collapsible-header" :aria-expanded="citationsOpen" @click="citationsOpen = !citationsOpen">
-              <span>数据源引用（{{ diagnosis.citations.length }}）</span>
+              <span>数据源引用（{{ diagnosis.citations?.length ?? 0 }}）</span>
               <span class="chevron">▾</span>
             </div>
             <div v-if="citationsOpen" class="collapsible-content">
               <div
-                v-for="(c, i) in diagnosis.citations"
+                v-for="(c, i) in diagnosis.citations ?? []"
                 :key="`${c.sourceKey}-${i}`"
                 class="evidence-card"
               >
@@ -75,7 +75,7 @@
                   <span>{{ sourceLabel(c.sourceType) }}：{{ c.snippet }}</span>
                 </div>
               </div>
-              <p v-if="diagnosis.citations.length === 0" class="evidence-empty">无数据源引用</p>
+              <p v-if="(diagnosis.citations?.length ?? -1) === 0" class="evidence-empty">无数据源引用</p>
             </div>
 
             <div class="report-card__footer">

@@ -152,6 +152,21 @@ export interface Diagnosis {
     trace: TraceStep[]
 }
 
+/**
+ * 后端 nillable 数组字段归一化：Mongo 空结论/引用序列化为 null 时，
+ * 组件模板直接访问 .length 会抛 TypeError 并中断整页渲染（对话页/详情页均已实测）。
+ * 统一在 API 边界收敛为 []。
+ */
+export function sanitizeDiagnosis(d: Diagnosis): Diagnosis {
+    return {
+        ...d,
+        conclusions: d.conclusions ?? [],
+        disposition: d.disposition ?? [],
+        citations: d.citations ?? [],
+        trace: d.trace ?? [],
+    }
+}
+
 /** 预置查询条目（L2 响应 settings.preset_queries） */
 export interface PresetQuery {
     id: string
@@ -184,7 +199,10 @@ const BASE = '/opsagent'
 
 /** 发起对话排障（POST /opsagent/chat） */
 export function chatApi(data: { message: string; requestId?: string }): Promise<ChatData> {
-    return unwrapOpsagent<ChatData>(opsagentAxios.post(`${BASE}/chat`, data))
+    return unwrapOpsagent<ChatData>(opsagentAxios.post(`${BASE}/chat`, data)).then((chat) => ({
+        ...chat,
+        diagnosis: chat.diagnosis ? sanitizeDiagnosis(chat.diagnosis) : null,
+    }))
 }
 
 /** 会话内纠正（POST /opsagent/chat/:sessionId/correct，targetIntent+params XOR message） */
@@ -192,7 +210,10 @@ export function correctApi(
     sessionId: string,
     data: { targetIntent?: IntentType; params?: DiagnoseParams; message?: string; requestId?: string },
 ): Promise<ChatData> {
-    return unwrapOpsagent<ChatData>(opsagentAxios.post(`${BASE}/chat/${sessionId}/correct`, data))
+    return unwrapOpsagent<ChatData>(opsagentAxios.post(`${BASE}/chat/${sessionId}/correct`, data)).then((chat) => ({
+        ...chat,
+        diagnosis: chat.diagnosis ? sanitizeDiagnosis(chat.diagnosis) : null,
+    }))
 }
 
 // ==================== 风险中心（§3/§4/§5）====================
@@ -289,7 +310,7 @@ export function batchRiskStatusApi(data: {
 
 /** 诊断详情（GET /opsagent/diagnosis/:id；带 riskEntryId 触发待查看→已查看自动流转） */
 export function getDiagnosisApi(id: string, params: { riskEntryId?: string } = {}): Promise<Diagnosis> {
-    return unwrapOpsagent<Diagnosis>(opsagentAxios.get(`${BASE}/diagnosis/${id}`, { params }))
+    return unwrapOpsagent<Diagnosis>(opsagentAxios.get(`${BASE}/diagnosis/${id}`, { params })).then((d) => sanitizeDiagnosis(d))
 }
 
 // ==================== 历史回溯（§7）====================
@@ -402,6 +423,26 @@ export function getSettingsApi(): Promise<SettingsData> {
 /** 系统配置写（PUT /opsagent/settings，管理员） */
 export function putSettingsApi(data: SettingsUpdate): Promise<unknown> {
     return unwrapOpsagent<unknown>(opsagentAxios.put(`${BASE}/settings`, data))
+}
+
+/** LLM 模型列举响应（GET /settings/llm/models） */
+export interface LLMModelsData {
+    provider: string
+    models: string[]
+    live: boolean
+}
+
+/**
+ * 列举某提供商可用模型（后端优先实时拉取 /models，回退内置目录）。
+ * apiKey 仅用于本次列举（X-LLM-API-Key 头），不落库。
+ */
+export function llmModelsApi(provider: string, apiKey?: string): Promise<LLMModelsData> {
+    return unwrapOpsagent<LLMModelsData>(
+        opsagentAxios.get(`${BASE}/settings/llm/models`, {
+            params: { provider },
+            headers: apiKey ? { 'X-LLM-API-Key': apiKey } : {},
+        }),
+    )
 }
 
 // ==================== Agent 观测（§10）====================

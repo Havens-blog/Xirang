@@ -62,6 +62,7 @@ import {
     chatApi,
     correctApi,
     OpsagentRequestError,
+    sanitizeDiagnosis,
     type ChatData,
     type DiagnoseParams,
     type IntentType,
@@ -86,7 +87,11 @@ const degradeLevel = computed(() => chatData.value?.degradeLevel ?? 0)
 const CODE_PERSIST_FAILED = 'ERR_PERSIST_FAILED'
 
 function applyChatData(data: ChatData): void {
-    chatData.value = data
+    chatData.value = {
+        ...data,
+        // 后端 nillable 数组字段归一（含 persist-failed 携带 data 的路径）
+        diagnosis: data.diagnosis ? sanitizeDiagnosis(data.diagnosis) : null,
+    }
     // type=report 时诊断以报告卡呈现（ChatPanel 渲 diagnosis），正文不重复入气泡
     if (data.report && data.type !== 'report') {
         messages.value.push({ role: 'assistant', text: data.report })

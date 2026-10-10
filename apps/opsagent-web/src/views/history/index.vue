@@ -39,7 +39,7 @@ import {
     type HistoryParams,
     type SessionSummary,
 } from '@/api/opsagent'
-import { ref } from 'vue'
+import { onMounted, ref } from 'vue'
 import SearchBar, { type HistoryFilter } from './components/SearchBar.vue'
 import SessionList from './components/SessionList.vue'
 import SessionView from './components/SessionView.vue'
@@ -114,6 +114,11 @@ function onBackToList(): void {
     selectedSession.value = null
     load()
 }
+
+/** 初载即拉取（原型历史页进来即有默认 24h 窗口列表，此前需手动点搜索） */
+onMounted(() => {
+    void load()
+})
 </script>
 
 <style scoped>

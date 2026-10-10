@@ -16,7 +16,8 @@ import AppShell from "./AppShell.vue";
 
 vi.mock("@/api/iam", () => ({
   fetchUserProfile: vi.fn().mockResolvedValue({
-    username: "havens",
+    // eiam RetrieveUser 嵌套结构（POST 契约实核口径）
+    user: { username: "havens", nickname: "值班 havens" },
     is_admin: false,
   }),
 }));
