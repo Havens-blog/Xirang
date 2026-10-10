@@ -28,7 +28,7 @@ redis:
 
 # 与 eiam/config.yaml 的 session_encrypted_key 完全一致，否则解不开 eiam 签发的 token（恒 401）。
 session:
-  encrypted_key: "1234567890Key"
+  encrypted_key: "haven-dev-session-shared-key-2026-10-10-A"
   cookie_name: "ecmdb-token-key"   # 与 eiam/e-cam-service 同名（eiam 签发的会话 cookie，浏览器兜底载体）
   cookie_domain: "localhost"
   whitelist:                 # 跳过用户会话鉴权的路径（精确或 /path/* 前缀）
