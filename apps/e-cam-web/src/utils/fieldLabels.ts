@@ -1,5 +1,5 @@
 /**
- * 字段展示文案单源（fieldLabels）— 计费类型域 + 全局资产状态域 + 网络域(eip/eni/lb/vpc/vswitch/waf/dns) + 计算域(ecs/image/disk) + 数据库域(rds/redis/mongodb) + 中间件/存储域(es/kafka/nas) + 快照域(snapshot) + 服务树节点状态
+ * 字段展示文案单源（fieldLabels）— 计费类型域 + 全局资产状态域 + 网络域(eip/eni/lb/vpc/vswitch/waf/ddos/dns) + 计算域(ecs/image/disk) + 数据库域(rds/redis/mongodb) + 中间件/存储域(es/kafka/nas) + 快照域(snapshot) + 服务树节点状态
  *
  * 背景：字段文案一致性审计（docs/features/ecam-web-ui-audit/reports/field-consistency.md §2 域4/域3）
  * 发现计费类型 `charge_type` 在 eip/ecs/cmdb/rds/redis/mongodb/nas/template/provision
@@ -247,6 +247,24 @@ export const WAF_EDITION_LABELS: Record<string, string> = {
 
 /** WAF 防护模式 → 展示文案。实测 block(99)/observe(11)/空(315)；仅展示，非有效后端筛参。 */
 export const WAF_PROTECTION_MODE_LABELS: Record<string, string> = { block: '拦截', observe: '观察', off: '关闭' }
+
+/**
+ * DDoS 状态 → 展示文案（列表页 canonical；键值以腾讯云 DDoS 防护实例状态注释实证）。
+ *
+ * 腾讯取值域：idle/attacking/blocking/creating/deblocking/isolate（全小写厂商原生字符串，
+ * 后端直透 SDK 值）；阿里/华为为各自厂商原值（可能为中文），本表不臆造、不代收其他
+ * 厂商状态。未知值透出策略：调用方直查本表（DDoS 页 getStatusText / 详情抽屉），
+ * 未命中时原样透出原始值，不回退全局 ASSET_STATUS_LABELS —— 避免厂商原生值被全局
+ * 通用词（如 active→运行中）误译。
+ */
+export const DDOS_STATUS_LABELS: Record<string, string> = {
+    idle: '正常',
+    attacking: '攻击中',
+    blocking: '封堵中',
+    creating: '创建中',
+    deblocking: '解封中',
+    isolate: '隔离中',
+}
 
 /**
  * DNS 域名状态 → 展示文案。

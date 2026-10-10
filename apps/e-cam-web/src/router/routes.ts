@@ -490,6 +490,15 @@ const routes: RouteRecordRaw[] = [
                 },
             },
             {
+                path: '/network/ddos',
+                name: 'DDoS',
+                component: () => import('@/views/network/ddos/index.vue'),
+                meta: {
+                    title: 'DDoS 防护',
+                    icon: 'Monitor',
+                },
+            },
+            {
                 path: '/network/eni',
                 name: 'ENI',
                 component: () => import('@/views/network/eni/index.vue'),

@@ -37,6 +37,7 @@ const icMap: Record<string, string> = {
   'assets-nas': 'caise-storage_device', 'assets-oss': 'caise-storage_pool',
   'assets-vpc': 'caise-VPC', 'assets-eip': 'caise-ip_address', 'assets-vsw': 'caise-distributed_switch',
   'assets-lb': 'caise-load_balancing', 'assets-cdn': 'caise-CDN', 'assets-waf': 'caise-network',
+  'assets-ddos': 'caise-network',
   'assets-dns': 'caise-network_devices',
   'assets-rds': 'caise-database', 'assets-redis': 'caise-database', 'assets-mongo': 'caise-database',
   'assets-kafka': 'caise-kafka', 'assets-es': 'caise-middleware',
@@ -91,6 +92,7 @@ const ic = (k: string): string => icMap[k] ?? 'caise-public_cloud'
             <div class="pnav-it" @click="go('/network/lb')"><IconFont :type="ic('assets-lb')" :size="18" /><span>负载均衡</span><i :class="{on:isF('assets-lb')}" @click.stop="togF('assets-lb','负载均衡','网络','/network/lb')">{{ isF('assets-lb') ? '★' : '☆' }}</i></div>
             <div class="pnav-it" @click="go('/network/cdn')"><IconFont :type="ic('assets-cdn')" :size="18" /><span>CDN 加速</span><i :class="{on:isF('assets-cdn')}" @click.stop="togF('assets-cdn','CDN 加速','网络','/network/cdn')">{{ isF('assets-cdn') ? '★' : '☆' }}</i></div>
             <div class="pnav-it" @click="go('/network/waf')"><IconFont :type="ic('assets-waf')" :size="18" /><span>WAF 防火墙</span><i :class="{on:isF('assets-waf')}" @click.stop="togF('assets-waf','WAF 防火墙','网络','/network/waf')">{{ isF('assets-waf') ? '★' : '☆' }}</i></div>
+            <div class="pnav-it" @click="go('/network/ddos')"><IconFont :type="ic('assets-ddos')" :size="18" /><span>DDoS 防护</span><i :class="{on:isF('assets-ddos')}" @click.stop="togF('assets-ddos','DDoS 防护','网络','/network/ddos')">{{ isF('assets-ddos') ? '★' : '☆' }}</i></div>
             <div class="pnav-it" @click="go('/network/eni')"><IconFont :type="ic('assets-eni')" :size="18" /><span>弹性网卡</span><i :class="{on:isF('assets-eni')}" @click.stop="togF('assets-eni','弹性网卡','网络','/network/eni')">{{ isF('assets-eni') ? '★' : '☆' }}</i></div>
             <div class="pnav-it" @click="go('/network/dns')"><IconFont :type="ic('assets-dns')" :size="18" /><span>DNS 管理</span><i :class="{on:isF('assets-dns')}" @click.stop="togF('assets-dns','DNS 管理','网络','/network/dns')">{{ isF('assets-dns') ? '★' : '☆' }}</i></div>
             <div class="pnav-sub">数据库</div>

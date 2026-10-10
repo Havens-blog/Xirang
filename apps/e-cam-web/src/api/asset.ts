@@ -968,6 +968,26 @@ export function getWAFAssetApi(assetId: string, params?: { tenant_id?: string; p
     })
 }
 
+// ==================== DDoS (DDoS防护) API ====================
+
+/** 获取DDoS防护实例列表 */
+export function listDDOSAssetsApi(params?: ListAssetsParams) {
+    return instance.get<AssetListResponse>({
+        url: `${API_SERVICE.CAM}/assets/ddos`,
+        params,
+        interceptorsToOnce: createAssetApiInterceptor()
+    })
+}
+
+/** 获取DDoS防护实例详情 */
+export function getDDOSAssetApi(assetId: string, params?: { provider?: string }) {
+    return instance.get<{ code: number; data: Asset; msg: string }>({
+        url: `${API_SERVICE.CAM}/assets/ddos/${assetId}`,
+        params,
+        interceptorsToOnce: createAssetApiInterceptor()
+    })
+}
+
 // ==================== Image (镜像) API ====================
 
 /** 镜像列表查询参数 */

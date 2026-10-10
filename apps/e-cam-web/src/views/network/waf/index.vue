@@ -220,6 +220,7 @@
                     <span class="cell-text">{{ item.region || '-' }}</span>
                   </template>
                   <template v-else-if="col.key === 'cloud_account_name'">{{ item.attributes?.cloud_account_name || '-' }}</template>
+                  <template v-else-if="col.key === 'resource_group_id'">{{ item.attributes?.resource_group_id || '-' }}</template>
                   <template v-else-if="col.key === 'qps'">{{ item.attributes?.qps || '-' }}</template>
                   <template v-else-if="col.key === 'expired_time'">
                     <span class="mono" :class="{ 'expiring-text': isExpiringSoon(item.attributes?.expired_time) }">
@@ -467,6 +468,7 @@ const defaultColumnSettings: ColumnConfig[] = [
   { key: 'platform', label: '平台', width: 60, visible: true },
   { key: 'region', label: '地域', width: 130, visible: true },
   { key: 'cloud_account_name', label: '云账号', width: 150, visible: false },
+  { key: 'resource_group_id', label: '资源组', width: 150, visible: true },
   { key: 'qps', label: 'QPS', width: 80, visible: false },
   { key: 'expired_time', label: '到期时间', width: 130, visible: false },
   { key: 'creation_time', label: '创建时间', width: 150, visible: false },
@@ -480,7 +482,16 @@ const loadColumnSettings = () => {
   if (saved) {
     try {
       const parsed = JSON.parse(saved)
-      if (Array.isArray(parsed) && parsed.length > 0) { columnSettings.value = parsed; return }
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        // 合并默认配置中新增的列(如 resource_group_id):用户既有列的可见性原样保留,
+        // 新列按默认 visible 状态追加到末尾
+        const merged = [...parsed]
+        for (const d of defaultColumnSettings) {
+          if (!merged.some((c: ColumnConfig) => c.key === d.key)) merged.push({ ...d })
+        }
+        columnSettings.value = merged
+        return
+      }
     } catch { /* ignore */ }
   }
   columnSettings.value = JSON.parse(JSON.stringify(defaultColumnSettings))
