@@ -1,29 +1,62 @@
-# Houtu — 运维平台（Haven 单仓）
+# Houtu — 运维平台编排仓库（orchestration-only）
 
-掌管大地山川的女神。本仓库统一收录运维平台全部子模块（前端 / 后端服务 / 部署配置 / 文档 / 验证脚本），各模块完整保留原仓库 git 历史。
+> 本仓库**只做编排**:负责把平台全部模块从各自独立的代码仓库拉取/构建/运行起来。
+> **应用源代码不在本仓库** —— 各模块代码留在各自原仓库(见下方模块清单),继续在原仓库开发。
+> 本仓库仅保留:开发脚本、nginx 反代配置、模块清单。
 
-## 模块地图
+## 设计原则
 
-| 目录 | 模块 | 技术栈 | 说明 |
+- **代码不回仓**:eiam / e-cam-service / opsagent / haven-console / opsagent-web / e-cam-web 的源码
+  一律保留在原仓库,本仓库不复制、不 fork,杜绝双线漂移。
+- **引用式统一管理**:本仓库作为唯一入口,一个 `dev-up.ps1` 拉全平台、一个清单看清所有模块。
+- **运行 = 从原仓库构建**:所有二进制/dist 均从原仓库工作区构建,与开发线完全一致。
+
+## 模块清单(源代码所在)
+
+| 模块 | 原仓库 remote | 本地路径 | 端口/路由 |
 |---|---|---|---|
-| `apps/haven-console` | 平台控制台 | Vue 3 + Vite 7 + TS + Element Plus + Pinia | 统一控制台（/console/），CI 含 typecheck/build/gz、vitest、gzip 预算、e-cam-web 拷贝面漂移比对 |
-| `apps/e-cam-web` | 旧版云管前台 | Vue + Vite | 控制台主题令牌 / 模式文件的拷贝来源（shared-hashes 漂移防线基准） |
-| `apps/opsagent-web` | Agent 独立前端 | Vue 3 + Vite | AIOps 编排控制面 |
-| `apps/multi-cloud-dashboard` | 多云拓扑原型 | 静态 HTML | 原型阶段 |
-| `services/eiam` | 身份认证服务 | Go | 控制台 /api/iam/* 后端 |
-| `services/e-cam-service` | 云管后端 | Go | `replace e-iam => ../eiam`（本地工作区，见 go.work） |
-| `services/opsagent` | 运维 Agent 后端 | Go | |
-| `deploy/nginx` | nginx 反代配置 | conf | conf/ + vhost/（仅配置，nginx 二进制不入库） |
-| `docs` | 平台全部文档 | Markdown | 设计/记录/验收 |
-| `scripts` | 平台级脚本 | Node/PowerShell | REAL 验证脚本 + 仓库卫生检查 |
-| `patches` | 上游补丁 | patch | 0001-fix-iam.patch |
+| eiam(身份认证) | github.com/Havens-blog/e-iam | `D:\Haven\eiam` | :9000 → `/api/iam/*` |
+| e-cam-service(云管后端) | github.com/Havens-blog/e-cam-service | `D:\Haven\e-cam-service` | :8001 → `/api/v1/{cam,cmdb,certs}` |
+| opsagent(运维 Agent 后端) | github.com/Havens-blog/e-ops-agent-web | `D:\Haven\opsagent` | :8081 → `/api/v1/opsagent/` |
+| haven-console(控制台) | github.com/Havens-blog/Houtu | `D:\Haven\haven-console` | `/console/`(静态 dist) |
+| opsagent-web(Agent 前端) | github.com/Havens-blog/e-ops-agent-web | `D:\Haven\opsagent-web` | `/opsagent/`(静态 dist) |
+| e-cam-web(云管前端) | github.com/Havens-blog/e-cam-web | `D:\Haven\e-cam-web` | `/cam/`(vite dev :5173) |
+| 共享库 e-common-go | github.com/Havens-blog/e-common-go | `D:\Haven\e-common-go` | go.work 引用 |
+| 共享库 e-cloudx-sdk | github.com/Havens-blog/e-cloudx-sdk | `D:\Haven\e-cloudx-sdk` | go.work 引用 |
+| 共享库 e-cmdb-service | (随 e-cam-service) | `D:\Haven\e-cmdb-service` | go.work 引用 |
 
-## 构建
+## 快速开始(本地,无 Docker)
 
-- 前端（各 app）：`pnpm i && pnpm build`（控制台加 `pnpm build:gz`）
-- Go 服务：仓库根 `go.work` 已含 3 个服务；`cd services/<x> && go build ./...`
-- 平台级检查：`node scripts/repo-hygiene.mjs`
+```powershell
+# 1. 确保上面模块清单里的原仓库都已 clone 到 D:\Haven\
+# 2. 一键构建 + 启动全部后端 + 前端 + reload nginx
+.\scripts\dev-up.ps1
 
-## CI
+# 3. 若要同时启动 e-cam-web 的 vite dev(:5173,供 nginx /cam/)
+.\scripts\dev-up.ps1 -WithCamWeb
 
-`.github/workflows/ci.yml`：按模块路径过滤——console 4 项门禁（typecheck+build+gz / vitest / gzip 预算 / 漂移比对）；3 个 Go 服务 test+vet+build；e-cam-web / opsagent-web 前端构建；仓库卫生门禁（大文件/垃圾目录零容忍）。
+# 4. 停止 dev-up 启动的服务(不动其它实例/nginx)
+.\scripts\dev-down.ps1
+```
+
+统一入口:`http://localhost:8888/`(nginx 反代,指向上述各模块)。
+
+## Go 工作区约定
+
+`D:\Haven\go.work` 引用 `eiam` / `e-cam-service` / `e-common-go` / `e-cloudx-sdk` / `e-cmdb-service`。
+**opsagent 不在 go.work 内**,独立解析依赖 —— `dev-up.ps1` 构建 opsagent 时会自动 `GOWORK=off`。
+
+## nginx
+
+`deploy/nginx/conf/vhost/nginx.dev.conf` 是本仓库维护的反代配置副本(实际生效位置:
+`D:\Haven\nginx-1.25.4\conf\vhost\nginx.dev.conf`)。修改后需同步回该位置并
+`nginx -p D:\Haven\nginx-1.25.4\ -s reload`。
+
+## 目录
+
+```
+Houtu/
+  scripts/        开发编排脚本(dev-up.ps1 / dev-down.ps1)
+  deploy/nginx/   nginx 反代配置副本
+  README.md       本清单
+```
