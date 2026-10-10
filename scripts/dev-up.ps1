@@ -54,11 +54,16 @@ function Start-AppProc([int]$Port, [string]$Name, [string]$Exe, [string]$ProcArg
     warn "$Name :$Port is busy - skipping (existing instance reused)"
     return
   }
-  Start-Process -FilePath $Exe -ArgumentList $ProcArgs -WorkingDirectory $Cwd `
-    -RedirectStandardOutput "$LogBase.out.log" -RedirectStandardError "$LogBase.err.log" | Out-Null
+  # LONGEVITY LESSON (2026-10-10): with -RedirectStandardOutput/-RedirectStandardError,
+  # Start-Process disables UseShellExecute and the child INHERITS this shell's console.
+  # When the launcher console is destroyed the child gets CTRL_CLOSE_EVENT and dies
+  # silently (killed every instance launched from tool-call shells within ~30s).
+  # Detached recipe: hide the window and do NOT redirect -> the child gets its own
+  # console and survives the launcher. App logs go to <cwd>\logs\app.log (ego style).
+  Start-Process -FilePath $Exe -ArgumentList $ProcArgs -WorkingDirectory $Cwd -WindowStyle Hidden
   $deadline = (Get-Date).AddSeconds(30)
   while ((Test-PortFree $Port) -and (Get-Date) -lt $deadline) { Start-Sleep -Milliseconds 500 }
-  if (Test-PortFree $Port) { warn "$Name did not listen on :$Port within 30s - see $LogBase.err.log" }
+  if (Test-PortFree $Port) { warn "$Name did not listen on :$Port within 30s - see logs under $Cwd" }
   else { ok "$Name listening on :$Port" }
 }
 
@@ -134,10 +139,9 @@ if ($WithCamWeb) {
   if (-not (Test-PortFree 5173)) { warn 'e-cam-web :5173 already running (reusing existing dev server)' }
   else {
     info 'starting e-cam-web vite dev server (:5173)'
-    Start-Process -FilePath 'cmd.exe' -ArgumentList '/c pnpm dev' `
-      -WorkingDirectory (Join-Path $root 'apps\e-cam-web') `
-      -RedirectStandardOutput (Join-Path $bin 'e-cam-web.out.log') `
-      -RedirectStandardError (Join-Path $bin 'e-cam-web.err.log') | Out-Null
+    # detached: hidden window, no stdio redirects (see Start-AppProc longevity note)
+    Start-Process -FilePath 'pnpm.cmd' -ArgumentList 'dev' `
+      -WorkingDirectory (Join-Path $root 'apps\e-cam-web') -WindowStyle Hidden
   }
 } else {
   warn 'e-cam-web not managed by this script; for nginx /cam/ run: cd apps\e-cam-web; pnpm dev (or pass -WithCamWeb)'
