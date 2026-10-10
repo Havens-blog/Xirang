@@ -27,12 +27,18 @@ param(
   [switch]$SkipBackendBuild,
   [switch]$SkipFrontendBuild,
   [switch]$SkipStart,
-  [switch]$WithCamWeb
+  [switch]$WithCamWeb,
+  [switch]$Restart
 )
 
 $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $PSScriptRoot          # repo root
 $bin  = Join-Path $root 'logs\dev\bin'
+
+if ($Restart) {
+  info 'restart mode: stopping mono-managed services first (old-line instances untouched)'
+  & (Join-Path $PSScriptRoot 'dev-down.ps1')
+}
 
 function info($m)  { Write-Host "==> $m" -ForegroundColor Cyan }
 function ok($m)    { Write-Host " OK  $m" -ForegroundColor Green }
