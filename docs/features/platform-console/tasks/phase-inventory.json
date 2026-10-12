@@ -1,7 +1,0 @@
-[
-  {"phase": 1, "name": "Phase 0 盘点与核查", "source": "PRD-explicit", "gates": [{"afterPhase": 1, "description": "parity-checklist.md 逐项 evidence 签收，缺口处置决策完成"}]},
-  {"phase": 2, "name": "M1 脚手架 + 登录/登出/会话 + RC#2", "source": "PRD-explicit", "gates": [{"afterPhase": 2, "description": "登录正/负/边界场景（E1/E2/E8/E9）真实浏览器通过"}]},
-  {"phase": 3, "name": "M2 租户分流 + 工作台 + 应用切换", "source": "PRD-explicit", "gates": [{"afterPhase": 3, "description": "E3/E4/E5 通过；单点跳转与双侧登出（Story 6）通过"}]},
-  {"phase": 4, "name": "M3 身份治理四页（UF-4/5/6/7）", "source": "PRD-explicit", "gates": [{"afterPhase": 4, "description": "CRUD 场景与 E7/E10/E11 通过"}]},
-  {"phase": 5, "name": "M4 权限管理三页（UF-8/9/10）+ RC#1 迁出收尾", "source": "PRD-explicit", "gates": [{"afterPhase": 5, "description": "acceptance.md 全部场景通过；Related Change #1 前置门双签完成"}]}
-]
