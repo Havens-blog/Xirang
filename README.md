@@ -1,4 +1,4 @@
-# Houtu — 运维平台编排仓库（orchestration-only）
+# Xirang — 运维平台编排仓库（orchestration-only）
 
 > 本仓库**只做编排**:负责把平台全部模块从各自独立的代码仓库拉取/构建/运行起来。
 > **应用源代码不在本仓库** —— 各模块代码留在各自原仓库(见下方模块清单),继续在原仓库开发。
@@ -18,7 +18,7 @@
 | eiam(身份认证) | github.com/Havens-blog/e-iam | `D:\Haven\eiam` | :9000 → `/api/iam/*` |
 | e-cam-service(云管后端) | github.com/Havens-blog/e-cam-service | `D:\Haven\e-cam-service` | :8001 → `/api/v1/{cam,cmdb,certs}` |
 | opsagent(运维 Agent 后端) | github.com/Havens-blog/e-ops-agent-web | `D:\Haven\opsagent` | :8081 → `/api/v1/opsagent/` |
-| haven-console(控制台) | github.com/Havens-blog/Houtu | `D:\Haven\haven-console` | `/console/`(静态 dist) |
+| haven-console(控制台) | github.com/Havens-blog/e-console-web | `D:\Haven\haven-console` | `/console/`(静态 dist) |
 | opsagent-web(Agent 前端) | github.com/Havens-blog/e-ops-agent-web | `D:\Haven\opsagent-web` | `/opsagent/`(静态 dist) |
 | e-cam-web(云管前端) | github.com/Havens-blog/e-cam-web | `D:\Haven\e-cam-web` | `/cam/`(vite dev :5173) |
 | 共享库 e-common-go | github.com/Havens-blog/e-common-go | `D:\Haven\e-common-go` | go.work 引用 |
@@ -55,7 +55,7 @@
 ## 目录
 
 ```
-Houtu/
+Xirang/
   scripts/        开发编排脚本(dev-up.ps1 / dev-down.ps1)
   deploy/nginx/   nginx 反代配置副本
   README.md       本清单
